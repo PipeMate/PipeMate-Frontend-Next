@@ -5,9 +5,5 @@ interface MainProps {
 }
 
 export default function Main({ children }: Readonly<MainProps>) {
-  return (
-    <main className="flex flex-1 flex-col justify-center items-center gap-4 p-4">
-      {children}
-    </main>
-  );
+  return <main className="flex flex-1 flex-col min-h-0">{children}</main>;
 }
