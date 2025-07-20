@@ -1,0 +1,253 @@
+/* Blockly 워크스페이스 스타일 */
+.blocklyMainBackground {
+  stroke: #e5e7eb;
+}
+
+.blocklyToolboxDiv {
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  overflow-x: visible;
+  overflow-y: auto;
+  position: absolute;
+  z-index: 70;
+}
+
+.blocklyFlyoutBackground {
+  fill: #f9fafb;
+  fill-opacity: 0.9;
+}
+
+.blocklyScrollbarVertical {
+  fill: #e5e7eb;
+  fill-opacity: 0.8;
+}
+
+.blocklyScrollbarHorizontal {
+  fill: #e5e7eb;
+  fill-opacity: 0.8;
+}
+
+.blocklyDraggable {
+  cursor: grab;
+}
+
+.blocklyDragging {
+  cursor: grabbing;
+}
+
+.blocklyResizeSE {
+  cursor: se-resize;
+}
+
+.blocklyResizeSW {
+  cursor: sw-resize;
+}
+
+.blocklyResizeNE {
+  cursor: ne-resize;
+}
+
+.blocklyResizeNW {
+  cursor: nw-resize;
+}
+
+/* Blockly 블록 스타일 커스터마이징 */
+.blocklyBlock {
+  stroke: #d1d5db;
+  stroke-width: 1px;
+}
+
+.blocklyBlock:hover {
+  stroke: #9ca3af;
+  stroke-width: 2px;
+}
+
+/* 워크플로우 블록 스타일 */
+.blocklyBlock[data-type="workflow_trigger"] {
+  fill: #fef3c7;
+  stroke: #f59e0b;
+}
+
+.blocklyBlock[data-type="job_block"] {
+  fill: #dbeafe;
+  stroke: #3b82f6;
+}
+
+/* 스텝 블록 스타일 */
+.blocklyBlock[data-type*="step"] {
+  fill: #f3f4f6;
+  stroke: #6b7280;
+}
+
+/* 소스 관리 블록 */
+.blocklyBlock[data-type="checkout_step"] {
+  fill: #ecfdf5;
+  stroke: #10b981;
+}
+
+/* 환경 설정 블록 */
+.blocklyBlock[data-type="java_setup_step"] {
+  fill: #fef3c7;
+  stroke: #f59e0b;
+}
+
+/* 빌드 블록 */
+.blocklyBlock[data-type="gradle_build_step"] {
+  fill: #dbeafe;
+  stroke: #3b82f6;
+}
+
+/* 테스트 블록 */
+.blocklyBlock[data-type="gradle_test_step"] {
+  fill: #fce7f3;
+  stroke: #ec4899;
+}
+
+/* Docker 블록 */
+.blocklyBlock[data-type*="docker"] {
+  fill: #e0e7ff;
+  stroke: #6366f1;
+}
+
+/* 배포 블록 */
+.blocklyBlock[data-type="ssh_deploy_step"] {
+  fill: #fef2f2;
+  stroke: #ef4444;
+}
+
+/* Blockly 툴박스 스타일 */
+.blocklyToolboxCategory {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.blocklyToolboxCategory:hover {
+  background-color: #f9fafb;
+}
+
+.blocklyToolboxCategory.blocklyToolboxSelected {
+  background-color: #dbeafe;
+  border-left: 3px solid #3b82f6;
+}
+
+/* Blockly 플라이아웃 스타일 */
+.blocklyFlyout {
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.blocklyFlyoutItem {
+  margin: 4px;
+  border-radius: 4px;
+  transition: transform 0.1s ease;
+}
+
+.blocklyFlyoutItem:hover {
+  transform: scale(1.02);
+}
+
+/* Blockly 워크스페이스 그리드 */
+.blocklyGrid {
+  stroke: #e5e7eb;
+  stroke-width: 0.5px;
+  stroke-opacity: 0.5;
+}
+
+/* Blockly 줌 컨트롤 */
+.blocklyZoom {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.blocklyZoom button {
+  background-color: #ffffff;
+  border: none;
+  border-radius: 2px;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 16px;
+  height: 24px;
+  margin: 1px;
+  padding: 0;
+  width: 24px;
+  transition: background-color 0.2s ease;
+}
+
+.blocklyZoom button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Blockly 스크롤바 커스터마이징 */
+.blocklyScrollbarVertical .blocklyScrollbarHandle {
+  fill: #9ca3af;
+  fill-opacity: 0.8;
+}
+
+.blocklyScrollbarHorizontal .blocklyScrollbarHandle {
+  fill: #9ca3af;
+  fill-opacity: 0.8;
+}
+
+.blocklyScrollbarVertical .blocklyScrollbarHandle:hover,
+.blocklyScrollbarHorizontal .blocklyScrollbarHandle:hover {
+  fill: #6b7280;
+  fill-opacity: 1;
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .blocklyMainBackground {
+    stroke: #374151;
+  }
+
+  .blocklyToolboxDiv {
+    background-color: #1f2937;
+    border-right: 1px solid #374151;
+  }
+
+  .blocklyFlyoutBackground {
+    fill: #1f2937;
+    fill-opacity: 0.95;
+  }
+
+  .blocklyToolboxCategory {
+    background-color: #111827;
+    border-bottom: 1px solid #374151;
+    color: #f9fafb;
+  }
+
+  .blocklyToolboxCategory:hover {
+    background-color: #374151;
+  }
+
+  .blocklyToolboxCategory.blocklyToolboxSelected {
+    background-color: #1e40af;
+    border-left: 3px solid #60a5fa;
+  }
+
+  .blocklyFlyout {
+    background-color: #1f2937;
+    border-right: 1px solid #374151;
+  }
+
+  .blocklyZoom {
+    background-color: #111827;
+    border: 1px solid #374151;
+  }
+
+  .blocklyZoom button {
+    background-color: #111827;
+    color: #9ca3af;
+  }
+
+  .blocklyZoom button:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+}
