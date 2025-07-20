@@ -8,6 +8,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { ReactFlowWorkspace } from "./components/ReactFlowWorkspace";
+import { YamlPreviewPanel } from "./components/YamlPreviewPanel";
 import { ServerBlock } from "./types";
 
 //* ========================================
@@ -22,6 +23,9 @@ export default function GitHubActionsFlowPage() {
 
   //* 워크플로우 블록 데이터
   const [blocks, setBlocks] = useState<ServerBlock[]>([]);
+
+  //* 선택된 노드 정보
+  const [selectedBlock, setSelectedBlock] = useState<ServerBlock | undefined>();
 
   //* 클라이언트 사이드 렌더링 확인
   const [isClient, setIsClient] = useState(false);
@@ -51,6 +55,13 @@ export default function GitHubActionsFlowPage() {
     } catch (error) {
       console.error("워크플로우 처리 오류:", error);
     }
+  }, []);
+
+  //* 노드 선택 핸들러
+  //? React Flow 워크스페이스에서 노드가 선택될 때 호출
+  const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
+    console.log("노드 선택됨:", selectedBlock);
+    setSelectedBlock(selectedBlock);
   }, []);
 
   //* ========================================
@@ -170,9 +181,13 @@ export default function GitHubActionsFlowPage() {
         >
           <ReactFlowWorkspace
             onWorkflowChange={handleWorkflowChange}
+            onNodeSelect={handleNodeSelect}
             initialBlocks={blocks}
           />
         </Suspense>
+
+        {/* YAML 미리보기 패널 */}
+        <YamlPreviewPanel blocks={blocks} selectedBlock={selectedBlock} />
       </div>
 
       {/* ========================================

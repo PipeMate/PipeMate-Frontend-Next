@@ -27,7 +27,7 @@ import { ReactFlowWorkspaceProps, ServerBlock } from "../types";
 import { WorkflowTriggerNode } from "./nodes/WorkflowTriggerNode";
 import { JobNode } from "./nodes/JobNode";
 import { StepNode } from "./nodes/StepNode";
-import { YamlPreviewPanel } from "./YamlPreviewPanel";
+import { DragDropSidebar } from "./DragDropSidebar";
 import {
   INITIAL_NODES,
   INITIAL_EDGES,
@@ -49,7 +49,10 @@ type UpdateNodeDataFunction = (
   nodeId: string,
   newData: Record<string, unknown>
 ) => void;
+
+type DeleteNodeFunction = (nodeId: string) => void;
 const NodeUpdateContext = createContext<UpdateNodeDataFunction | null>(null);
+const NodeDeleteContext = createContext<DeleteNodeFunction | null>(null);
 
 //* Context 사용 훅
 export const useNodeUpdate = () => {
@@ -60,10 +63,19 @@ export const useNodeUpdate = () => {
   return updateNodeData;
 };
 
+export const useNodeDelete = () => {
+  const deleteNode = useContext(NodeDeleteContext);
+  if (!deleteNode) {
+    throw new Error("useNodeDelete must be used within ReactFlowWorkspace");
+  }
+  return deleteNode;
+};
+
 //! Hydration 오류 방지를 위한 클라이언트 사이드 렌더링
 export const ReactFlowWorkspace = ({
   onWorkflowChange,
   initialBlocks,
+  onNodeSelect,
 }: ReactFlowWorkspaceProps) => {
   const [isClient, setIsClient] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -101,11 +113,6 @@ export const ReactFlowWorkspace = ({
     [setEdges]
   );
 
-  //* 노드 선택 핸들러
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-  }, []);
-
   //* 노드 데이터 업데이트 함수
   const updateNodeData = useCallback(
     (nodeId: string, newData: Record<string, unknown>) => {
@@ -125,6 +132,268 @@ export const ReactFlowWorkspace = ({
       );
     },
     [setNodes]
+  );
+
+  //* 드래그 오버 핸들러
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  //* 드롭 핸들러
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const reactFlowBounds = document
+        .querySelector(".react-flow")
+        ?.getBoundingClientRect();
+      const data = event.dataTransfer.getData("application/reactflow");
+
+      if (data && reactFlowBounds) {
+        try {
+          const block: ServerBlock = JSON.parse(data as string);
+          console.log("Dropped block:", block);
+
+          const position = {
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          };
+
+          //* 기존 노드들의 ID를 확인해서 중복되지 않는 고유한 ID 생성
+          const getUniqueId = (prefix: string) => {
+            const existingIds = nodes.map((n) => n.id);
+            let counter = 1;
+            let newId = `${prefix}-${counter}`;
+            while (existingIds.includes(newId)) {
+              counter++;
+              newId = `${prefix}-${counter}`;
+            }
+            return newId;
+          };
+
+          //* 블록 타입에 따라 노드 생성
+          let newNode: Node;
+
+          if (block.type === "trigger") {
+            newNode = {
+              id: getUniqueId("trigger"),
+              type: "workflowTrigger",
+              position: {
+                x: position.x,
+                y: position.y,
+              },
+              data: {
+                label: block.name,
+                type: "workflow_trigger",
+                category: block.category,
+                description: block.description,
+                config: block.config,
+              },
+            };
+          } else if (block.type === "job") {
+            newNode = {
+              id: getUniqueId("job"),
+              type: "job",
+              position: {
+                x: position.x,
+                y: position.y,
+              },
+              draggable: true,
+              data: {
+                label: block.name,
+                type: "job",
+                category: block.category,
+                description: block.description,
+                config: block.config,
+              },
+            };
+          } else if (block.type === "step") {
+            //* 가장 가까운 Job 찾기
+            const targetJob = nodes.find((node) => node.data.type === "job");
+
+            if (targetJob) {
+              //* job-name을 실제 Job의 이름으로 설정
+              const actualJobName = Object.keys(
+                targetJob.data.config?.jobs || {}
+              )[0];
+
+              const stepIndex = nodes.filter(
+                (n) => n.parentNode === targetJob.id
+              ).length;
+              newNode = {
+                id: getUniqueId("step"),
+                type: "step",
+                position: {
+                  x: 8,
+                  y: 58 + stepIndex * 52, // Job 헤더(50px) + 여백(8px) + Step 간격(52px)
+                },
+                parentNode: targetJob.id,
+                data: {
+                  label: block.name,
+                  type: "step",
+                  category: block.category,
+                  description: block.description,
+                  config: block.config,
+                  parentId: targetJob.id,
+                  jobName: actualJobName || "",
+                },
+              };
+
+              //* Job 노드의 크기를 Step 개수에 맞게 조정
+              const stepCount = stepIndex + 1;
+              const jobHeaderHeight = 50;
+              const stepHeight = 40;
+              const stepMargin = 12;
+              const jobBottomMargin = 16;
+              const jobHeight = Math.max(
+                100,
+                jobHeaderHeight +
+                  stepCount * (stepHeight + stepMargin) +
+                  jobBottomMargin
+              );
+
+              updateNodeData(targetJob.id, {
+                stepCount: stepCount,
+                height: jobHeight,
+              });
+
+              console.log(`Step assigned to job: ${actualJobName}`);
+            } else {
+              console.log(
+                "No job found - Step will be placed at regular position"
+              );
+              alert("Job이 필요합니다. 먼저 Job 블록을 추가해주세요.");
+              return;
+            }
+          } else {
+            console.log("Unknown block type:", block.type);
+            return;
+          }
+
+          console.log("Created node:", newNode);
+          setNodes((nds) => [...nds, newNode]);
+
+          //* 드래그 드롭 시 자동 연결 로직
+          if (block.type === "job") {
+            //* Job을 추가할 때 첫 번째 트리거와 연결
+            const firstTrigger = nodes.find(
+              (n) => n.data.type === "workflow_trigger"
+            );
+            if (firstTrigger) {
+              const newEdgeId = `trigger-to-job-${newNode.id}`;
+
+              //* 중복 엣지 확인
+              const existingEdge = edges.find(
+                (e) => e.source === firstTrigger.id && e.target === newNode.id
+              );
+
+              if (!existingEdge) {
+                const newEdge = {
+                  id: newEdgeId,
+                  source: firstTrigger.id,
+                  target: newNode.id,
+                  type: "smoothstep",
+                };
+
+                setEdges((eds) => [...eds, newEdge]);
+                console.log("Auto-connected job to trigger:", newEdge);
+              } else {
+                console.log("Edge already exists, skipping:", newEdgeId);
+              }
+            }
+          } else if (block.type === "step") {
+            //* Step을 추가할 때 Job과 연결하고, 이전 Step과도 연결
+            const targetJob = nodes.find((node) => node.data.type === "job");
+
+            if (targetJob) {
+              //* 같은 Job의 다른 Step들 찾기
+              const jobSteps = nodes.filter(
+                (n) => n.parentNode === targetJob.id && n.data.type === "step"
+              );
+
+              //* Job과 Step 연결
+              const jobToStepEdgeId = `job-to-step-${newNode.id}`;
+              const existingJobEdge = edges.find(
+                (e) => e.source === targetJob.id && e.target === newNode.id
+              );
+
+              if (!existingJobEdge) {
+                const jobToStepEdge = {
+                  id: jobToStepEdgeId,
+                  source: targetJob.id,
+                  target: newNode.id,
+                  type: "smoothstep",
+                };
+                setEdges((eds) => [...eds, jobToStepEdge]);
+                console.log("Connected job to step:", jobToStepEdge);
+              }
+
+              //* 이전 Step과 현재 Step 연결 (순차적 실행)
+              if (jobSteps.length > 0) {
+                const previousStep = jobSteps[jobSteps.length - 1];
+                const stepToStepEdgeId = `step-to-step-${previousStep.id}-${newNode.id}`;
+                const existingStepEdge = edges.find(
+                  (e) => e.source === previousStep.id && e.target === newNode.id
+                );
+
+                if (!existingStepEdge) {
+                  const stepToStepEdge = {
+                    id: stepToStepEdgeId,
+                    source: previousStep.id,
+                    target: newNode.id,
+                    type: "smoothstep",
+                  };
+                  setEdges((eds) => [...eds, stepToStepEdge]);
+                  console.log("Connected step to step:", stepToStepEdge);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("드롭 처리 오류:", error);
+        }
+      } else {
+        console.log("No data or bounds available");
+      }
+    },
+    [nodes, setNodes, setEdges, updateNodeData]
+  );
+
+  //* 노드 선택 핸들러
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      setSelectedNode(node);
+
+      // 선택된 노드를 ServerBlock 형식으로 변환하여 콜백 호출
+      if (onNodeSelect) {
+        const selectedBlock: ServerBlock = {
+          name: node.data.label,
+          type:
+            node.data.type === "workflow_trigger" ? "trigger" : node.data.type,
+          category: node.data.category,
+          description: node.data.description,
+          "job-name": node.data.jobName,
+          config: node.data.config,
+        };
+        onNodeSelect(selectedBlock);
+      }
+    },
+    [onNodeSelect]
+  );
+
+  //* 노드 삭제 함수
+  const onNodeDelete = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
+      );
+      if (selectedNode?.id === nodeId) {
+        setSelectedNode(null);
+      }
+    },
+    [setNodes, setEdges, selectedNode]
   );
 
   //* 워크스페이스 초기화
@@ -298,21 +567,6 @@ export const ReactFlowWorkspace = ({
     }
   }, [nodes, edges, onWorkflowChange]);
 
-  //* 선택된 노드를 서버 블록으로 변환
-  const selectedBlock = selectedNode
-    ? ({
-        name: selectedNode.data.label,
-        type:
-          selectedNode.data.type === "workflow_trigger"
-            ? "trigger"
-            : selectedNode.data.type,
-        category: selectedNode.data.category,
-        description: selectedNode.data.description,
-        "job-name": selectedNode.data.jobName,
-        config: selectedNode.data.config,
-      } as ServerBlock)
-    : undefined;
-
   //* 클라이언트 사이드에서만 렌더링
   if (!isClient) {
     return (
@@ -333,165 +587,166 @@ export const ReactFlowWorkspace = ({
 
   return (
     <NodeUpdateContext.Provider value={updateNodeData}>
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      >
-        {/* React Flow 영역 */}
+      <NodeDeleteContext.Provider value={onNodeDelete}>
         <div
           style={{
             flex: 1,
-            position: "relative",
+            display: "flex",
             minWidth: 0,
             minHeight: 0,
             overflow: "hidden",
           }}
         >
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            fitView
-            attributionPosition="bottom-left"
+          {/* 드래그 앤 드롭 사이드바 */}
+          <DragDropSidebar />
+
+          {/* React Flow 영역 */}
+          <div
             style={{
-              backgroundColor: "#f9fafb",
+              flex: 1,
+              position: "relative",
+              minWidth: 0,
+              minHeight: 0,
+              overflow: "hidden",
             }}
-            //* 드래그 앤 드롭 설정
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            //* 선택 설정
-            multiSelectionKeyCode="Shift"
-            deleteKeyCode="Delete"
-            //* 줌 설정
-            minZoom={0.1}
-            maxZoom={4}
           >
-            <Background color="#e5e7eb" gap={20} />
-            <Controls />
-            <MiniMap
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onNodeClick={onNodeClick}
+              nodeTypes={nodeTypes}
+              fitView
+              attributionPosition="bottom-left"
               style={{
-                backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                backgroundColor: "#f9fafb",
               }}
-              nodeColor="#3b82f6"
-            />
-
-            {/* 상단 컨트롤 패널 */}
-            <Panel position="top-right">
-              <div
+              //* 드래그 앤 드롭 설정
+              snapToGrid={true}
+              snapGrid={[15, 15]}
+              //* 선택 설정
+              multiSelectionKeyCode="Shift"
+              deleteKeyCode="Delete"
+              //* 줌 설정
+              minZoom={0.1}
+              maxZoom={4}
+            >
+              <Background color="#e5e7eb" gap={20} />
+              <Controls />
+              <MiniMap
                 style={{
-                  display: "flex",
-                  gap: "8px",
-                  padding: "8px",
                   backgroundColor: "#ffffff",
                   border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                  flexWrap: "wrap",
                 }}
-              >
-                <button
-                  onClick={saveWorkflow}
-                  style={{
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    backgroundColor: "#10b981",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                    fontWeight: "600",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = "#059669";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "#10b981";
-                  }}
-                >
-                  💾 저장
-                </button>
-                <button
-                  onClick={addExampleWorkflow}
-                  style={{
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    backgroundColor: "#3b82f6",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = "#2563eb";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "#3b82f6";
-                  }}
-                >
-                  📋 예제 추가
-                </button>
-                <button
-                  onClick={clearWorkspace}
-                  style={{
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    backgroundColor: "#ef4444",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = "#dc2626";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "#ef4444";
-                  }}
-                >
-                  🗑️ 초기화
-                </button>
-              </div>
-            </Panel>
+                nodeColor="#3b82f6"
+              />
 
-            {/* 하단 정보 패널 */}
-            <Panel position="bottom-left">
-              <div
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                  fontSize: "12px",
-                  color: "#6b7280",
-                }}
-              >
-                💡 <strong>사용법:</strong> 노드를 클릭하여 YAML을 확인하고, 💾
-                저장 버튼을 눌러 서버 데이터를 확인하세요.
-              </div>
-            </Panel>
-          </ReactFlow>
+              {/* 상단 컨트롤 패널 */}
+              <Panel position="top-right">
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    padding: "8px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "4px",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    onClick={saveWorkflow}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      backgroundColor: "#10b981",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s",
+                      fontWeight: "600",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#059669";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "#10b981";
+                    }}
+                  >
+                    💾 저장
+                  </button>
+                  <button
+                    onClick={addExampleWorkflow}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      backgroundColor: "#3b82f6",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#2563eb";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "#3b82f6";
+                    }}
+                  >
+                    📋 예제 추가
+                  </button>
+                  <button
+                    onClick={clearWorkspace}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      backgroundColor: "#ef4444",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#dc2626";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "#ef4444";
+                    }}
+                  >
+                    🗑️ 초기화
+                  </button>
+                </div>
+              </Panel>
+
+              {/* 하단 정보 패널 */}
+              <Panel position="bottom-left">
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "4px",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    fontSize: "12px",
+                    color: "#6b7280",
+                  }}
+                >
+                  💡 <strong>사용법:</strong> 노드를 클릭하여 YAML을 확인하고,
+                  💾 저장 버튼을 눌러 서버 데이터를 확인하세요.
+                </div>
+              </Panel>
+            </ReactFlow>
+          </div>
         </div>
-
-        {/* YAML 미리보기 패널 */}
-        <YamlPreviewPanel
-          blocks={convertNodesToServerBlocks(nodes)}
-          selectedBlock={selectedBlock}
-        />
-      </div>
+      </NodeDeleteContext.Provider>
     </NodeUpdateContext.Provider>
   );
 };

@@ -176,66 +176,8 @@ export const NODE_TEMPLATES = {
 //* ========================================
 
 //* 워크스페이스 초기화 시 기본으로 생성되는 노드들
-//! 사용자가 처음 접속했을 때 보게 될 기본 워크플로우
-export const INITIAL_NODES: Node[] = [
-  {
-    id: "trigger-1",
-    type: NODE_TYPES.WORKFLOW_TRIGGER,
-    position: { x: 100, y: 100 },
-    data: {
-      label: "워크플로우 기본 설정",
-      type: "workflow_trigger",
-      category: "workflow",
-      description:
-        "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
-      config: {
-        name: "Java CICD",
-        on: {
-          workflow_dispatch: {},
-          push: {
-            branches: ["main"],
-          },
-        },
-      },
-    },
-  },
-  {
-    id: "job-1",
-    type: NODE_TYPES.JOB,
-    position: { x: 100, y: 250 },
-    data: {
-      label: "Job 설정",
-      type: "job",
-      category: "workflow",
-      description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
-      config: {
-        jobs: {
-          "ci-pipeline": {
-            "runs-on": "ubuntu-latest",
-          },
-        },
-      },
-    },
-  },
-  {
-    id: "step-1",
-    type: NODE_TYPES.STEP,
-    position: { x: 50, y: 350 },
-    parentNode: "job-1",
-    data: {
-      label: "Checkout repository",
-      type: "step",
-      category: "workflow",
-      description: "GitHub 저장소를 체크아웃하는 단계입니다.",
-      config: {
-        name: "Checkout repository",
-        uses: "actions/checkout@v4",
-      },
-      parentId: "job-1",
-      jobName: "ci-pipeline",
-    },
-  },
-];
+//! 사용자가 처음 접속했을 때 보게 될 기본 워크플로우 (빈 상태)
+export const INITIAL_NODES: Node[] = [];
 
 //* 초기 노드 간 연결 관계
 export const INITIAL_EDGES: Edge[] = [
@@ -243,7 +185,10 @@ export const INITIAL_EDGES: Edge[] = [
     id: "trigger-to-job",
     source: "trigger-1",
     target: "job-1",
-    type: "smoothstep",
+    type: "puzzle",
+    data: {
+      label: "워크플로우 → Job",
+    },
   },
 ];
 

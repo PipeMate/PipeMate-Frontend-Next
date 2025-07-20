@@ -77,6 +77,7 @@ export interface WorkflowNodeData {
 export interface ReactFlowWorkspaceProps {
   onWorkflowChange: (blocks: ServerBlock[]) => void; //* 워크플로우 변경 콜백
   initialBlocks?: ServerBlock[]; //* 초기 블록 데이터
+  onNodeSelect?: (selectedBlock?: ServerBlock) => void; //* 노드 선택 콜백
 }
 
 //* ========================================

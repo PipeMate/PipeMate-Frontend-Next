@@ -24,12 +24,12 @@ export const convertServerBlocksToNodes = (
   //* ========================================
   //* 트리거 블록 처리
   //* ========================================
-  const triggerBlock = blocks.find((block) => block.type === "trigger");
-  if (triggerBlock) {
+  const triggerBlocks = blocks.filter((block) => block.type === "trigger");
+  triggerBlocks.forEach((triggerBlock, index) => {
     const triggerNode: Node = {
       id: `trigger-${nodeIdCounter++}`,
       type: "workflowTrigger",
-      position: { x: 100, y: 100 },
+      position: { x: 200 + index * 300, y: 50 }, // 트리거들을 가로로 배치
       data: {
         label: triggerBlock.name,
         type: "workflow_trigger",
@@ -39,7 +39,7 @@ export const convertServerBlocksToNodes = (
       },
     };
     nodes.push(triggerNode);
-  }
+  });
 
   //* ========================================
   //* Job 블록들 처리
@@ -49,7 +49,7 @@ export const convertServerBlocksToNodes = (
     const jobNode: Node = {
       id: `job-${nodeIdCounter++}`,
       type: "job",
-      position: { x: 100, y: 250 + index * 150 },
+      position: { x: 100, y: 200 + index * 300 }, // Job들을 세로로 배치
       data: {
         label: jobBlock.name,
         type: "job",
@@ -60,14 +60,20 @@ export const convertServerBlocksToNodes = (
     };
     nodes.push(jobNode);
 
-    //* 트리거에서 Job으로 연결
-    if (triggerBlock) {
-      edges.push({
-        id: `trigger-to-job-${jobNode.id}`,
-        source: nodes[0].id, // 트리거 노드
-        target: jobNode.id,
-        type: "smoothstep",
-      });
+    //* 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
+    //* 단, 여러 블록을 한 번에 처리할 때만 연결 (드래그 드롭 시에는 제외)
+    if (blocks.length > 1) {
+      const firstTrigger = nodes.find(
+        (node) => node.data.type === "workflow_trigger"
+      );
+      if (firstTrigger) {
+        edges.push({
+          id: `trigger-to-job-${jobNode.id}`,
+          source: firstTrigger.id, // 첫 번째 트리거 노드
+          target: jobNode.id,
+          type: "smoothstep",
+        });
+      }
     }
   });
 
@@ -75,20 +81,33 @@ export const convertServerBlocksToNodes = (
   //* Step 블록들 처리
   //* ========================================
   const stepBlocks = blocks.filter((block) => block.type === "step");
+  const jobStepMap = new Map<string, Node[]>(); // Job별 Step 노드들을 추적
+
   stepBlocks.forEach((stepBlock, index) => {
-    //* Step이 속할 Job 찾기
-    const parentJob = nodes.find(
-      (node) =>
-        node.data.type === "job" &&
-        node.data.config?.jobs &&
-        Object.keys(node.data.config.jobs).includes(stepBlock["job-name"] || "")
-    );
+    //* Step이 속할 Job 찾기 (job-name이 비어있으면 첫 번째 Job 사용)
+    let parentJob = null;
+
+    if (stepBlock["job-name"] && stepBlock["job-name"].trim() !== "") {
+      //* 특정 job-name으로 Job 찾기
+      const jobName = stepBlock["job-name"];
+      parentJob = nodes.find(
+        (node) =>
+          node.data.type === "job" &&
+          node.data.config?.jobs &&
+          Object.keys(node.data.config.jobs).includes(jobName)
+      );
+    }
+
+    //* job-name이 비어있거나 Job을 찾지 못했으면 첫 번째 Job 사용
+    if (!parentJob) {
+      parentJob = nodes.find((node) => node.data.type === "job");
+    }
 
     if (parentJob) {
       const stepNode: Node = {
         id: `step-${nodeIdCounter++}`,
         type: "step",
-        position: { x: 50, y: 350 + index * 80 },
+        position: { x: 20, y: 60 + index * 80 }, // Job 내부에서 세로로 배치
         parentNode: parentJob.id,
         data: {
           label: stepBlock.name,
@@ -97,10 +116,58 @@ export const convertServerBlocksToNodes = (
           description: stepBlock.description,
           config: stepBlock.config,
           parentId: parentJob.id,
-          jobName: stepBlock["job-name"],
+          jobName:
+            stepBlock["job-name"] ||
+            Object.keys(parentJob.data.config?.jobs || {})[0] ||
+            "",
         },
       };
       nodes.push(stepNode);
+
+      //* Job별 Step 노드들을 추적
+      if (!jobStepMap.has(parentJob.id)) {
+        jobStepMap.set(parentJob.id, []);
+      }
+      jobStepMap.get(parentJob.id)!.push(stepNode);
+
+      //* Job과 Step 연결
+      edges.push({
+        id: `job-to-step-${stepNode.id}`,
+        source: parentJob.id,
+        target: stepNode.id,
+        type: "smoothstep",
+      });
+    } else {
+      //* Job이 없어도 Step 노드 생성 (드롭 핸들러에서 처리)
+      const stepNode: Node = {
+        id: `step-${nodeIdCounter++}`,
+        type: "step",
+        position: { x: 20, y: 60 + index * 80 },
+        data: {
+          label: stepBlock.name,
+          type: "step",
+          category: stepBlock.category,
+          description: stepBlock.description,
+          config: stepBlock.config,
+          jobName: stepBlock["job-name"] || "",
+        },
+      };
+      nodes.push(stepNode);
+    }
+  });
+
+  //* Step과 Step 간 연결 (순차적 실행)
+  jobStepMap.forEach((jobSteps) => {
+    for (let i = 0; i < jobSteps.length - 1; i++) {
+      const currentStep = jobSteps[i];
+      const nextStep = jobSteps[i + 1];
+
+      edges.push({
+        id: `step-to-step-${currentStep.id}-${nextStep.id}`,
+        source: currentStep.id,
+        target: nextStep.id,
+        type: "smoothstep",
+      });
     }
   });
 
@@ -111,13 +178,61 @@ export const convertServerBlocksToNodes = (
 //* React Flow → 서버 변환
 //* ========================================
 
-//* React Flow 노드를 서버 블록으로 변환
+//* React Flow 노드를 서버 블록으로 변환 (연결 관계 고려)
 //? React Flow의 노드 배열을 서버로 보낼 수 있는 블록 배열로 변환
-export const convertNodesToServerBlocks = (nodes: Node[]): ServerBlock[] => {
+export const convertNodesToServerBlocks = (
+  nodes: Node[],
+  edges?: Edge[]
+): ServerBlock[] => {
   const blocks: ServerBlock[] = [];
+  const processedNodes = new Set<string>();
 
-  nodes.forEach((node) => {
+  //* 노드 연결 관계를 기반으로 순서 결정
+  const getNodeOrder = (): string[] => {
+    const order: string[] = [];
+    const visited = new Set<string>();
+
+    //* 워크플로우 트리거 노드부터 시작
+    const triggerNodes = nodes.filter(
+      (node) => (node.data as WorkflowNodeData).type === "workflow_trigger"
+    );
+
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      order.push(nodeId);
+
+      //* 연결된 자식 노드들 처리 (edges에서 추출)
+      if (edges) {
+        const children = edges
+          .filter((edge) => edge.source === nodeId)
+          .map((edge) => edge.target);
+        children.forEach((childId) => traverse(childId));
+      }
+    };
+
+    //* 각 트리거 노드부터 순회
+    triggerNodes.forEach((triggerNode) => traverse(triggerNode.id));
+
+    //* 연결되지 않은 노드들 추가
+    nodes.forEach((node) => {
+      if (!visited.has(node.id)) {
+        order.push(node.id);
+      }
+    });
+
+    return order;
+  };
+
+  //* 순서대로 노드 처리
+  const nodeOrder = getNodeOrder();
+
+  nodeOrder.forEach((nodeId) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node || processedNodes.has(nodeId)) return;
+
     const nodeData = node.data as WorkflowNodeData;
+    processedNodes.add(nodeId);
 
     //* 노드 타입에 따른 블록 생성
     if (nodeData.type === "workflow_trigger") {

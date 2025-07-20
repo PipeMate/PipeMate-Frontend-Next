@@ -3,10 +3,12 @@
 
 import { memo, useCallback, useState } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
-import { useNodeUpdate } from "../ReactFlowWorkspace";
+import { useNodeUpdate, useNodeDelete } from "../ReactFlowWorkspace";
 
 export const WorkflowTriggerNode = memo(({ data, id }: NodeProps) => {
   const updateNodeData = useNodeUpdate();
+  const deleteNode = useNodeDelete();
+  const [isEditing, setIsEditing] = useState(false);
   const [showAddConfig, setShowAddConfig] = useState(false);
   const [newConfigKey, setNewConfigKey] = useState("");
   const [newConfigValue, setNewConfigValue] = useState("");
@@ -104,285 +106,218 @@ export const WorkflowTriggerNode = memo(({ data, id }: NodeProps) => {
   );
 
   const currentOn = data.config.on || {};
+  const activeTriggers = Object.keys(currentOn);
 
   return (
-    <div
-      style={{
-        padding: "16px",
-        backgroundColor: "#fef3c7",
-        border: "2px solid #f59e0b",
-        borderRadius: "8px",
-        minWidth: "250px",
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-      }}
-    >
+    <div className="reactflow-node workflow-trigger">
       {/* 소스 핸들 - 다른 노드로 연결 가능 */}
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{
-          background: "#f59e0b",
-          width: "8px",
-          height: "8px",
-        }}
+        className="reactflow-handle"
       />
 
-      {/* 노드 헤더 */}
+      {/* 노드 내부 컨텐츠 */}
       <div
-        style={{
-          fontSize: "14px",
-          fontWeight: "600",
-          color: "#92400e",
-          marginBottom: "12px",
-          textAlign: "center",
+        className="node-content"
+        onClick={() => {
+          // 편집 모드가 아닐 때만 편집 모드로 전환
+          if (!isEditing) {
+            setIsEditing(true);
+          }
         }}
       >
-        🔄 워크플로우 기본 설정
-      </div>
-
-      {/* 워크플로우 이름 설정 */}
-      <div style={{ marginBottom: "8px" }}>
-        <label
-          htmlFor={`workflow-name-${id}`}
-          style={{
-            fontSize: "12px",
-            color: "#92400e",
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
-          워크플로우 이름:
-        </label>
-        <input
-          id={`workflow-name-${id}`}
-          type="text"
-          value={data.config?.name || "Java CICD"}
-          onChange={onWorkflowNameChange}
-          className="nodrag"
-          style={{
-            width: "100%",
-            padding: "4px 8px",
-            fontSize: "12px",
-            border: "1px solid #f59e0b",
-            borderRadius: "4px",
-            backgroundColor: "#ffffff",
-            color: "#92400e",
-          }}
-          placeholder="Java CICD"
-        />
-      </div>
-
-      {/* 트리거 타입 설정 */}
-      <div style={{ marginBottom: "8px" }}>
-        <label
-          style={{
-            fontSize: "12px",
-            color: "#92400e",
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
-          트리거 타입:
-        </label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-          {["push", "pull_request", "schedule", "workflow_dispatch"].map(
-            (trigger) => (
+        {!isEditing ? (
+          //* 기본 보기 모드
+          <div className="node-view-mode">
+            <div className="node-header">
+              <span className="node-icon">🔄</span>
+              <span className="node-title">워크플로우 트리거</span>
               <button
-                key={trigger}
-                onClick={() => onTriggerToggle(trigger)}
-                style={{
-                  padding: "4px 8px",
-                  fontSize: "10px",
-                  backgroundColor: currentOn[trigger] ? "#f59e0b" : "#ffffff",
-                  color: currentOn[trigger] ? "#ffffff" : "#92400e",
-                  border: "1px solid #f59e0b",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteNode(id);
                 }}
-              >
-                {trigger}
-              </button>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* 브랜치 설정 (push 또는 pull_request가 활성화된 경우) */}
-      {(currentOn.push || currentOn.pull_request) && (
-        <div style={{ marginBottom: "8px" }}>
-          <label
-            htmlFor={`branch-${id}`}
-            style={{
-              fontSize: "12px",
-              color: "#92400e",
-              display: "block",
-              marginBottom: "4px",
-            }}
-          >
-            브랜치:
-          </label>
-          <input
-            id={`branch-${id}`}
-            type="text"
-            value={
-              currentOn.push?.branches?.[0] ||
-              currentOn.pull_request?.branches?.[0] ||
-              "main"
-            }
-            onChange={onBranchChange}
-            className="nodrag"
-            style={{
-              width: "100%",
-              padding: "4px 8px",
-              fontSize: "12px",
-              border: "1px solid #f59e0b",
-              borderRadius: "4px",
-              backgroundColor: "#ffffff",
-              color: "#92400e",
-            }}
-            placeholder="main"
-          />
-        </div>
-      )}
-
-      {/* 추가 설정들 */}
-      {Object.entries(data.config || {}).map(([key, value]) => {
-        if (key !== "name" && key !== "on") {
-          return (
-            <div
-              key={key}
-              style={{
-                marginBottom: "4px",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <span style={{ fontSize: "10px", color: "#92400e", flex: 1 }}>
-                {key}: {String(value)}
-              </span>
-              <button
-                onClick={() => onRemoveConfig(key)}
-                style={{
-                  padding: "2px 4px",
-                  fontSize: "8px",
-                  backgroundColor: "#ef4444",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "2px",
-                  cursor: "pointer",
-                }}
+                className="delete-node-btn"
+                title="노드 삭제"
               >
                 ×
               </button>
             </div>
-          );
-        }
-        return null;
-      })}
 
-      {/* 설정 추가 버튼 */}
-      <div style={{ marginTop: "8px" }}>
-        {!showAddConfig ? (
-          <button
-            onClick={() => setShowAddConfig(true)}
-            style={{
-              width: "100%",
-              padding: "4px 8px",
-              fontSize: "10px",
-              backgroundColor: "#10b981",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            ➕ 설정 추가
-          </button>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <input
-              type="text"
-              placeholder="키"
-              value={newConfigKey}
-              onChange={(e) => setNewConfigKey(e.target.value)}
-              className="nodrag"
-              style={{
-                padding: "2px 4px",
-                fontSize: "10px",
-                border: "1px solid #f59e0b",
-                borderRadius: "2px",
-              }}
-            />
-            <input
-              type="text"
-              placeholder="값"
-              value={newConfigValue}
-              onChange={(e) => setNewConfigValue(e.target.value)}
-              className="nodrag"
-              style={{
-                padding: "2px 4px",
-                fontSize: "10px",
-                border: "1px solid #f59e0b",
-                borderRadius: "2px",
-              }}
-            />
-            <div style={{ display: "flex", gap: "4px" }}>
-              <button
-                onClick={onAddConfig}
-                style={{
-                  flex: 1,
-                  padding: "2px 4px",
-                  fontSize: "10px",
-                  backgroundColor: "#10b981",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "2px",
-                  cursor: "pointer",
-                }}
-              >
-                추가
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddConfig(false);
-                  setNewConfigKey("");
-                  setNewConfigValue("");
-                }}
-                style={{
-                  flex: 1,
-                  padding: "2px 4px",
-                  fontSize: "10px",
-                  backgroundColor: "#6b7280",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "2px",
-                  cursor: "pointer",
-                }}
-              >
-                취소
-              </button>
+            <div className="node-info">
+              <div className="info-text">
+                Workflow{" "}
+                <span className="highlight">
+                  {data.config?.name || "My Workflow"}
+                </span>
+                triggers on{" "}
+                <span className="highlight">
+                  {activeTriggers.length > 0
+                    ? activeTriggers.join(", ")
+                    : "manual"}
+                </span>
+                {(currentOn.push || currentOn.pull_request) && (
+                  <>
+                    {" "}
+                    for branch{" "}
+                    <span className="highlight">
+                      {currentOn.push?.branches?.[0] ||
+                        currentOn.pull_request?.branches?.[0] ||
+                        "main"}
+                    </span>
+                  </>
+                )}
+                .
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        ) : (
+          //* 편집 모드
+          <div className="node-edit-mode">
+            <div className="node-header">
+              <span className="node-icon">🔄</span>
+              <span className="node-title">워크플로우 트리거</span>
+              <div className="header-buttons">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(false);
+                  }}
+                  className="save-btn"
+                  title="저장"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteNode(id);
+                  }}
+                  className="delete-node-btn"
+                  title="노드 삭제"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
 
-      {/* 현재 설정 표시 */}
-      <div
-        style={{
-          fontSize: "10px",
-          color: "#92400e",
-          opacity: 0.7,
-          textAlign: "center",
-          marginTop: "8px",
-          padding: "4px",
-          backgroundColor: "#fef3c7",
-          borderRadius: "4px",
-        }}
-      >
-        {data.config?.name || "Java CICD"} |{" "}
-        {Object.keys(currentOn).join(", ") || "수동"}
+            {/* 워크플로우 이름 설정 */}
+            <div className="node-field">
+              <label htmlFor={`workflow-name-${id}`} className="field-label">
+                워크플로우 이름:
+              </label>
+              <input
+                id={`workflow-name-${id}`}
+                type="text"
+                value={data.config?.name || "My Workflow"}
+                onChange={onWorkflowNameChange}
+                className="nodrag field-input"
+                placeholder="My Workflow"
+              />
+            </div>
+
+            {/* 트리거 타입 설정 */}
+            <div className="node-field">
+              <label className="field-label">트리거 타입:</label>
+              <div className="trigger-buttons">
+                {["push", "pull_request", "schedule", "workflow_dispatch"].map(
+                  (trigger) => (
+                    <button
+                      key={trigger}
+                      onClick={() => onTriggerToggle(trigger)}
+                      className={`trigger-button ${
+                        currentOn[trigger] ? "active" : ""
+                      }`}
+                    >
+                      {trigger}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* 브랜치 설정 (push 또는 pull_request가 활성화된 경우) */}
+            {(currentOn.push || currentOn.pull_request) && (
+              <div className="node-field">
+                <label htmlFor={`branch-${id}`} className="field-label">
+                  브랜치:
+                </label>
+                <input
+                  id={`branch-${id}`}
+                  type="text"
+                  value={
+                    currentOn.push?.branches?.[0] ||
+                    currentOn.pull_request?.branches?.[0] ||
+                    "main"
+                  }
+                  onChange={onBranchChange}
+                  className="nodrag field-input"
+                  placeholder="main"
+                />
+              </div>
+            )}
+
+            {/* 추가 설정들 */}
+            {Object.entries(data.config || {}).map(([key, value]) => {
+              if (key !== "name" && key !== "on") {
+                return (
+                  <div key={key} className="node-field">
+                    <div className="config-item">
+                      <span className="config-key">{key}:</span>
+                      <span className="config-value">{String(value)}</span>
+                      <button
+                        onClick={() => onRemoveConfig(key)}
+                        className="remove-config-btn"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+
+            {/* 새로운 설정 추가 */}
+            {showAddConfig ? (
+              <div className="node-field">
+                <div className="add-config-form">
+                  <input
+                    type="text"
+                    value={newConfigKey}
+                    onChange={(e) => setNewConfigKey(e.target.value)}
+                    placeholder="키"
+                    className="nodrag field-input"
+                  />
+                  <input
+                    type="text"
+                    value={newConfigValue}
+                    onChange={(e) => setNewConfigValue(e.target.value)}
+                    placeholder="값"
+                    className="nodrag field-input"
+                  />
+                  <button onClick={onAddConfig} className="add-config-btn">
+                    추가
+                  </button>
+                  <button
+                    onClick={() => setShowAddConfig(false)}
+                    className="cancel-config-btn"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAddConfig(true)}
+                className="show-add-config-btn"
+              >
+                + 설정 추가
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
