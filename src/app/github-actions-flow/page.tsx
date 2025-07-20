@@ -83,7 +83,7 @@ export default function GitHubActionsFlowPage() {
         height: "100%", // 헤더를 제외한 전체 높이 사용
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
+        overflow: "auto",
       }}
     >
       {/* 메인 컨텐츠 영역 */}
@@ -92,7 +92,6 @@ export default function GitHubActionsFlowPage() {
           flex: 1,
           display: "flex",
           minHeight: 0, // flexbox에서 중요한 설정
-          overflow: "hidden",
         }}
       >
         {/* 블록 팔레트 */}

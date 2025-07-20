@@ -3,13 +3,86 @@
   stroke: #e5e7eb;
 }
 
+/* 툴박스 스크롤바 전역 관리 */
+.blocklyToolboxDiv {
+  /* 스크롤바가 필요하지 않을 때 자동으로 숨김 */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 툴박스 내용이 적을 때 스크롤바 숨김 */
+.blocklyToolboxDiv:not(:hover) {
+  scrollbar-width: thin;
+}
+
+/* 툴박스가 비어있거나 숨겨져 있을 때 스크롤바 완전 숨김 */
+.blocklyToolboxDiv:empty,
+.blocklyToolboxDiv[style*="display: none"],
+.blocklyToolboxDiv[style*="visibility: hidden"] {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+}
+
+.blocklyToolboxDiv:empty::-webkit-scrollbar,
+.blocklyToolboxDiv[style*="display: none"]::-webkit-scrollbar,
+.blocklyToolboxDiv[style*="visibility: hidden"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
 .blocklyToolboxDiv {
   background-color: #f9fafb;
   border-right: 1px solid #e5e7eb;
-  overflow-x: visible;
+  overflow-x: hidden;
   overflow-y: auto;
   position: absolute;
   z-index: 70;
+  /* 툴박스 스크롤바 안정성 개선 */
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+/* 툴박스 스크롤바 스타일링 (Webkit 브라우저) */
+.blocklyToolboxDiv::-webkit-scrollbar {
+  width: 8px;
+}
+
+.blocklyToolboxDiv::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.blocklyToolboxDiv::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.blocklyToolboxDiv::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* 툴박스가 닫힐 때 스크롤바 정리 */
+.blocklyToolboxDiv.blocklyToolboxClosed {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  display: none !important;
+}
+
+.blocklyToolboxDiv.blocklyToolboxClosed::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* 툴박스 스크롤바 강제 숨김 (필요한 경우) */
+.blocklyToolboxDiv[style*="display: none"] {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+}
+
+.blocklyToolboxDiv[style*="display: none"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
 }
 
 .blocklyFlyoutBackground {
@@ -122,10 +195,16 @@
   padding: 8px 12px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  /* 툴박스 카테고리 안정성 개선 */
+  position: relative;
+  z-index: 1;
 }
 
+/* 툴박스 카테고리 호버 시 스크롤바 안정성 */
 .blocklyToolboxCategory:hover {
   background-color: #f9fafb;
+  /* 호버 시 스크롤바 깜빡임 방지 */
+  transform: translateZ(0);
 }
 
 .blocklyToolboxCategory.blocklyToolboxSelected {
@@ -209,6 +288,20 @@
   .blocklyToolboxDiv {
     background-color: #1f2937;
     border-right: 1px solid #374151;
+    /* 다크 모드에서 툴박스 스크롤바 안정성 */
+    scrollbar-color: #6b7280 #374151;
+  }
+
+  .blocklyToolboxDiv::-webkit-scrollbar-track {
+    background: #374151;
+  }
+
+  .blocklyToolboxDiv::-webkit-scrollbar-thumb {
+    background: #6b7280;
+  }
+
+  .blocklyToolboxDiv::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
   }
 
   .blocklyFlyoutBackground {

@@ -168,11 +168,107 @@ export const BlocklyWorkspace = ({
 
     workspace.addChangeListener(workspaceChangeListener);
 
+    //* 툴박스 스크롤바 관리 함수
+    const manageToolboxScrollbar = () => {
+      const toolboxDiv = document.querySelector(
+        ".blocklyToolboxDiv"
+      ) as HTMLElement;
+      if (!toolboxDiv) return;
+
+      //* 툴박스가 실제로 보이는지 확인하는 여러 방법
+      const isVisible =
+        toolboxDiv.style.display !== "none" &&
+        toolboxDiv.offsetWidth > 0 &&
+        toolboxDiv.offsetHeight > 0 &&
+        getComputedStyle(toolboxDiv).visibility !== "hidden";
+
+      if (isVisible) {
+        toolboxDiv.classList.remove("blocklyToolboxClosed");
+        //* 스크롤바가 필요하지 않으면 숨김
+        if (toolboxDiv.scrollHeight <= toolboxDiv.clientHeight) {
+          toolboxDiv.style.overflowY = "hidden";
+          toolboxDiv.style.scrollbarWidth = "none";
+        } else {
+          toolboxDiv.style.overflowY = "auto";
+          toolboxDiv.style.scrollbarWidth = "thin";
+        }
+      } else {
+        toolboxDiv.classList.add("blocklyToolboxClosed");
+        toolboxDiv.style.overflowY = "hidden";
+        toolboxDiv.style.scrollbarWidth = "none";
+        //* 강제로 스크롤바 숨김
+        toolboxDiv.style.setProperty(
+          "--webkit-scrollbar-width",
+          "0px",
+          "important"
+        );
+      }
+
+      //* 모든 스크롤바 관련 요소 강제 숨김
+      const scrollbars = toolboxDiv.querySelectorAll(
+        ".blocklyScrollbarVertical, .blocklyScrollbarHorizontal"
+      );
+      scrollbars.forEach((scrollbar: Element) => {
+        const scrollbarElement = scrollbar as HTMLElement;
+        if (!isVisible || toolboxDiv.scrollHeight <= toolboxDiv.clientHeight) {
+          scrollbarElement.style.display = "none";
+        } else {
+          scrollbarElement.style.display = "block";
+        }
+      });
+    };
+
+    //* MutationObserver로 툴박스 DOM 변화 감지
+    const toolboxObserver = new MutationObserver(() => {
+      manageToolboxScrollbar();
+    });
+
+    //* 툴박스 DOM 감시 시작
+    const startToolboxObservation = () => {
+      const toolboxDiv = document.querySelector(".blocklyToolboxDiv");
+      if (toolboxDiv) {
+        toolboxObserver.observe(toolboxDiv, {
+          attributes: true,
+          attributeFilter: ["style", "class"],
+          childList: true,
+          subtree: true,
+        });
+      }
+    };
+
+    //* 초기 툴박스 관찰 시작 (지연 후)
+    setTimeout(() => {
+      startToolboxObservation();
+      manageToolboxScrollbar();
+    }, 500);
+
+    //* 툴박스 이벤트 리스너 추가
+    workspace.addChangeListener((event: Blockly.Events.Abstract) => {
+      if (event.type === Blockly.Events.TOOLBOX_ITEM_SELECT) {
+        setTimeout(manageToolboxScrollbar, 50);
+      }
+    });
+
+    //* 주기적으로 툴박스 상태 확인 (안전장치)
+    const toolboxCheckInterval = setInterval(manageToolboxScrollbar, 1000);
+
     //* 클린업
     return () => {
       workspace.removeChangeListener(workspaceChangeListener);
       window.removeEventListener("resize", handleResize);
       resizeObserver.disconnect();
+      toolboxObserver.disconnect();
+      clearInterval(toolboxCheckInterval);
+
+      //* 툴박스 스크롤바 정리
+      const toolboxDiv = document.querySelector(
+        ".blocklyToolboxDiv"
+      ) as HTMLElement;
+      if (toolboxDiv) {
+        toolboxDiv.classList.add("blocklyToolboxClosed");
+        toolboxDiv.style.overflowY = "hidden";
+      }
+
       workspace.dispose();
     };
   }, [isClient, initialXml, onWorkspaceChange]);
