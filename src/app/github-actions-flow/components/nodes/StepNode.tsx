@@ -114,6 +114,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
         type="target"
         position={Position.Top}
         className="reactflow-handle"
+        style={{ top: -4 }}
       />
 
       {/* 소스 핸들 - 다른 노드로 연결 가능 */}
@@ -121,6 +122,15 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
         type="source"
         position={Position.Bottom}
         className="reactflow-handle"
+        style={{ bottom: -4 }}
+      />
+
+      {/* 좌측 핸들 - Job과 연결용 */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="reactflow-handle job-connection"
+        style={{ left: -4, top: "50%", transform: "translateY(-50%)" }}
       />
 
       {/* 노드 내부 컨텐츠 */}

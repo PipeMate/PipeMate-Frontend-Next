@@ -153,7 +153,6 @@ export const ReactFlowWorkspace = ({
       if (data && reactFlowBounds) {
         try {
           const block: ServerBlock = JSON.parse(data as string);
-          console.log("Dropped block:", block);
 
           const position = {
             x: event.clientX - reactFlowBounds.left,
@@ -257,21 +256,14 @@ export const ReactFlowWorkspace = ({
                 stepCount: stepCount,
                 height: jobHeight,
               });
-
-              console.log(`Step assigned to job: ${actualJobName}`);
             } else {
-              console.log(
-                "No job found - Step will be placed at regular position"
-              );
               alert("Job이 필요합니다. 먼저 Job 블록을 추가해주세요.");
               return;
             }
           } else {
-            console.log("Unknown block type:", block.type);
             return;
           }
 
-          console.log("Created node:", newNode);
           setNodes((nds) => [...nds, newNode]);
 
           //* 드래그 드롭 시 자동 연결 로직
@@ -297,9 +289,8 @@ export const ReactFlowWorkspace = ({
                 };
 
                 setEdges((eds) => [...eds, newEdge]);
-                console.log("Auto-connected job to trigger:", newEdge);
               } else {
-                console.log("Edge already exists, skipping:", newEdgeId);
+                // Edge already exists, skipping
               }
             }
           } else if (block.type === "step") {
@@ -307,12 +298,12 @@ export const ReactFlowWorkspace = ({
             const targetJob = nodes.find((node) => node.data.type === "job");
 
             if (targetJob) {
-              //* 같은 Job의 다른 Step들 찾기
+              //* 같은 Job의 다른 Step들 찾기 (부모-자식 관계 고려)
               const jobSteps = nodes.filter(
                 (n) => n.parentNode === targetJob.id && n.data.type === "step"
               );
 
-              //* Job과 Step 연결
+              //* Job과 Step 연결 (부모-자식 관계이지만 엣지로 연결)
               const jobToStepEdgeId = `job-to-step-${newNode.id}`;
               const existingJobEdge = edges.find(
                 (e) => e.source === targetJob.id && e.target === newNode.id
@@ -324,9 +315,11 @@ export const ReactFlowWorkspace = ({
                   source: targetJob.id,
                   target: newNode.id,
                   type: "smoothstep",
+                  //* 부모-자식 노드 간 엣지가 제대로 보이도록 설정
+                  style: { zIndex: 10 },
+                  data: { isParentChild: true },
                 };
                 setEdges((eds) => [...eds, jobToStepEdge]);
-                console.log("Connected job to step:", jobToStepEdge);
               }
 
               //* 이전 Step과 현재 Step 연결 (순차적 실행)
@@ -343,9 +336,11 @@ export const ReactFlowWorkspace = ({
                     source: previousStep.id,
                     target: newNode.id,
                     type: "smoothstep",
+                    //* 부모-자식 노드 간 엣지가 제대로 보이도록 설정
+                    style: { zIndex: 10 },
+                    data: { isParentChild: true },
                   };
                   setEdges((eds) => [...eds, stepToStepEdge]);
-                  console.log("Connected step to step:", stepToStepEdge);
                 }
               }
             }
@@ -353,11 +348,9 @@ export const ReactFlowWorkspace = ({
         } catch (error) {
           console.error("드롭 처리 오류:", error);
         }
-      } else {
-        console.log("No data or bounds available");
       }
     },
-    [nodes, setNodes, setEdges, updateNodeData]
+    [nodes, setNodes, setEdges, updateNodeData, edges]
   );
 
   //* 노드 선택 핸들러

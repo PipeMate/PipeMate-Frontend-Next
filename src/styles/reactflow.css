@@ -1334,10 +1334,30 @@
   background: #3b82f6;
   border: 2px solid #ffffff;
   border-radius: 50%;
+  z-index: 10;
 }
 
 .reactflow-handle:hover {
   background: #2563eb;
+}
+
+/* Job-Step 연결용 핸들 */
+.reactflow-handle.job-connection {
+  background: #10b981;
+  border-color: #ffffff;
+}
+
+.reactflow-handle.job-connection:hover {
+  background: #059669;
+}
+
+.reactflow-handle.step-connection {
+  background: #10b981;
+  border-color: #ffffff;
+}
+
+.reactflow-handle.step-connection:hover {
+  background: #059669;
 }
 
 /* React Flow 엣지 스타일 */
@@ -1404,6 +1424,7 @@
   stroke: #10b981;
   stroke-width: 2;
   stroke-dasharray: 5, 5;
+  z-index: 5;
 }
 
 .react-flow__edge[data-id*="job-to-step"]:hover .react-flow__edge-path {
@@ -1415,6 +1436,7 @@
 .react-flow__edge[data-id*="step-to-step"] .react-flow__edge-path {
   stroke: #f59e0b;
   stroke-width: 2;
+  z-index: 5;
 }
 
 .react-flow__edge[data-id*="step-to-step"]:hover .react-flow__edge-path {
@@ -1426,9 +1448,51 @@
 .react-flow__edge[data-id*="trigger-to-job"] .react-flow__edge-path {
   stroke: #8b5cf6;
   stroke-width: 3;
+  z-index: 5;
 }
 
 .react-flow__edge[data-id*="trigger-to-job"]:hover .react-flow__edge-path {
   stroke: #7c3aed;
   stroke-width: 4;
+}
+
+/* 부모-자식 노드 간 엣지가 잘리지 않도록 설정 */
+.react-flow__node[data-id*="job"] .react-flow__edge {
+  z-index: 10;
+}
+
+.react-flow__node[data-id*="step"] .react-flow__edge {
+  z-index: 10;
+}
+
+/* 부모 노드 내부의 자식 노드들이 엣지를 가리지 않도록 설정 */
+.react-flow__node[data-id*="job"] {
+  overflow: visible;
+}
+
+.react-flow__node[data-id*="step"] {
+  overflow: visible;
+}
+
+/* 부모-자식 관계의 엣지가 더 잘 보이도록 설정 */
+.react-flow__edge[data-is-parent-child="true"] {
+  z-index: 15 !important;
+}
+
+.react-flow__edge[data-is-parent-child="true"] .react-flow__edge-path {
+  z-index: 15 !important;
+}
+
+/* Step 노드가 Job 노드 내부에서도 엣지가 잘리지 않도록 설정 */
+.react-flow__node[data-id*="job"] .react-flow__node[data-id*="step"] {
+  z-index: 5;
+}
+
+/* 엣지가 노드 위에 표시되도록 설정 */
+.react-flow__edge {
+  pointer-events: auto;
+}
+
+.react-flow__edge-path {
+  pointer-events: auto;
 }

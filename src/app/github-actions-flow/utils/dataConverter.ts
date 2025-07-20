@@ -136,6 +136,8 @@ export const convertServerBlocksToNodes = (
         source: parentJob.id,
         target: stepNode.id,
         type: "smoothstep",
+        style: { zIndex: 10 },
+        data: { isParentChild: true },
       });
     } else {
       //* Job이 없어도 Step 노드 생성 (드롭 핸들러에서 처리)
@@ -167,6 +169,8 @@ export const convertServerBlocksToNodes = (
         source: currentStep.id,
         target: nextStep.id,
         type: "smoothstep",
+        style: { zIndex: 10 },
+        data: { isParentChild: true },
       });
     }
   });

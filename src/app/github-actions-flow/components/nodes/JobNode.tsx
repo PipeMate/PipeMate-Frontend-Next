@@ -135,6 +135,14 @@ export const JobNode = memo(({ data, id }: NodeProps) => {
         className="reactflow-handle"
       />
 
+      {/* 우측 핸들 - Step과 연결용 */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="reactflow-handle step-connection"
+        style={{ right: -4, top: "50%", transform: "translateY(-50%)" }}
+      />
+
       {/* 노드 내부 컨텐츠 */}
       <div
         className="node-content"

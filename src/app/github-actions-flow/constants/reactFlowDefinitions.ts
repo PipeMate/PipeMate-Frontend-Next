@@ -185,7 +185,7 @@ export const INITIAL_EDGES: Edge[] = [
     id: "trigger-to-job",
     source: "trigger-1",
     target: "job-1",
-    type: "puzzle",
+    type: "smoothstep",
     data: {
       label: "워크플로우 → Job",
     },

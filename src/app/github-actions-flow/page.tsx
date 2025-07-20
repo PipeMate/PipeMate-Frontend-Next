@@ -47,7 +47,6 @@ export default function GitHubActionsFlowPage() {
   //? React Flow 워크스페이스에서 워크플로우가 변경될 때 호출
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
     try {
-      console.log("워크플로우 변경됨:", newBlocks);
       setBlocks(newBlocks);
 
       //* 서버로 데이터 전송 (실제 구현에서는 API 호출)
@@ -60,7 +59,6 @@ export default function GitHubActionsFlowPage() {
   //* 노드 선택 핸들러
   //? React Flow 워크스페이스에서 노드가 선택될 때 호출
   const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
-    console.log("노드 선택됨:", selectedBlock);
     setSelectedBlock(selectedBlock);
   }, []);
 
