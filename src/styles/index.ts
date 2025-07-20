@@ -1,2 +1,2 @@
 import "./globals.css";
-import "./blockly.css"; // Blockly 전용 스타일
+import "./reactflow.css"; // React Flow 전용 스타일
