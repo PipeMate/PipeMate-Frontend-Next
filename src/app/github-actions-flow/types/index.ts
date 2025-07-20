@@ -1,106 +1,103 @@
-//* GitHub Actions Flow 관련 타입 정의 (Blockly 기반)
+//* ========================================
+//* GitHub Actions Flow 타입 정의
+//* ========================================
+//* 이 파일은 React Flow 기반 GitHub Actions 워크플로우 에디터의
+//* 모든 타입 정의를 포함합니다.
 
-//? 블록 템플릿 타입 정의
-export interface BlockTemplate {
-  name: string;
-  type: "trigger" | "job" | "step";
-  category:
-    | "workflow"
-    | "source"
-    | "setup"
-    | "build"
-    | "test"
-    | "docker"
-    | "deploy";
-  description: string;
-  template: Record<string, unknown>;
+import { Node, Edge } from "reactflow";
+
+//* ========================================
+//* 서버 통신 타입
+//* ========================================
+
+//* 서버와 통신하는 블록 데이터 형식
+//? 서버에서 받고 보내는 데이터의 표준 형식
+export interface ServerBlock {
+  name: string; //* 블록 이름
+  type: "trigger" | "job" | "step"; //* 블록 타입
+  category: string; //* 블록 카테고리
+  description: string; //* 블록 설명
+  "job-name"?: string; //* Job/Step 타입일 때 - Job 이름
+  config: Record<string, unknown>; //* 블록 설정 데이터
 }
 
-//* 워크플로우 트리거 타입
+//* ========================================
+//* 워크플로우 구성 요소 타입
+//* ========================================
+
+//* 워크플로우 트리거 설정
 export interface WorkflowTrigger {
-  name: string;
-  on: {
-    push?: { branches: string[] };
-    pull_request?: { branches: string[] };
-    workflow_dispatch?: Record<string, unknown>;
-  };
+  type: "push" | "pull_request" | "schedule" | "workflow_dispatch";
+  branches?: string[];
+  paths?: string[];
+  cron?: string;
 }
 
-//* Job 설정 타입
+//* Job 설정
 export interface JobConfig {
-  jobName: string;
+  name: string;
   runsOn: string;
+  needs?: string[];
+  if?: string;
+  timeout?: number;
+  steps?: StepConfig[];
 }
 
-//* Step 설정 타입
+//* Step 설정
 export interface StepConfig {
   name: string;
   uses?: string;
   run?: string;
   with?: Record<string, unknown>;
+  env?: Record<string, string>;
+  if?: string;
+  continueOnError?: boolean;
 }
 
-//* 생성된 워크플로우 타입
-export interface GeneratedWorkflow {
-  name: string;
-  on: Record<string, unknown>;
-  jobs: Record<
-    string,
-    {
-      "runs-on": string;
-      steps: StepConfig[];
-    }
-  >;
+//* ========================================
+//* React Flow 노드 데이터 타입
+//* ========================================
+
+//* React Flow 노드의 데이터 구조
+export interface WorkflowNodeData {
+  label: string; //* 노드 표시 이름
+  type: "workflow_trigger" | "job" | "step"; //* 노드 타입
+  category: string; //* 노드 카테고리
+  description: string; //* 노드 설명
+  config: Record<string, unknown>; //* 노드 설정 데이터
+  parentId?: string; //* 부모 노드 ID (Step용)
+  jobName?: string; //* Job 이름 (Step용)
 }
 
-//* 컨트롤 버튼 props 타입
-export interface ControlButtonsProps {
-  onAddExample: () => void;
-  onClear: () => void;
-  onAutoArrange: () => void;
+//* ========================================
+//* 컴포넌트 Props 타입
+//* ========================================
+
+//* React Flow 워크스페이스 Props
+export interface ReactFlowWorkspaceProps {
+  onWorkflowChange: (blocks: ServerBlock[]) => void; //* 워크플로우 변경 콜백
+  initialBlocks?: ServerBlock[]; //* 초기 블록 데이터
 }
 
-//* 블록 팔레트 props 타입
-export interface BlockPaletteProps {
-  onAddBlock: (template: BlockTemplate) => void;
-  onAddExample: () => void;
-  onClear: () => void;
-  onAutoArrange: () => void;
+//* ========================================
+//* 유틸리티 타입
+//* ========================================
+
+//* 노드 템플릿 타입
+export interface NodeTemplate {
+  id: string;
+  type: "workflow_trigger" | "job" | "step";
+  data: WorkflowNodeData;
+  position: { x: number; y: number };
+  parentNode?: string;
 }
 
-//* YAML 패널 props 타입
-export interface YamlPanelProps {
-  generatedYaml: string;
-}
+//* 워크플로우 생성 함수 타입
+export type WorkflowGenerator = (nodes: Node[], edges: Edge[]) => ServerBlock[];
 
-//* Blockly 워크스페이스 props 타입
-export interface BlocklyWorkspaceProps {
-  onWorkspaceChange: (workspace: any) => void;
-  initialXml?: string;
-}
-
-//* Blockly 블록 정의 타입
-export interface BlocklyBlockDefinition {
-  type: string;
-  message0: string;
-  args0?: Array<{
-    type: string;
-    name: string;
-    text?: string;
-    options?: Array<[string, string]>;
-  }>;
-  previousStatement?: string | null;
-  nextStatement?: string | null;
-  colour?: number;
-  tooltip?: string;
-  helpUrl?: string;
-  mutator?: string;
-  style?: string;
-}
-
-//* Blockly 카테고리 정의 타입
-export interface BlocklyCategoryDefinition {
-  name: string;
-  colour: number;
-  blocks: BlocklyBlockDefinition[];
-}
+//* 노드 생성 함수 타입
+export type NodeCreator = (
+  type: string,
+  position: { x: number; y: number },
+  parentId?: string
+) => Node;
