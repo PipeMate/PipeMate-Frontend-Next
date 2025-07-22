@@ -365,9 +365,12 @@ export const ReactFlowWorkspace = ({
   //* 노드 선택 핸들러
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === node.id ? { ...n, data: { ...n.data, isEditing: true } } : n
+        )
+      );
       setSelectedNode(node);
-
-      // 선택된 노드를 ServerBlock 형식으로 변환하여 콜백 호출
       if (onNodeSelect) {
         const selectedBlock: ServerBlock = {
           name: node.data.label,
@@ -381,7 +384,7 @@ export const ReactFlowWorkspace = ({
         onNodeSelect(selectedBlock);
       }
     },
-    [onNodeSelect]
+    [setNodes, setSelectedNode, onNodeSelect]
   );
 
   //* 노드 삭제 함수

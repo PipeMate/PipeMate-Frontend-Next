@@ -27,7 +27,7 @@ export const convertServerBlocksToNodes = (
   const triggerBlocks = blocks.filter((block) => block.type === "trigger");
   triggerBlocks.forEach((triggerBlock, index) => {
     const triggerNode: Node = {
-      id: `trigger-${nodeIdCounter++}`,
+      id: triggerBlock.id || `trigger-${nodeIdCounter++}`,
       type: "workflowTrigger",
       position: { x: 200 + index * 300, y: 50 }, // 트리거들을 가로로 배치
       data: {
@@ -47,7 +47,7 @@ export const convertServerBlocksToNodes = (
   const jobBlocks = blocks.filter((block) => block.type === "job");
   jobBlocks.forEach((jobBlock, index) => {
     const jobNode: Node = {
-      id: `job-${nodeIdCounter++}`,
+      id: jobBlock.id || `job-${nodeIdCounter++}`,
       type: "job",
       position: { x: 100, y: 200 + index * 300 }, // Job들을 세로로 배치
       data: {
@@ -105,7 +105,7 @@ export const convertServerBlocksToNodes = (
 
     if (parentJob) {
       const stepNode: Node = {
-        id: `step-${nodeIdCounter++}`,
+        id: stepBlock.id || `step-${nodeIdCounter++}`,
         type: "step",
         position: { x: 20, y: 60 + index * 80 }, // Job 내부에서 세로로 배치
         parentNode: parentJob.id,

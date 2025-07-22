@@ -66,6 +66,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         color: textColor,
         ...style,
       }}
+      onClick={_onEdit}
     >
       {/* 핸들 렌더링 */}
       {handles.map((h, idx) => (
@@ -81,19 +82,16 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         />
       ))}
       {/* 노드 내부 컨텐츠 */}
-      <div
-        className="flex items-center gap-2 mb-1.5 w-full select-none"
-        onClick={(e) => {
-          e.stopPropagation();
-          _onEdit?.(e);
-        }}
-      >
+      <div className="flex items-center gap-2 mb-1.5 w-full select-none">
         <span className="text-base">{icon}</span>
         <span className="text-sm font-semibold flex-1 truncate">{title}</span>
         <div className="flex items-center gap-1 ml-auto">
           {_isEditing && _onSave && (
             <button
-              onClick={_onSave}
+              onClick={(e) => {
+                e.stopPropagation();
+                _onSave?.(e);
+              }}
               className="bg-emerald-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-emerald-600"
               title="저장"
             >
@@ -101,7 +99,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             </button>
           )}
           <button
-            onClick={_onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              _onDelete?.(e);
+            }}
             className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold hover:bg-red-600"
             title="노드 삭제"
           >

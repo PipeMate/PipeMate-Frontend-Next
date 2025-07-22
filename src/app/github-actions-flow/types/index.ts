@@ -13,6 +13,7 @@ import { Node, Edge } from "reactflow";
 //* 서버와 통신하는 블록 데이터 형식
 //? 서버에서 받고 보내는 데이터의 표준 형식
 export interface ServerBlock {
+  id?: string; // 고유 식별자(최초 생성 시 uuid 등으로 할당, 이후 불변)
   name: string; //* 블록 이름
   type: "trigger" | "job" | "step"; //* 블록 타입
   category: string; //* 블록 카테고리
