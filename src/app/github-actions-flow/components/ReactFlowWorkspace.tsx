@@ -27,7 +27,9 @@ import { ReactFlowWorkspaceProps, ServerBlock } from "../types";
 import { WorkflowTriggerNode } from "./nodes/WorkflowTriggerNode";
 import { JobNode } from "./nodes/JobNode";
 import { StepNode } from "./nodes/StepNode";
+import { useLayout } from "@/components/layout/LayoutContext";
 import { DragDropSidebar } from "./DragDropSidebar";
+// import { DragDropSidebar } from "./DragDropSidebar";
 import {
   INITIAL_NODES,
   INITIAL_EDGES,
@@ -79,6 +81,7 @@ export const ReactFlowWorkspace = ({
 }: ReactFlowWorkspaceProps) => {
   const [isClient, setIsClient] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const { setSidebarExtra } = useLayout();
 
   //* 초기 노드 설정
   const getInitialNodes = () => {
@@ -104,6 +107,11 @@ export const ReactFlowWorkspace = ({
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    setSidebarExtra(<DragDropSidebar />);
+    return () => setSidebarExtra(null);
+  }, [setSidebarExtra]);
 
   //* 엣지 연결 핸들러
   const onConnect = useCallback(
@@ -560,6 +568,11 @@ export const ReactFlowWorkspace = ({
     }
   }, [nodes, edges, onWorkflowChange]);
 
+  // onPaneClick: 노드가 아닌 곳 클릭 시 YAML 패널 닫기
+  const handlePaneClick = useCallback(() => {
+    if (onNodeSelect) onNodeSelect(undefined);
+  }, [onNodeSelect]);
+
   //* 클라이언트 사이드에서만 렌더링
   if (!isClient) {
     return (
@@ -588,11 +601,10 @@ export const ReactFlowWorkspace = ({
             minWidth: 0,
             minHeight: 0,
             overflow: "hidden",
+            width: "100%",
+            height: "100%",
           }}
         >
-          {/* 드래그 앤 드롭 사이드바 */}
-          <DragDropSidebar />
-
           {/* React Flow 영역 */}
           <div
             style={{
@@ -601,6 +613,8 @@ export const ReactFlowWorkspace = ({
               minWidth: 0,
               minHeight: 0,
               overflow: "hidden",
+              width: "100%",
+              height: "100%",
             }}
           >
             <ReactFlow
@@ -614,7 +628,7 @@ export const ReactFlowWorkspace = ({
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
               fitView
-              attributionPosition="bottom-left"
+              attributionPosition="bottom-right"
               style={{
                 backgroundColor: "#f9fafb",
               }}
@@ -627,6 +641,7 @@ export const ReactFlowWorkspace = ({
               //* 줌 설정
               minZoom={0.1}
               maxZoom={4}
+              onPaneClick={handlePaneClick}
             >
               <Background color="#e5e7eb" gap={20} />
               <Controls />
@@ -634,6 +649,7 @@ export const ReactFlowWorkspace = ({
                 style={{
                   backgroundColor: "#ffffff",
                   border: "1px solid #e5e7eb",
+                  pointerEvents: "auto",
                 }}
                 nodeColor="#3b82f6"
               />
@@ -720,7 +736,7 @@ export const ReactFlowWorkspace = ({
               </Panel>
 
               {/* 하단 정보 패널 */}
-              <Panel position="bottom-left">
+              <Panel position="bottom-center">
                 <div
                   style={{
                     padding: "8px 12px",
@@ -732,8 +748,8 @@ export const ReactFlowWorkspace = ({
                     color: "#6b7280",
                   }}
                 >
-                  💡 <strong>사용법:</strong> 노드를 클릭하여 YAML을 확인하고,
-                  💾 저장 버튼을 눌러 서버 데이터를 확인하세요.
+                  💡 <strong>팁:</strong> 노드를 클릭하여 YAML을 확인하고, 💾
+                  저장 버튼을 눌러 서버 데이터를 확인하세요.
                 </div>
               </Panel>
             </ReactFlow>

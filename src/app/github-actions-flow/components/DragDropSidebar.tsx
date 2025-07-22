@@ -199,12 +199,14 @@ export const DragDropSidebar = () => {
   return (
     <div
       style={{
-        width: "280px",
-        backgroundColor: "#ffffff",
-        borderRight: "1px solid #e5e7eb",
+        width: "100%",
+        borderTop: "1px solid #e5e7eb",
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        minWidth: 0,
+        minHeight: 0,
+        boxSizing: "border-box",
       }}
     >
       {/* 헤더 */}
@@ -212,6 +214,7 @@ export const DragDropSidebar = () => {
         style={{
           padding: "16px",
           borderBottom: "1px solid #e5e7eb",
+          width: "100%",
         }}
       >
         <h3
@@ -221,6 +224,7 @@ export const DragDropSidebar = () => {
             color: "#374151",
             marginBottom: "8px",
             textAlign: "center",
+            width: "100%",
           }}
         >
           📦 블록 라이브러리
@@ -231,6 +235,7 @@ export const DragDropSidebar = () => {
             color: "#6b7280",
             textAlign: "center",
             lineHeight: "1.4",
+            width: "100%",
           }}
         >
           블록을 드래그하여 워크스페이스에 추가하세요
@@ -242,6 +247,7 @@ export const DragDropSidebar = () => {
         style={{
           display: "flex",
           borderBottom: "1px solid #e5e7eb",
+          width: "100%",
         }}
       >
         {tabs.map((tab) => (
@@ -262,6 +268,7 @@ export const DragDropSidebar = () => {
               flexDirection: "column",
               alignItems: "center",
               gap: "4px",
+              width: "100%",
             }}
             onMouseOver={(e) => {
               if (activeTab !== tab.type) {
@@ -286,9 +293,21 @@ export const DragDropSidebar = () => {
           flex: 1,
           padding: "16px",
           overflowY: "auto",
+          width: "100%",
+
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            width: "100%",
+          }}
+        >
           {blockTemplates[activeTab].map((block, index) => {
             const colors = getCategoryColor(block.category);
             const icon = getBlockIcon(block.type);
@@ -306,6 +325,7 @@ export const DragDropSidebar = () => {
                   cursor: "grab",
                   transition: "all 0.2s ease",
                   userSelect: "none",
+                  width: "100%",
                 }}
                 onMouseDown={(e) => {
                   e.currentTarget.style.cursor = "grabbing";
@@ -323,6 +343,7 @@ export const DragDropSidebar = () => {
                     alignItems: "center",
                     gap: "8px",
                     marginBottom: "6px",
+                    width: "100%",
                   }}
                 >
                   <span style={{ fontSize: "16px" }}>{icon}</span>
@@ -331,6 +352,7 @@ export const DragDropSidebar = () => {
                       fontSize: "13px",
                       fontWeight: "600",
                       color: colors.text,
+                      width: "100%",
                     }}
                   >
                     {block.name}
@@ -343,6 +365,7 @@ export const DragDropSidebar = () => {
                     color: colors.text,
                     opacity: 0.8,
                     lineHeight: "1.3",
+                    width: "100%",
                   }}
                 >
                   {block.description}
@@ -358,6 +381,7 @@ export const DragDropSidebar = () => {
                     borderRadius: "4px",
                     display: "inline-block",
                     fontWeight: "500",
+                    width: "auto",
                   }}
                 >
                   {block.type.toUpperCase()}
@@ -378,6 +402,7 @@ export const DragDropSidebar = () => {
             fontSize: "11px",
             color: "#6b7280",
             lineHeight: "1.4",
+            width: "100%",
           }}
         >
           <strong>💡 사용법:</strong>

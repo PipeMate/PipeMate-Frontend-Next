@@ -74,6 +74,7 @@ export const YamlPreviewPanel = ({
       style={{
         width: "400px",
         height: "100%",
+        minHeight: 0,
         backgroundColor: "#ffffff",
         borderLeft: "1px solid #e5e7eb",
         display: "flex",
@@ -173,6 +174,7 @@ export const YamlPreviewPanel = ({
       <div
         style={{
           flex: 1,
+          minHeight: 0,
           padding: "16px",
           overflow: "auto",
           backgroundColor: "#1f2937",
@@ -180,6 +182,7 @@ export const YamlPreviewPanel = ({
           fontFamily: "monospace",
           fontSize: "12px",
           lineHeight: "1.5",
+          height: "100%",
         }}
       >
         <pre
