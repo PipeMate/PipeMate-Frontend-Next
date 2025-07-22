@@ -197,117 +197,40 @@ export const DragDropSidebar = () => {
   ];
 
   return (
-    <div
-      style={{
-        width: "100%",
-        borderTop: "1px solid #e5e7eb",
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        minWidth: 0,
-        minHeight: 0,
-        boxSizing: "border-box",
-      }}
-    >
+    <div className="w-full border-t border-gray-200 flex flex-col h-full min-w-0 min-h-0 box-border">
       {/* 헤더 */}
-      <div
-        style={{
-          padding: "16px",
-          borderBottom: "1px solid #e5e7eb",
-          width: "100%",
-        }}
-      >
-        <h3
-          style={{
-            fontSize: "16px",
-            fontWeight: "600",
-            color: "#374151",
-            marginBottom: "8px",
-            textAlign: "center",
-            width: "100%",
-          }}
-        >
+      <div className="p-4 border-b border-gray-200 w-full">
+        <h3 className="text-base font-semibold text-gray-700 mb-2 text-center w-full">
           📦 블록 라이브러리
         </h3>
-        <div
-          style={{
-            fontSize: "12px",
-            color: "#6b7280",
-            textAlign: "center",
-            lineHeight: "1.4",
-            width: "100%",
-          }}
-        >
+        <div className="text-xs text-gray-500 text-center leading-[1.4] w-full">
           블록을 드래그하여 워크스페이스에 추가하세요
         </div>
       </div>
 
       {/* 탭 네비게이션 */}
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "1px solid #e5e7eb",
-          width: "100%",
-        }}
-      >
+      <div className="flex border-b border-gray-200 w-full">
         {tabs.map((tab) => (
           <button
             key={tab.type}
             onClick={() => setActiveTab(tab.type)}
-            style={{
-              flex: 1,
-              padding: "12px 8px",
-              fontSize: "12px",
-              fontWeight: "600",
-              backgroundColor: activeTab === tab.type ? "#3b82f6" : "#f9fafb",
-              color: activeTab === tab.type ? "#ffffff" : "#6b7280",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "4px",
-              width: "100%",
-            }}
-            onMouseOver={(e) => {
-              if (activeTab !== tab.type) {
-                e.currentTarget.style.backgroundColor = "#e5e7eb";
+            className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all flex flex-col items-center gap-1 w-full
+              ${
+                activeTab === tab.type
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-50 text-gray-500 hover:bg-slate-100"
               }
-            }}
-            onMouseOut={(e) => {
-              if (activeTab !== tab.type) {
-                e.currentTarget.style.backgroundColor = "#f9fafb";
-              }
-            }}
+            `}
           >
-            <span style={{ fontSize: "16px" }}>{tab.icon}</span>
+            <span className="text-base">{tab.icon}</span>
             <span>{tab.label}</span>
           </button>
         ))}
       </div>
 
       {/* 블록 리스트 */}
-      <div
-        style={{
-          flex: 1,
-          padding: "16px",
-          overflowY: "auto",
-          width: "100%",
-
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            width: "100%",
-          }}
-        >
+      <div className="flex-1 p-4 overflow-y-auto w-full flex flex-col justify-between">
+        <div className="flex flex-col gap-3 w-full">
           {blockTemplates[activeTab].map((block, index) => {
             const colors = getCategoryColor(block.category);
             const icon = getBlockIcon(block.type);
@@ -318,15 +241,14 @@ export const DragDropSidebar = () => {
                 draggable
                 onDragStart={(e) => onDragStart(e, block)}
                 style={{
-                  padding: "12px",
                   backgroundColor: colors.bg,
                   border: `2px solid ${colors.border}`,
-                  borderRadius: "8px",
+                  color: colors.text,
                   cursor: "grab",
-                  transition: "all 0.2s ease",
                   userSelect: "none",
                   width: "100%",
                 }}
+                className="p-3 rounded-lg transition-all w-full"
                 onMouseDown={(e) => {
                   e.currentTarget.style.cursor = "grabbing";
                 }}
@@ -337,52 +259,29 @@ export const DragDropSidebar = () => {
                   e.currentTarget.style.cursor = "grab";
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "6px",
-                    width: "100%",
-                  }}
-                >
-                  <span style={{ fontSize: "16px" }}>{icon}</span>
+                <div className="flex items-center gap-2 mb-1.5 w-full">
+                  <span className="text-base">{icon}</span>
                   <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: colors.text,
-                      width: "100%",
-                    }}
+                    style={{ color: colors.text }}
+                    className="text-sm font-semibold w-full"
                   >
                     {block.name}
                   </span>
                 </div>
 
                 <div
-                  style={{
-                    fontSize: "11px",
-                    color: colors.text,
-                    opacity: 0.8,
-                    lineHeight: "1.3",
-                    width: "100%",
-                  }}
+                  style={{ color: colors.text, opacity: 0.8 }}
+                  className="text-[11px] leading-[1.3] w-full"
                 >
                   {block.description}
                 </div>
 
                 <div
                   style={{
-                    marginTop: "6px",
-                    padding: "4px 8px",
                     backgroundColor: colors.border,
                     color: "#ffffff",
-                    fontSize: "10px",
-                    borderRadius: "4px",
-                    display: "inline-block",
-                    fontWeight: "500",
-                    width: "auto",
                   }}
+                  className="mt-1.5 px-2 py-1 text-[10px] rounded font-medium inline-block w-auto"
                 >
                   {block.type.toUpperCase()}
                 </div>
@@ -392,19 +291,7 @@ export const DragDropSidebar = () => {
         </div>
 
         {/* 사용법 안내 */}
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "12px",
-            backgroundColor: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
-            fontSize: "11px",
-            color: "#6b7280",
-            lineHeight: "1.4",
-            width: "100%",
-          }}
-        >
+        <div className="mt-5 p-3 bg-slate-50 border border-gray-200 rounded-lg text-[11px] text-gray-500 leading-[1.4] w-full">
           <strong>💡 사용법:</strong>
           <br />
           • 블록을 드래그하여 워크스페이스에 드롭

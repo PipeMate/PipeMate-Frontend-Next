@@ -70,68 +70,34 @@ export const YamlPreviewPanel = ({
   //* ========================================
 
   return (
-    <div
-      style={{
-        width: "400px",
-        height: "100%",
-        minHeight: 0,
-        backgroundColor: "#ffffff",
-        borderLeft: "1px solid #e5e7eb",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
+    <div className="w-[400px] h-full min-h-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
       {/* ========================================
           헤더 영역
           ======================================== */}
-      <div
-        style={{
-          padding: "16px",
-          borderBottom: "1px solid #e5e7eb",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <h3
-          style={{
-            fontSize: "16px",
-            fontWeight: "600",
-            color: "#111827",
-            margin: 0,
-          }}
-        >
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-900 m-0">
           📄 YAML 미리보기
         </h3>
 
         {/* 뷰 모드 토글 버튼들 */}
-        <div style={{ display: "flex", gap: "4px" }}>
+        <div className="flex gap-1">
           <button
             onClick={() => setViewMode("block")}
-            style={{
-              padding: "4px 8px",
-              fontSize: "12px",
-              backgroundColor: viewMode === "block" ? "#3b82f6" : "#f3f4f6",
-              color: viewMode === "block" ? "#ffffff" : "#6b7280",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            className={`px-2 py-1 text-xs rounded cursor-pointer border-none ${
+              viewMode === "block"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
           >
             블록
           </button>
           <button
             onClick={() => setViewMode("full")}
-            style={{
-              padding: "4px 8px",
-              fontSize: "12px",
-              backgroundColor: viewMode === "full" ? "#3b82f6" : "#f3f4f6",
-              color: viewMode === "full" ? "#ffffff" : "#6b7280",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            className={`px-2 py-1 text-xs rounded cursor-pointer border-none ${
+              viewMode === "full"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
           >
             전체
           </button>
@@ -142,27 +108,14 @@ export const YamlPreviewPanel = ({
           선택된 블록 정보 (블록 모드일 때만)
           ======================================== */}
       {viewMode === "block" && selectedBlock && (
-        <div
-          style={{
-            padding: "12px 16px",
-            backgroundColor: "#f9fafb",
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#111827",
-              marginBottom: "4px",
-            }}
-          >
+        <div className="px-4 py-3 bg-slate-50 border-b border-gray-200">
+          <div className="text-sm font-semibold text-gray-900 mb-1">
             {selectedBlock.name}
           </div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>
+          <div className="text-xs text-gray-500">
             {selectedBlock.description}
           </div>
-          <div style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>
+          <div className="text-[11px] text-gray-400 mt-1">
             타입: {selectedBlock.type} | 카테고리: {selectedBlock.category}
           </div>
         </div>
@@ -171,23 +124,8 @@ export const YamlPreviewPanel = ({
       {/* ========================================
           YAML 내용 표시 영역
           ======================================== */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          padding: "16px",
-          overflow: "auto",
-          backgroundColor: "#1f2937",
-          color: "#f9fafb",
-          fontFamily: "monospace",
-          fontSize: "12px",
-          lineHeight: "1.5",
-          height: "100%",
-        }}
-      >
-        <pre
-          style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-        >
+      <div className="flex-1 min-h-0 p-4 overflow-auto bg-gray-800 text-slate-50 font-mono text-xs leading-[1.5] h-full">
+        <pre className="m-0 whitespace-pre-wrap break-words">
           {viewMode === "block" ? getBlockYaml() : getFullYaml()}
         </pre>
       </div>
@@ -195,34 +133,11 @@ export const YamlPreviewPanel = ({
       {/* ========================================
           하단 액션 버튼들
           ======================================== */}
-      <div
-        style={{
-          padding: "12px 16px",
-          borderTop: "1px solid #e5e7eb",
-          display: "flex",
-          gap: "8px",
-        }}
-      >
+      <div className="px-4 py-3 border-t border-gray-200 flex gap-2">
         {/* 복사 버튼 */}
         <button
           onClick={copyYaml}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            fontSize: "12px",
-            backgroundColor: "#10b981",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            transition: "background-color 0.2s",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "#059669";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "#10b981";
-          }}
+          className="flex-1 px-3 py-2 text-xs bg-emerald-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-emerald-600"
         >
           📋 복사
         </button>
@@ -239,23 +154,7 @@ export const YamlPreviewPanel = ({
             a.click();
             URL.revokeObjectURL(url);
           }}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            fontSize: "12px",
-            backgroundColor: "#3b82f6",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            transition: "background-color 0.2s",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "#2563eb";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "#3b82f6";
-          }}
+          className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white border-none rounded cursor-pointer transition-colors hover:bg-blue-700"
         >
           💾 다운로드
         </button>

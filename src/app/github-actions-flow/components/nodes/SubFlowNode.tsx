@@ -23,79 +23,32 @@ export const SubFlowNode: React.FC<NodeProps<SubFlowNodeData>> = ({
 
   return (
     <div
-      className="subflow-node"
-      style={{
-        background: "#f8fafc",
-        border: "2px solid #f59e0b",
-        borderRadius: "8px",
-        padding: "12px",
-        minHeight: data.height || 100,
-        width: "260px",
-        position: "relative",
-      }}
+      className="subflow-node bg-slate-50 border-2 border-amber-400 rounded-lg p-3 relative w-[260px]"
+      style={{ minHeight: data.height || 100 }}
     >
       {/* 상단 헤더 */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "8px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
-            style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}
-          >
+      <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-700">
             📦 Steps Container
           </span>
         </div>
         <button
           onClick={handleDelete}
-          style={{
-            background: "#ef4444",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "50%",
-            width: "20px",
-            height: "20px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "12px",
-            fontWeight: "bold",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "#dc2626";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "#ef4444";
-          }}
+          className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold cursor-pointer transition-colors hover:bg-red-600"
         >
           ×
         </button>
       </div>
 
       {/* Step 노드들이 들어갈 영역 */}
-      <div
-        style={{
-          minHeight: "60px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-        }}
-      >
+      <div className="min-h-[60px] flex flex-col gap-2">
         {data.stepCount && data.stepCount > 0 ? (
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>
+          <div className="text-xs text-gray-500">
             {data.stepCount} steps included
           </div>
         ) : (
-          <div
-            style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}
-          >
+          <div className="text-xs text-gray-400 italic">
             Step 노드들을 여기에 추가하세요
           </div>
         )}

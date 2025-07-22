@@ -576,16 +576,7 @@ export const ReactFlowWorkspace = ({
   //* 클라이언트 사이드에서만 렌더링
   if (!isClient) {
     return (
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f9fafb",
-          color: "#6b7280",
-        }}
-      >
+      <div className="flex-1 flex items-center justify-center bg-slate-50 text-gray-500">
         React Flow 워크스페이스 로딩 중...
       </div>
     );
@@ -594,29 +585,9 @@ export const ReactFlowWorkspace = ({
   return (
     <NodeUpdateContext.Provider value={updateNodeData}>
       <NodeDeleteContext.Provider value={onNodeDelete}>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            minWidth: 0,
-            minHeight: 0,
-            overflow: "hidden",
-            width: "100%",
-            height: "100%",
-          }}
-        >
+        <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full">
           {/* React Flow 영역 */}
-          <div
-            style={{
-              flex: 1,
-              position: "relative",
-              minWidth: 0,
-              minHeight: 0,
-              overflow: "hidden",
-              width: "100%",
-              height: "100%",
-            }}
-          >
+          <div className="flex-1 relative min-w-0 min-h-0 overflow-hidden w-full h-full">
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -629,16 +600,11 @@ export const ReactFlowWorkspace = ({
               nodeTypes={nodeTypes}
               fitView
               attributionPosition="bottom-right"
-              style={{
-                backgroundColor: "#f9fafb",
-              }}
-              //* 드래그 앤 드롭 설정
+              style={{ backgroundColor: "#f9fafb" }}
               snapToGrid={true}
               snapGrid={[15, 15]}
-              //* 선택 설정
               multiSelectionKeyCode="Shift"
               deleteKeyCode="Delete"
-              //* 줌 설정
               minZoom={0.1}
               maxZoom={4}
               onPaneClick={handlePaneClick}
@@ -656,79 +622,22 @@ export const ReactFlowWorkspace = ({
 
               {/* 상단 컨트롤 패널 */}
               <Panel position="top-right">
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    padding: "8px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "4px",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="flex gap-2 p-2 bg-white border border-gray-200 rounded shadow-sm flex-wrap">
                   <button
                     onClick={saveWorkflow}
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      backgroundColor: "#10b981",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      transition: "background-color 0.2s",
-                      fontWeight: "600",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#059669";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#10b981";
-                    }}
+                    className="px-3 py-1.5 text-xs bg-emerald-500 text-white border-none rounded font-semibold cursor-pointer transition-colors hover:bg-emerald-600"
                   >
                     💾 저장
                   </button>
                   <button
                     onClick={addExampleWorkflow}
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      backgroundColor: "#3b82f6",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#2563eb";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#3b82f6";
-                    }}
+                    className="px-3 py-1.5 text-xs bg-blue-600 text-white border-none rounded cursor-pointer transition-colors hover:bg-blue-700"
                   >
                     📋 예제 추가
                   </button>
                   <button
                     onClick={clearWorkspace}
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "12px",
-                      backgroundColor: "#ef4444",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#dc2626";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#ef4444";
-                    }}
+                    className="px-3 py-1.5 text-xs bg-red-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-red-600"
                   >
                     🗑️ 초기화
                   </button>
@@ -737,17 +646,7 @@ export const ReactFlowWorkspace = ({
 
               {/* 하단 정보 패널 */}
               <Panel position="bottom-center">
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "4px",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                    fontSize: "12px",
-                    color: "#6b7280",
-                  }}
-                >
+                <div className="px-3 py-2 bg-white border border-gray-200 rounded shadow-sm text-xs text-gray-500">
                   💡 <strong>팁:</strong> 노드를 클릭하여 YAML을 확인하고, 💾
                   저장 버튼을 눌러 서버 데이터를 확인하세요.
                 </div>
