@@ -5,6 +5,8 @@ import { memo, useCallback, useState } from "react";
 import { Position, NodeProps } from "reactflow";
 import { useNodeUpdate, useNodeDelete } from "../ReactFlowWorkspace";
 import BaseNode from "./BaseNode";
+import { Wrench, Plus, X, Check } from "lucide-react";
+import { NodeContext } from "./BaseNode";
 
 export const StepNode = memo(({ data, id }: NodeProps) => {
   const updateNodeData = useNodeUpdate();
@@ -130,146 +132,175 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     },
   ];
 
+  // Step 노드 전용 색상
+  const colors = { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" };
+
   return (
-    <BaseNode
-      icon={"🔧"}
-      title="Step"
-      isEditing={isEditing}
-      onEdit={() => {
-        if (!isEditing) setIsEditing(true);
+    <NodeContext.Provider
+      value={{
+        isEditing,
+        onEdit: () => {
+          if (!isEditing) setIsEditing(true);
+        },
+        onSave: () => setIsEditing(false),
+        onDelete: (e) => {
+          e.stopPropagation();
+          deleteNode(id);
+        },
       }}
-      onSave={() => setIsEditing(false)}
-      onDelete={(e) => {
-        e.stopPropagation();
-        deleteNode(id);
-      }}
-      handles={handles}
-      className="step"
     >
-      {!isEditing ? (
-        <div className="node-view-mode">
-          <div className="node-info">
-            <div className="info-text">
-              Step{" "}
-              <span className="highlight">{data.config?.name || "Step"}</span>{" "}
-              will execute{" "}
-              <span className="highlight">
+      <BaseNode
+        icon={<Wrench size={18} />}
+        title="Step"
+        handles={handles}
+        bgColor={colors.bg}
+        borderColor={colors.border}
+        textColor={colors.text}
+      >
+        {!isEditing ? (
+          <div className="flex flex-col gap-2">
+            <div className="text-xs text-gray-700">
+              Step
+              <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
+                {data.config?.name || "Step"}
+              </span>
+              will execute
+              <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
                 {data.config?.uses ? "Action" : "Command"}
               </span>
-              :{" "}
-              <span className="highlight">
+              :
+              <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
                 {data.config?.uses || data.config?.run || ""}
               </span>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="node-edit-mode">
-          {/* Step 이름 설정 */}
-          <div className="node-field">
-            <label htmlFor={`step-name-${id}`} className="field-label">
-              이름:
-            </label>
-            <input
-              id={`step-name-${id}`}
-              type="text"
-              value={data.config?.name || "Step"}
-              onChange={onStepNameChange}
-              className="nodrag field-input"
-              placeholder="Step name"
-            />
-          </div>
-          {/* Step 타입 설정 */}
-          <div className="node-field">
-            <label htmlFor={`step-type-${id}`} className="field-label">
-              타입:
-            </label>
-            <select
-              id={`step-type-${id}`}
-              value={data.config?.uses ? "action" : "command"}
-              onChange={onStepTypeChange}
-              className="nodrag field-input"
-            >
-              <option value="action">Action</option>
-              <option value="command">Command</option>
-            </select>
-          </div>
-          {/* Action/Command 설정 */}
-          <div className="node-field">
-            <label htmlFor={`step-action-${id}`} className="field-label">
-              {data.config?.uses ? "Action:" : "Command:"}
-            </label>
-            <input
-              id={`step-action-${id}`}
-              type="text"
-              value={data.config?.uses || data.config?.run || ""}
-              onChange={onActionChange}
-              className="nodrag field-input"
-              placeholder={
-                data.config?.uses ? "actions/checkout@v4" : "./gradlew build"
-              }
-            />
-          </div>
-          {/* 추가 설정들 */}
-          {Object.entries(data.config || {}).map(
-            ([key, value]) =>
-              key !== "name" &&
-              key !== "uses" &&
-              key !== "run" && (
-                <div key={key} className="node-field">
-                  <div className="config-item">
-                    <span className="config-key">{key}:</span>
-                    <span className="config-value">{String(value)}</span>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {/* Step 이름 설정 */}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor={`step-name-${id}`}
+                className="text-xs font-medium text-gray-600"
+              >
+                이름:
+              </label>
+              <input
+                id={`step-name-${id}`}
+                type="text"
+                value={data.config?.name || "Step"}
+                onChange={onStepNameChange}
+                className="nodrag px-2 py-1 border rounded text-xs"
+                placeholder="Step name"
+              />
+            </div>
+            {/* Step 타입 설정 */}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor={`step-type-${id}`}
+                className="text-xs font-medium text-gray-600"
+              >
+                타입:
+              </label>
+              <select
+                id={`step-type-${id}`}
+                value={data.config?.uses ? "action" : "command"}
+                onChange={onStepTypeChange}
+                className="nodrag px-2 py-1 border rounded text-xs"
+              >
+                <option value="action">Action</option>
+                <option value="command">Command</option>
+              </select>
+            </div>
+            {/* Action/Command 설정 */}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor={`step-action-${id}`}
+                className="text-xs font-medium text-gray-600"
+              >
+                {data.config?.uses ? "Action:" : "Command:"}
+              </label>
+              <input
+                id={`step-action-${id}`}
+                type="text"
+                value={data.config?.uses || data.config?.run || ""}
+                onChange={onActionChange}
+                className="nodrag px-2 py-1 border rounded text-xs"
+                placeholder={
+                  data.config?.uses ? "actions/checkout@v4" : "./gradlew build"
+                }
+              />
+            </div>
+            {/* 추가 설정들 */}
+            {Object.entries(data.config || {}).map(
+              ([key, value]) =>
+                key !== "name" &&
+                key !== "uses" &&
+                key !== "run" && (
+                  <div key={key} className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 bg-gray-50 rounded px-2 py-1">
+                      <span className="text-xs font-medium text-gray-500 min-w-[60px]">
+                        {key}:
+                      </span>
+                      <span className="text-xs text-gray-700 flex-1 break-all">
+                        {String(value)}
+                      </span>
+                      <button
+                        onClick={() => onRemoveConfig(key)}
+                        className="bg-red-500 text-white rounded w-4 h-4 flex items-center justify-center text-xs font-bold hover:bg-red-600"
+                        title="삭제"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )
+            )}
+            {/* 새로운 설정 추가 */}
+            {showAddConfig ? (
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="text"
+                    value={newConfigKey}
+                    onChange={(e) => setNewConfigKey(e.target.value)}
+                    placeholder="키"
+                    className="nodrag px-2 py-1 border rounded text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={newConfigValue}
+                    onChange={(e) => setNewConfigValue(e.target.value)}
+                    placeholder="값"
+                    className="nodrag px-2 py-1 border rounded text-xs"
+                  />
+                  <div className="flex gap-2 mt-1">
                     <button
-                      onClick={() => onRemoveConfig(key)}
-                      className="remove-config-btn"
+                      onClick={onAddConfig}
+                      className="bg-emerald-500 text-white rounded px-2 py-1 text-xs hover:bg-emerald-600 flex items-center gap-1"
                     >
-                      ×
+                      <Check size={14} /> 추가
+                    </button>
+                    <button
+                      onClick={() => setShowAddConfig(false)}
+                      className="bg-gray-500 text-white rounded px-2 py-1 text-xs hover:bg-gray-600 flex items-center gap-1"
+                    >
+                      <X size={14} /> 취소
                     </button>
                   </div>
                 </div>
-              )
-          )}
-          {/* 새로운 설정 추가 */}
-          {showAddConfig ? (
-            <div className="node-field">
-              <div className="add-config-form">
-                <input
-                  type="text"
-                  value={newConfigKey}
-                  onChange={(e) => setNewConfigKey(e.target.value)}
-                  placeholder="키"
-                  className="nodrag field-input"
-                />
-                <input
-                  type="text"
-                  value={newConfigValue}
-                  onChange={(e) => setNewConfigValue(e.target.value)}
-                  placeholder="값"
-                  className="nodrag field-input"
-                />
-                <button onClick={onAddConfig} className="add-config-btn">
-                  추가
-                </button>
-                <button
-                  onClick={() => setShowAddConfig(false)}
-                  className="cancel-config-btn"
-                >
-                  취소
-                </button>
               </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowAddConfig(true)}
-              className="show-add-config-btn"
-            >
-              + 설정 추가
-            </button>
-          )}
-        </div>
-      )}
-    </BaseNode>
+            ) : (
+              <button
+                onClick={() => setShowAddConfig(true)}
+                className="w-full bg-emerald-500 text-white rounded px-2 py-1 text-xs hover:bg-emerald-600 flex items-center justify-center gap-1"
+              >
+                <Plus size={16} /> 설정 추가
+              </button>
+            )}
+          </div>
+        )}
+      </BaseNode>
+    </NodeContext.Provider>
   );
 });
 

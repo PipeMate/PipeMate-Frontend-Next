@@ -38,6 +38,7 @@ import {
   convertNodesToServerBlocks,
   convertServerBlocksToNodes,
 } from "../utils/dataConverter";
+import { Save, ClipboardList, Trash2, Lightbulb } from "lucide-react";
 
 //* 커스텀 노드 타입 정의
 const nodeTypes: NodeTypes = {
@@ -625,21 +626,21 @@ export const ReactFlowWorkspace = ({
                 <div className="flex gap-2 p-2 bg-white border border-gray-200 rounded shadow-sm flex-wrap">
                   <button
                     onClick={saveWorkflow}
-                    className="px-3 py-1.5 text-xs bg-emerald-500 text-white border-none rounded font-semibold cursor-pointer transition-colors hover:bg-emerald-600"
+                    className="px-3 py-1.5 text-xs bg-emerald-500 text-white border-none rounded font-semibold cursor-pointer transition-colors hover:bg-emerald-600 flex items-center gap-1"
                   >
-                    💾 저장
+                    <Save size={16} /> 저장
                   </button>
                   <button
                     onClick={addExampleWorkflow}
-                    className="px-3 py-1.5 text-xs bg-blue-600 text-white border-none rounded cursor-pointer transition-colors hover:bg-blue-700"
+                    className="px-3 py-1.5 text-xs bg-blue-600 text-white border-none rounded cursor-pointer transition-colors hover:bg-blue-700 flex items-center gap-1"
                   >
-                    📋 예제 추가
+                    <ClipboardList size={16} /> 예제 추가
                   </button>
                   <button
                     onClick={clearWorkspace}
-                    className="px-3 py-1.5 text-xs bg-red-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-red-600"
+                    className="px-3 py-1.5 text-xs bg-red-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-red-600 flex items-center gap-1"
                   >
-                    🗑️ 초기화
+                    <Trash2 size={16} /> 초기화
                   </button>
                 </div>
               </Panel>
@@ -647,8 +648,10 @@ export const ReactFlowWorkspace = ({
               {/* 하단 정보 패널 */}
               <Panel position="bottom-center">
                 <div className="px-3 py-2 bg-white border border-gray-200 rounded shadow-sm text-xs text-gray-500">
-                  💡 <strong>팁:</strong> 노드를 클릭하여 YAML을 확인하고, 💾
-                  저장 버튼을 눌러 서버 데이터를 확인하세요.
+                  <Lightbulb size={14} className="inline mr-1" />{" "}
+                  <strong>팁:</strong> 노드를 클릭하여 YAML을 확인하고,{" "}
+                  <Save size={12} className="inline mx-1" /> 저장 버튼을 눌러
+                  서버 데이터를 확인하세요.
                 </div>
               </Panel>
             </ReactFlow>

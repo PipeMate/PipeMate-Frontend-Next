@@ -3,6 +3,8 @@
 
 import { useCallback, useState } from "react";
 import { ServerBlock } from "../types";
+import { Package, RefreshCcw, Cog, Wrench, Lightbulb } from "lucide-react";
+import React from "react";
 
 type TabType = "trigger" | "job" | "step";
 
@@ -179,21 +181,21 @@ export const DragDropSidebar = () => {
   const getBlockIcon = (type: string) => {
     switch (type) {
       case "trigger":
-        return "🔄";
+        return <RefreshCcw size={18} />;
       case "job":
-        return "⚙️";
+        return <Cog size={18} />;
       case "step":
-        return "🔧";
+        return <Wrench size={18} />;
       default:
-        return "📦";
+        return <Package size={18} />;
     }
   };
 
   //* 탭 정보
-  const tabs: { type: TabType; label: string; icon: string }[] = [
-    { type: "trigger", label: "트리거", icon: "🔄" },
-    { type: "job", label: "Job", icon: "⚙️" },
-    { type: "step", label: "Step", icon: "🔧" },
+  const tabs: { type: TabType; label: string; icon: React.ReactNode }[] = [
+    { type: "trigger", label: "트리거", icon: <RefreshCcw size={18} /> },
+    { type: "job", label: "Job", icon: <Cog size={18} /> },
+    { type: "step", label: "Step", icon: <Wrench size={18} /> },
   ];
 
   return (
@@ -201,7 +203,7 @@ export const DragDropSidebar = () => {
       {/* 헤더 */}
       <div className="p-4 border-b border-gray-200 w-full">
         <h3 className="text-base font-semibold text-gray-700 mb-2 text-center w-full">
-          📦 블록 라이브러리
+          <Package size={18} className="inline mr-2" /> 블록 라이브러리
         </h3>
         <div className="text-xs text-gray-500 text-center leading-[1.4] w-full">
           블록을 드래그하여 워크스페이스에 추가하세요
@@ -292,7 +294,9 @@ export const DragDropSidebar = () => {
 
         {/* 사용법 안내 */}
         <div className="mt-5 p-3 bg-slate-50 border border-gray-200 rounded-lg text-[11px] text-gray-500 leading-[1.4] w-full">
-          <strong>💡 사용법:</strong>
+          <strong>
+            <Lightbulb size={14} className="inline mr-1" /> 사용법:
+          </strong>
           <br />
           • 블록을 드래그하여 워크스페이스에 드롭
           <br />

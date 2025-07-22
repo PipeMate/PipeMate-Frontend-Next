@@ -12,6 +12,7 @@ import { YamlPreviewPanel } from "./components/YamlPreviewPanel";
 import { ServerBlock } from "./types";
 import { useLayout } from "@/components/layout/LayoutContext";
 import { ROUTES } from "@/config/appConstants";
+import { Blocks, Github } from "lucide-react";
 
 export default function GitHubActionsFlowPage() {
   // 상태 관리
@@ -37,9 +38,13 @@ export default function GitHubActionsFlowPage() {
           borderRadius: "8px",
           fontSize: "14px",
           color: "#374151",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
         }}
       >
-        📊 총 {blocks.length}개 블록
+        <Blocks size={16} style={{ marginRight: 6 }} /> 총 {blocks.length}개
+        블록
       </div>
     );
     setHeaderExtra(
@@ -57,8 +62,12 @@ export default function GitHubActionsFlowPage() {
             fontWeight: 600,
             color: "#111827",
             margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
         >
+          <Github size={20} style={{ marginRight: 8 }} />
           {ROUTES.ACTION_FLOW.label}
         </h1>
         <p
