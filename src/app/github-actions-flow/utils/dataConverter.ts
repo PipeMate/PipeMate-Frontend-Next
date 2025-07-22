@@ -5,7 +5,7 @@
 //* 서버에서 받은 블록 데이터를 React Flow 노드로 변환하고,
 //* React Flow 노드를 서버로 보낼 블록 데이터로 변환합니다.
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge, MarkerType } from "reactflow";
 import { ServerBlock, WorkflowNodeData } from "../types";
 
 //* ========================================
@@ -29,7 +29,7 @@ export const convertServerBlocksToNodes = (
     const triggerNode: Node = {
       id: triggerBlock.id || `trigger-${nodeIdCounter++}`,
       type: "workflowTrigger",
-      position: { x: 200 + index * 300, y: 50 }, // 트리거들을 가로로 배치
+      position: { x: 200 + index * 350, y: 50 }, // 트리거 간격 넓힘
       data: {
         label: triggerBlock.name,
         type: "workflow_trigger",
@@ -49,7 +49,7 @@ export const convertServerBlocksToNodes = (
     const jobNode: Node = {
       id: jobBlock.id || `job-${nodeIdCounter++}`,
       type: "job",
-      position: { x: 100, y: 200 + index * 300 }, // Job들을 세로로 배치
+      position: { x: 200 + index * 350, y: 250 }, // Job도 x축으로 일정 간격 배치
       data: {
         label: jobBlock.name,
         type: "job",
@@ -71,7 +71,13 @@ export const convertServerBlocksToNodes = (
           id: `trigger-to-job-${jobNode.id}`,
           source: firstTrigger.id, // 첫 번째 트리거 노드
           target: jobNode.id,
-          type: "smoothstep",
+          type: "straight",
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 16,
+            height: 16,
+            color: "#64748b",
+          },
         });
       }
     }
@@ -81,14 +87,12 @@ export const convertServerBlocksToNodes = (
   //* Step 블록들 처리
   //* ========================================
   const stepBlocks = blocks.filter((block) => block.type === "step");
-  const jobStepMap = new Map<string, Node[]>(); // Job별 Step 노드들을 추적
+  const jobStepMap = new Map<string, Node[]>(); // Job별 Step 노드들 추적
 
+  // Step을 각 Job별로 y축으로 일정 간격 배치
   stepBlocks.forEach((stepBlock, index) => {
-    //* Step이 속할 Job 찾기 (job-name이 비어있으면 첫 번째 Job 사용)
     let parentJob = null;
-
     if (stepBlock["job-name"] && stepBlock["job-name"].trim() !== "") {
-      //* 특정 job-name으로 Job 찾기
       const jobName = stepBlock["job-name"];
       parentJob = nodes.find(
         (node) =>
@@ -97,17 +101,19 @@ export const convertServerBlocksToNodes = (
           Object.keys(node.data.config.jobs).includes(jobName)
       );
     }
-
-    //* job-name이 비어있거나 Job을 찾지 못했으면 첫 번째 Job 사용
     if (!parentJob) {
       parentJob = nodes.find((node) => node.data.type === "job");
     }
-
     if (parentJob) {
+      // 해당 Job에 속한 Step 개수
+      const jobSteps = jobStepMap.get(parentJob.id) || [];
       const stepNode: Node = {
         id: stepBlock.id || `step-${nodeIdCounter++}`,
         type: "step",
-        position: { x: 20, y: 60 + index * 80 }, // Job 내부에서 세로로 배치
+        position: {
+          x: parentJob.position.x,
+          y: parentJob.position.y + 120 + jobSteps.length * 80,
+        },
         parentNode: parentJob.id,
         data: {
           label: stepBlock.name,
@@ -123,8 +129,6 @@ export const convertServerBlocksToNodes = (
         },
       };
       nodes.push(stepNode);
-
-      //* Job별 Step 노드들을 추적
       if (!jobStepMap.has(parentJob.id)) {
         jobStepMap.set(parentJob.id, []);
       }
@@ -135,7 +139,13 @@ export const convertServerBlocksToNodes = (
         id: `job-to-step-${stepNode.id}`,
         source: parentJob.id,
         target: stepNode.id,
-        type: "smoothstep",
+        type: "straight",
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 16,
+          height: 16,
+          color: "#64748b",
+        },
         style: { zIndex: 10 },
         data: { isParentChild: true },
       });
@@ -168,7 +178,13 @@ export const convertServerBlocksToNodes = (
         id: `step-to-step-${currentStep.id}-${nextStep.id}`,
         source: currentStep.id,
         target: nextStep.id,
-        type: "smoothstep",
+        type: "straight",
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 16,
+          height: 16,
+          color: "#64748b",
+        },
         style: { zIndex: 10 },
         data: { isParentChild: true },
       });

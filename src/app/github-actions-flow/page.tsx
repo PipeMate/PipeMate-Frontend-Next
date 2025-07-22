@@ -96,6 +96,11 @@ export default function GitHubActionsFlowPage() {
     }
   }, []);
 
+  // 워크스페이스 초기화 핸들러
+  const handleClearWorkspace = useCallback(() => {
+    setBlocks([]); // blocks 상태도 직접 초기화
+  }, []);
+
   // 노드 선택 핸들러
   const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
     setSelectedBlock(selectedBlock);
@@ -164,6 +169,7 @@ export default function GitHubActionsFlowPage() {
             onWorkflowChange={handleWorkflowChange}
             onNodeSelect={handleNodeSelect}
             initialBlocks={blocks}
+            onClearWorkspace={handleClearWorkspace}
           />
         </Suspense>
         {/* YAML 미리보기 패널: 노드가 선택된 경우에만 표시 */}

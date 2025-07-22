@@ -126,18 +126,11 @@ export const ReactFlowWorkspace = ({
   const updateNodeData = useCallback(
     (nodeId: string, newData: Record<string, unknown>) => {
       setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id === nodeId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                ...newData,
-              },
-            };
-          }
-          return node;
-        })
+        nds.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...newData } }
+            : node
+        )
       );
     },
     [setNodes]
@@ -163,10 +156,34 @@ export const ReactFlowWorkspace = ({
         try {
           const block: ServerBlock = JSON.parse(data as string);
 
-          const position = {
-            x: event.clientX - reactFlowBounds.left,
-            y: event.clientY - reactFlowBounds.top,
-          };
+          // 노드 타입별로 자동 정렬 위치 계산
+          let position = { x: 0, y: 0 };
+          if (block.type === "trigger") {
+            // 트리거 노드 개수만큼 오른쪽으로 배치
+            const triggerCount = nodes.filter(
+              (n) => n.type === "workflowTrigger"
+            ).length;
+            position = { x: 200 + triggerCount * 350, y: 50 };
+          } else if (block.type === "job") {
+            // Job 노드 개수만큼 오른쪽으로 배치
+            const jobCount = nodes.filter((n) => n.type === "job").length;
+            position = { x: 200 + jobCount * 350, y: 250 };
+          } else if (block.type === "step") {
+            // 가장 가까운 Job 노드 기준으로 아래로 배치
+            const targetJob = nodes.find((node) => node.data.type === "job");
+            if (targetJob) {
+              const jobSteps = nodes.filter(
+                (n) => n.parentNode === targetJob.id && n.data.type === "step"
+              );
+              position = {
+                x: targetJob.position.x,
+                y: targetJob.position.y + 120 + jobSteps.length * 80,
+              };
+            } else {
+              // Job이 없으면 기본 위치
+              position = { x: 200, y: 400 };
+            }
+          }
 
           //* 기존 노드들의 ID를 확인해서 중복되지 않는 고유한 ID 생성
           const getUniqueId = (prefix: string) => {
@@ -406,7 +423,11 @@ export const ReactFlowWorkspace = ({
     setNodes(INITIAL_NODES);
     setEdges(INITIAL_EDGES);
     setSelectedNode(null);
-  }, [setNodes, setEdges]);
+    if (onWorkflowChange) {
+      const blocks = convertNodesToServerBlocks(INITIAL_NODES);
+      onWorkflowChange(blocks);
+    }
+  }, [setNodes, setEdges, onWorkflowChange]);
 
   //* 워크플로우 저장 함수
   const saveWorkflow = useCallback(() => {
