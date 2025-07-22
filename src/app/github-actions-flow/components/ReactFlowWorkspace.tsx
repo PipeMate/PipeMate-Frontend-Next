@@ -19,6 +19,7 @@ import ReactFlow, {
   MiniMap,
   Panel,
   Node,
+  MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import "@/styles/reactflow.css";
@@ -39,12 +40,14 @@ import {
   convertServerBlocksToNodes,
 } from "../utils/dataConverter";
 import { Save, ClipboardList, Trash2, Lightbulb } from "lucide-react";
+import { SubFlowNode } from "./nodes/SubFlowNode";
 
 //* 커스텀 노드 타입 정의
 const nodeTypes: NodeTypes = {
   workflowTrigger: WorkflowTriggerNode,
   job: JobNode,
   step: StepNode,
+  subflow: SubFlowNode,
 };
 
 //* 노드 데이터 업데이트 Context
@@ -146,46 +149,14 @@ export const ReactFlowWorkspace = ({
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-
       const reactFlowBounds = document
         .querySelector(".react-flow")
         ?.getBoundingClientRect();
       const data = event.dataTransfer.getData("application/reactflow");
-
       if (data && reactFlowBounds) {
         try {
           const block: ServerBlock = JSON.parse(data as string);
-
-          // 노드 타입별로 자동 정렬 위치 계산
-          let position = { x: 0, y: 0 };
-          if (block.type === "trigger") {
-            // 트리거 노드 개수만큼 오른쪽으로 배치
-            const triggerCount = nodes.filter(
-              (n) => n.type === "workflowTrigger"
-            ).length;
-            position = { x: 200 + triggerCount * 350, y: 50 };
-          } else if (block.type === "job") {
-            // Job 노드 개수만큼 오른쪽으로 배치
-            const jobCount = nodes.filter((n) => n.type === "job").length;
-            position = { x: 200 + jobCount * 350, y: 250 };
-          } else if (block.type === "step") {
-            // 가장 가까운 Job 노드 기준으로 아래로 배치
-            const targetJob = nodes.find((node) => node.data.type === "job");
-            if (targetJob) {
-              const jobSteps = nodes.filter(
-                (n) => n.parentNode === targetJob.id && n.data.type === "step"
-              );
-              position = {
-                x: targetJob.position.x,
-                y: targetJob.position.y + 120 + jobSteps.length * 80,
-              };
-            } else {
-              // Job이 없으면 기본 위치
-              position = { x: 200, y: 400 };
-            }
-          }
-
-          //* 기존 노드들의 ID를 확인해서 중복되지 않는 고유한 ID 생성
+          // 고유 ID 생성 함수
           const getUniqueId = (prefix: string) => {
             const existingIds = nodes.map((n) => n.id);
             let counter = 1;
@@ -196,18 +167,19 @@ export const ReactFlowWorkspace = ({
             }
             return newId;
           };
-
-          //* 블록 타입에 따라 노드 생성
-          let newNode: Node;
-
+          // 노드/엣지 추가용 임시 배열
+          const newNodes: Node[] = [...nodes];
+          const newEdges = [...edges];
           if (block.type === "trigger") {
-            newNode = {
-              id: getUniqueId("trigger"),
+            // 트리거 노드 추가
+            const triggerCount = newNodes.filter(
+              (n) => n.type === "workflowTrigger"
+            ).length;
+            const triggerId = getUniqueId("trigger");
+            const triggerNode: Node = {
+              id: triggerId,
               type: "workflowTrigger",
-              position: {
-                x: position.x,
-                y: position.y,
-              },
+              position: { x: 200 + triggerCount * 350, y: 50 },
               data: {
                 label: block.name,
                 type: "workflow_trigger",
@@ -216,14 +188,15 @@ export const ReactFlowWorkspace = ({
                 config: block.config,
               },
             };
+            newNodes.push(triggerNode);
           } else if (block.type === "job") {
-            newNode = {
-              id: getUniqueId("job"),
+            // Job 노드 추가
+            const jobCount = newNodes.filter((n) => n.type === "job").length;
+            const jobId = getUniqueId("job");
+            const jobNode: Node = {
+              id: jobId,
               type: "job",
-              position: {
-                x: position.x,
-                y: position.y,
-              },
+              position: { x: 200 + jobCount * 350, y: 250 },
               draggable: true,
               data: {
                 label: block.name,
@@ -233,144 +206,159 @@ export const ReactFlowWorkspace = ({
                 config: block.config,
               },
             };
-          } else if (block.type === "step") {
-            //* 가장 가까운 Job 찾기
-            const targetJob = nodes.find((node) => node.data.type === "job");
-
-            if (targetJob) {
-              //* job-name을 실제 Job의 이름으로 설정
-              const actualJobName = Object.keys(
-                targetJob.data.config?.jobs || {}
-              )[0];
-
-              const stepIndex = nodes.filter(
-                (n) => n.parentNode === targetJob.id
-              ).length;
-              newNode = {
-                id: getUniqueId("step"),
-                type: "step",
-                position: {
-                  x: 8,
-                  y: 58 + stepIndex * 52, // Job 헤더(50px) + 여백(8px) + Step 간격(52px)
+            newNodes.push(jobNode);
+            // 서브플로우 노드 추가 (Job마다 1:1)
+            const subflowId = getUniqueId("subflow");
+            const SUBFLOW_WIDTH = 320;
+            const SUBFLOW_HEIGHT = 180;
+            const subflowNode: Node = {
+              id: subflowId,
+              type: "subflow",
+              position: { x: 0, y: 180 }, // 부모(Job) 기준 바로 아래 일직선
+              parentNode: jobId,
+              data: {
+                label: `${block.name} - Subflow`,
+                type: "subflow",
+                jobId,
+                stepCount: 0,
+                width: SUBFLOW_WIDTH,
+                height: SUBFLOW_HEIGHT,
+              },
+              style: { minWidth: SUBFLOW_WIDTH, minHeight: SUBFLOW_HEIGHT },
+            };
+            newNodes.push(subflowNode);
+            // 엣지: Job → Subflow
+            newEdges.push({
+              id: `job-to-subflow-${jobId}-${subflowId}`,
+              source: jobId,
+              target: subflowId,
+              type: "straight",
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 16,
+                height: 16,
+                color: "#64748b",
+              },
+            });
+            // 트리거가 있으면 트리거 → Job 엣지
+            const firstTrigger = newNodes.find(
+              (n) => n.type === "workflowTrigger"
+            );
+            if (firstTrigger) {
+              newEdges.push({
+                id: `trigger-to-job-${firstTrigger.id}-${jobId}`,
+                source: firstTrigger.id,
+                target: jobId,
+                type: "straight",
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 16,
+                  height: 16,
+                  color: "#64748b",
                 },
-                parentNode: targetJob.id,
-                data: {
-                  label: block.name,
-                  type: "step",
-                  category: block.category,
-                  description: block.description,
-                  config: block.config,
-                  parentId: targetJob.id,
-                  jobName: actualJobName || "",
-                },
-              };
-
-              //* Job 노드의 크기를 Step 개수에 맞게 조정
-              const stepCount = stepIndex + 1;
-              const jobHeaderHeight = 50;
-              const stepHeight = 40;
-              const stepMargin = 12;
-              const jobBottomMargin = 16;
-              const jobHeight = Math.max(
-                100,
-                jobHeaderHeight +
-                  stepCount * (stepHeight + stepMargin) +
-                  jobBottomMargin
-              );
-
-              updateNodeData(targetJob.id, {
-                stepCount: stepCount,
-                height: jobHeight,
               });
-            } else {
+            }
+          } else if (block.type === "step") {
+            // Step 추가: 가장 최근 Job의 서브플로우에 추가
+            const lastJob = [...newNodes]
+              .reverse()
+              .find((n) => n.type === "job");
+            if (!lastJob) {
               alert("Job이 필요합니다. 먼저 Job 블록을 추가해주세요.");
               return;
             }
-          } else {
-            return;
-          }
-
-          setNodes((nds) => [...nds, newNode]);
-
-          //* 드래그 드롭 시 자동 연결 로직
-          if (block.type === "job") {
-            //* Job을 추가할 때 첫 번째 트리거와 연결
-            const firstTrigger = nodes.find(
-              (n) => n.data.type === "workflow_trigger"
+            // 해당 Job의 서브플로우 찾기
+            const subflowNode = newNodes.find(
+              (n) => n.type === "subflow" && n.parentNode === lastJob.id
             );
-            if (firstTrigger) {
-              const newEdgeId = `trigger-to-job-${newNode.id}`;
-
-              //* 중복 엣지 확인
-              const existingEdge = edges.find(
-                (e) => e.source === firstTrigger.id && e.target === newNode.id
-              );
-
-              if (!existingEdge) {
-                const newEdge = {
-                  id: newEdgeId,
-                  source: firstTrigger.id,
-                  target: newNode.id,
-                  type: "smoothstep",
-                };
-
-                setEdges((eds) => [...eds, newEdge]);
-              } else {
-                // Edge already exists, skipping
-              }
+            if (!subflowNode) {
+              alert("서브플로우가 필요합니다. Job을 먼저 추가해주세요.");
+              return;
             }
-          } else if (block.type === "step") {
-            //* Step을 추가할 때 Job과 연결하고, 이전 Step과도 연결
-            const targetJob = nodes.find((node) => node.data.type === "job");
-
-            if (targetJob) {
-              //* 같은 Job의 다른 Step들 찾기 (부모-자식 관계 고려)
-              const jobSteps = nodes.filter(
-                (n) => n.parentNode === targetJob.id && n.data.type === "step"
-              );
-
-              //* Job과 Step 연결 (부모-자식 관계이지만 엣지로 연결)
-              const jobToStepEdgeId = `job-to-step-${newNode.id}`;
-              const existingJobEdge = edges.find(
-                (e) => e.source === targetJob.id && e.target === newNode.id
-              );
-
-              if (!existingJobEdge) {
-                const jobToStepEdge = {
-                  id: jobToStepEdgeId,
-                  source: targetJob.id,
-                  target: newNode.id,
-                  type: "smoothstep",
-                  //* 부모-자식 노드 간 엣지가 제대로 보이도록 설정
-                  style: { zIndex: 10 },
-                  data: { isParentChild: true },
-                };
-                setEdges((eds) => [...eds, jobToStepEdge]);
-              }
-
-              //* 이전 Step과 현재 Step 연결 (순차적 실행)
-              if (jobSteps.length > 0) {
-                const previousStep = jobSteps[jobSteps.length - 1];
-                const stepToStepEdgeId = `step-to-step-${previousStep.id}-${newNode.id}`;
-                const existingStepEdge = edges.find(
-                  (e) => e.source === previousStep.id && e.target === newNode.id
-                );
-
-                if (!existingStepEdge) {
-                  const stepToStepEdge = {
-                    id: stepToStepEdgeId,
-                    source: previousStep.id,
-                    target: newNode.id,
-                    type: "smoothstep",
-                    //* 부모-자식 노드 간 엣지가 제대로 보이도록 설정
-                    style: { zIndex: 10 },
-                    data: { isParentChild: true },
-                  };
-                  setEdges((eds) => [...eds, stepToStepEdge]);
-                }
-              }
+            // 해당 서브플로우의 Step 개수
+            const subflowSteps = newNodes.filter(
+              (n) => n.parentNode === subflowNode.id && n.type === "step"
+            );
+            // Step 노드 크기/간격 상수
+            const SUBFLOW_PADDING_X = 32;
+            const SUBFLOW_PADDING_Y = 32;
+            const STEP_WIDTH = 220;
+            const STEP_HEIGHT = 56;
+            const STEP_MARGIN = 18;
+            // Step position (서브플로우 기준 상대좌표)
+            const stepX = SUBFLOW_PADDING_X;
+            const stepY =
+              SUBFLOW_PADDING_Y +
+              subflowSteps.length * (STEP_HEIGHT + STEP_MARGIN);
+            const stepId = getUniqueId("step");
+            const stepNode: Node = {
+              id: stepId,
+              type: "step",
+              position: { x: stepX, y: stepY },
+              parentNode: subflowNode.id,
+              extent: "parent",
+              data: {
+                label: block.name,
+                type: "step",
+                category: block.category,
+                description: block.description,
+                config: block.config,
+                parentId: subflowNode.id,
+                jobName: lastJob.data.label || "",
+              },
+            };
+            newNodes.push(stepNode);
+            // Step 간 엣지 (순차 연결)
+            if (subflowSteps.length > 0) {
+              const prevStep = subflowSteps[subflowSteps.length - 1];
+              newEdges.push({
+                id: `step-to-step-${prevStep.id}-${stepId}`,
+                source: prevStep.id,
+                target: stepId,
+                type: "straight",
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 16,
+                  height: 16,
+                  color: "#64748b",
+                },
+                style: { zIndex: 10 },
+                data: { isParentChild: true },
+              });
+            } else {
+              // 첫 Step이면 Subflow → Step 엣지
+              newEdges.push({
+                id: `subflow-to-step-${subflowNode.id}-${stepId}`,
+                source: subflowNode.id,
+                target: stepId,
+                type: "straight",
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 16,
+                  height: 16,
+                  color: "#64748b",
+                },
+                style: { zIndex: 10 },
+                data: { isParentChild: true },
+              });
             }
+            // 서브플로우 크기 동적 조절 (Step 개수/크기 반영)
+            const stepCount = subflowSteps.length + 1;
+            const subflowWidth = STEP_WIDTH + SUBFLOW_PADDING_X * 2;
+            const subflowHeight =
+              SUBFLOW_PADDING_Y * 2 +
+              stepCount * STEP_HEIGHT +
+              (stepCount - 1) * STEP_MARGIN;
+            subflowNode.data.stepCount = stepCount;
+            subflowNode.data.width = subflowWidth;
+            subflowNode.data.height = Math.max(120, subflowHeight);
+            subflowNode.style = {
+              minWidth: subflowWidth,
+              minHeight: Math.max(120, subflowHeight),
+            };
           }
+          setNodes(newNodes);
+          setEdges(newEdges);
         } catch (error) {
           console.error("드롭 처리 오류:", error);
         }

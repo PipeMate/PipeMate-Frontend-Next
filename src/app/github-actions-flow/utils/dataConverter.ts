@@ -42,14 +42,16 @@ export const convertServerBlocksToNodes = (
   });
 
   //* ========================================
-  //* Job 블록들 처리
+  //* Job 블록들 처리 + SubFlow 생성
   //* ========================================
   const jobBlocks = blocks.filter((block) => block.type === "job");
+  const jobIdToSubflowId: Record<string, string> = {};
   jobBlocks.forEach((jobBlock, index) => {
+    const jobNodeId = jobBlock.id || `job-${nodeIdCounter++}`;
     const jobNode: Node = {
-      id: jobBlock.id || `job-${nodeIdCounter++}`,
+      id: jobNodeId,
       type: "job",
-      position: { x: 200 + index * 350, y: 250 }, // Job도 x축으로 일정 간격 배치
+      position: { x: 200 + index * 350, y: 250 },
       data: {
         label: jobBlock.name,
         type: "job",
@@ -59,9 +61,24 @@ export const convertServerBlocksToNodes = (
       },
     };
     nodes.push(jobNode);
-
-    //* 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
-    //* 단, 여러 블록을 한 번에 처리할 때만 연결 (드래그 드롭 시에는 제외)
+    // 각 job마다 subflow 노드 생성
+    const subflowId = `subflow-${jobNodeId}`;
+    jobIdToSubflowId[jobNodeId] = subflowId;
+    const subflowNode: Node = {
+      id: subflowId,
+      type: "subflow",
+      position: { x: jobNode.position.x, y: jobNode.position.y + 100 },
+      parentNode: jobNodeId,
+      data: {
+        label: `${jobBlock.name} Steps`,
+        type: "subflow",
+        jobId: jobNodeId,
+        stepCount: 0,
+        height: 120,
+      },
+    };
+    nodes.push(subflowNode);
+    // 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
     if (blocks.length > 1) {
       const firstTrigger = nodes.find(
         (node) => node.data.type === "workflow_trigger"
@@ -69,7 +86,7 @@ export const convertServerBlocksToNodes = (
       if (firstTrigger) {
         edges.push({
           id: `trigger-to-job-${jobNode.id}`,
-          source: firstTrigger.id, // 첫 번째 트리거 노드
+          source: firstTrigger.id,
           target: jobNode.id,
           type: "straight",
           markerEnd: {
@@ -81,16 +98,28 @@ export const convertServerBlocksToNodes = (
         });
       }
     }
+    // job → subflow 엣지
+    edges.push({
+      id: `job-to-subflow-${subflowId}`,
+      source: jobNodeId,
+      target: subflowId,
+      type: "straight",
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 16,
+        height: 16,
+        color: "#64748b",
+      },
+    });
   });
 
   //* ========================================
-  //* Step 블록들 처리
+  //* Step 블록들 처리 (subflow의 자식으로)
   //* ========================================
   const stepBlocks = blocks.filter((block) => block.type === "step");
-  const jobStepMap = new Map<string, Node[]>(); // Job별 Step 노드들 추적
-
-  // Step을 각 Job별로 y축으로 일정 간격 배치
-  stepBlocks.forEach((stepBlock, index) => {
+  const subflowStepMap = new Map<string, Node[]>();
+  stepBlocks.forEach((stepBlock) => {
+    // step이 속할 job 찾기
     let parentJob = null;
     if (stepBlock["job-name"] && stepBlock["job-name"].trim() !== "") {
       const jobName = stepBlock["job-name"];
@@ -105,23 +134,39 @@ export const convertServerBlocksToNodes = (
       parentJob = nodes.find((node) => node.data.type === "job");
     }
     if (parentJob) {
-      // 해당 Job에 속한 Step 개수
-      const jobSteps = jobStepMap.get(parentJob.id) || [];
+      const subflowId = jobIdToSubflowId[parentJob.id];
+      const subflowNode = nodes.find((n) => n.id === subflowId);
+      const subflowSteps = subflowStepMap.get(subflowId) || [];
+      // 서브플로우 크기 및 step 배치 기준 (패딩 포함)
+      const SUBFLOW_PADDING_X = 32;
+      const SUBFLOW_PADDING_Y = 32;
+      const STEP_WIDTH = 220;
+      const STEP_HEIGHT = 56;
+      const STEP_MARGIN = 18;
+      // x: 서브플로우 좌우 패딩 내 중앙 정렬, y: 패딩 아래에서부터 아래로 간격
+      const stepX =
+        SUBFLOW_PADDING_X +
+        (Math.max(STEP_WIDTH, subflowNode ? subflowNode.data.width || 0 : 0) -
+          STEP_WIDTH) /
+          2;
+      const stepY =
+        SUBFLOW_PADDING_Y + subflowSteps.length * (STEP_HEIGHT + STEP_MARGIN);
       const stepNode: Node = {
         id: stepBlock.id || `step-${nodeIdCounter++}`,
         type: "step",
         position: {
-          x: parentJob.position.x,
-          y: parentJob.position.y + 120 + jobSteps.length * 80,
+          x: stepX,
+          y: stepY,
         },
-        parentNode: parentJob.id,
+        parentNode: subflowId,
+        extent: "parent",
         data: {
           label: stepBlock.name,
           type: "step",
           category: stepBlock.category,
           description: stepBlock.description,
           config: stepBlock.config,
-          parentId: parentJob.id,
+          parentId: subflowId,
           jobName:
             stepBlock["job-name"] ||
             Object.keys(parentJob.data.config?.jobs || {})[0] ||
@@ -129,51 +174,42 @@ export const convertServerBlocksToNodes = (
         },
       };
       nodes.push(stepNode);
-      if (!jobStepMap.has(parentJob.id)) {
-        jobStepMap.set(parentJob.id, []);
+      if (!subflowStepMap.has(subflowId)) {
+        subflowStepMap.set(subflowId, []);
       }
-      jobStepMap.get(parentJob.id)!.push(stepNode);
-
-      //* Job과 Step 연결
-      edges.push({
-        id: `job-to-step-${stepNode.id}`,
-        source: parentJob.id,
-        target: stepNode.id,
-        type: "straight",
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 16,
-          height: 16,
-          color: "#64748b",
-        },
-        style: { zIndex: 10 },
-        data: { isParentChild: true },
-      });
-    } else {
-      //* Job이 없어도 Step 노드 생성 (드롭 핸들러에서 처리)
-      const stepNode: Node = {
-        id: `step-${nodeIdCounter++}`,
-        type: "step",
-        position: { x: 20, y: 60 + index * 80 },
-        data: {
-          label: stepBlock.name,
-          type: "step",
-          category: stepBlock.category,
-          description: stepBlock.description,
-          config: stepBlock.config,
-          jobName: stepBlock["job-name"] || "",
-        },
-      };
-      nodes.push(stepNode);
+      subflowStepMap.get(subflowId)!.push(stepNode);
+      // subflow의 stepCount, width, height 갱신 (step 개수, 패딩 포함)
+      if (subflowNode) {
+        const stepCount = subflowStepMap.get(subflowId)!.length;
+        // Step 노드들의 width/height 동적 측정값 사용
+        const stepWidths = subflowStepMap
+          .get(subflowId)!
+          .map((n) => n.data.width || 220);
+        const stepHeights = subflowStepMap
+          .get(subflowId)!
+          .map((n) => n.data.height || 56);
+        const maxStepWidth = Math.max(...stepWidths, 220);
+        const totalStepHeight =
+          stepHeights.reduce((acc, h) => acc + h, 0) +
+          Math.max(0, stepCount - 1) * STEP_MARGIN;
+        const subflowWidth = maxStepWidth + SUBFLOW_PADDING_X * 2;
+        const subflowHeight = SUBFLOW_PADDING_Y * 2 + totalStepHeight;
+        subflowNode.data.stepCount = stepCount;
+        subflowNode.data.height = Math.max(120, subflowHeight);
+        subflowNode.data.width = Math.max(320, subflowWidth);
+        subflowNode.style = {
+          ...subflowNode.style,
+          minWidth: subflowNode.data.width,
+          minHeight: subflowNode.data.height,
+        };
+      }
     }
   });
-
-  //* Step과 Step 간 연결 (순차적 실행)
-  jobStepMap.forEach((jobSteps) => {
-    for (let i = 0; i < jobSteps.length - 1; i++) {
-      const currentStep = jobSteps[i];
-      const nextStep = jobSteps[i + 1];
-
+  // Step 간 엣지 (subflow 내부에서만)
+  subflowStepMap.forEach((steps) => {
+    for (let i = 0; i < steps.length - 1; i++) {
+      const currentStep = steps[i];
+      const nextStep = steps[i + 1];
       edges.push({
         id: `step-to-step-${currentStep.id}-${nextStep.id}`,
         source: currentStep.id,
