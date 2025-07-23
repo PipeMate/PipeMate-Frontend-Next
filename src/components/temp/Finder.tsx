@@ -59,7 +59,7 @@ export function Finder({ ...props }: React.ComponentProps<typeof Sidebar>) {
   );
 }
 
-type TreeItem = string | TreeItem[];
+type TreeItem = string | readonly TreeItem[];
 
 function Tree({ item }: { item: TreeItem }) {
   const [name, ...items] = Array.isArray(item) ? item : [item];

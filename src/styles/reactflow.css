@@ -1,0 +1,131 @@
+/* React Flow 워크스페이스 스타일 */
+
+.react-flow {
+  background-color: #f9fafb;
+}
+
+.react-flow__node {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  overflow: visible;
+  max-width: 240px !important;
+}
+
+/* 엣지, 핸들, 기타 스타일은 유지 */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.react-flow__handle:hover {
+  background-color: #3b82f6;
+}
+
+.react-flow__edge-path {
+  stroke: #6b7280;
+  stroke-width: 2px;
+  transition: stroke 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3px;
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3px;
+}
+
+/* Job-Step 연결용 핸들 */
+.reactflow-handle.job-connection {
+  background: #10b981;
+  border-color: #fff;
+}
+
+.reactflow-handle.job-connection:hover {
+  background: #059669;
+}
+
+.reactflow-handle.step-connection {
+  background: #10b981;
+  border-color: #fff;
+}
+
+.reactflow-handle.step-connection:hover {
+  background: #059669;
+}
+
+/* Job과 Step 간 연결 엣지 */
+.react-flow__edge[data-id*="job-to-step"] .react-flow__edge-path {
+  stroke: #10b981;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+  z-index: 5;
+}
+
+.react-flow__edge[data-id*="job-to-step"]:hover .react-flow__edge-path {
+  stroke: #059669;
+  stroke-width: 3;
+}
+
+/* Step과 Step 간 연결 엣지 */
+.react-flow__edge[data-id*="step-to-step"] .react-flow__edge-path {
+  stroke: #f59e0b;
+  stroke-width: 2;
+  z-index: 5;
+}
+
+.react-flow__edge[data-id*="step-to-step"]:hover .react-flow__edge-path {
+  stroke: #d97706;
+  stroke-width: 3;
+}
+
+/* Trigger와 Job 간 연결 엣지 */
+.react-flow__edge[data-id*="trigger-to-job"] .react-flow__edge-path {
+  stroke: #8b5cf6;
+  stroke-width: 3;
+  z-index: 5;
+}
+
+.react-flow__edge[data-id*="trigger-to-job"]:hover .react-flow__edge-path {
+  stroke: #7c3aed;
+  stroke-width: 4;
+}
+
+/* 부모-자식 노드 간 엣지가 잘리지 않도록 설정 */
+.react-flow__node[data-id*="job"] .react-flow__edge {
+  z-index: 10;
+}
+
+.react-flow__node[data-id*="step"] .react-flow__edge {
+  z-index: 10;
+}
+
+.react-flow__node[data-id*="job"] {
+  overflow: visible;
+}
+
+.react-flow__node[data-id*="step"] {
+  overflow: visible;
+}
+
+.react-flow__edge[data-is-parent-child="true"] {
+  z-index: 15 !important;
+}
+
+.react-flow__edge[data-is-parent-child="true"] .react-flow__edge-path {
+  z-index: 15 !important;
+}
+
+.react-flow__node[data-id*="job"] .react-flow__node[data-id*="step"] {
+  z-index: 5;
+}
