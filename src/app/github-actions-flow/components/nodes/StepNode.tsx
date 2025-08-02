@@ -164,7 +164,6 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
           description={
             (data.description as string) || "GitHub Actions Step 실행"
           }
-          category={domain}
           domain={data.domain as string}
           task={data.task as string[]}
           handles={handles}
@@ -218,31 +217,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                   type="text"
                   value={(config.name as string) || "Step"}
                   onChange={onStepNameChange}
-                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500 focus:ring-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500`}
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${colors.border} focus:ring-${colors.border}-500`}
                   placeholder="Step name"
                 />
               </div>
@@ -259,31 +234,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                   id={`step-type-${id}`}
                   value={config.uses ? "action" : "command"}
                   onChange={onStepTypeChange}
-                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500 focus:ring-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500`}
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${colors.border} focus:ring-${colors.border}-500`}
                 >
                   <option value="action">Action</option>
                   <option value="command">Command</option>
@@ -310,31 +261,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                     ""
                   }
                   onChange={onActionChange}
-                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500 focus:ring-${
-                    domain === "github"
-                      ? "blue"
-                      : domain === "java"
-                      ? "amber"
-                      : domain === "gradle"
-                      ? "pink"
-                      : domain === "docker"
-                      ? "indigo"
-                      : domain === "aws"
-                      ? "orange"
-                      : "gray"
-                  }-500`}
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${colors.border} focus:ring-${colors.border}-500`}
                   placeholder={
                     (data.config as Record<string, unknown>)?.uses
                       ? "actions/checkout@v4"

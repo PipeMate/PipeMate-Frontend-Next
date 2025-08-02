@@ -49,7 +49,6 @@ export const SubFlowNode: React.FC<NodeProps> = ({ data, id }) => {
         icon={getNodeIcon("STEPS")}
         title={getTitle()}
         description="Step들을 담는 컨테이너"
-        category="workflow"
         handles={handles}
         bgColor={colors.bg}
         borderColor={colors.border}

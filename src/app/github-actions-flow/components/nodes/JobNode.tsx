@@ -158,12 +158,7 @@ export const JobNode = memo(({ data, id }: NodeProps) => {
   const jobConfig = (jobs?.[jobKey] as Record<string, unknown>) || {};
 
   //* Job 노드 전용 색상 - 파랑색 계열로 구분 (워크플로우와 동일)
-  const colors = {
-    bg: "#dbeafe", //* 연한 파랑색 배경
-    border: "#3b82f6", //* blue-500 테두리
-    text: "#1e40af", //* 진한 파랑색 텍스트
-    hover: "#bfdbfe", //* 호버 색상
-  };
+  const colors = NODE_COLORS.JOB;
   const handles = NODE_HANDLE_CONFIGS.JOB.map((handle) => ({
     ...handle,
     position: handle.position as Position,
@@ -175,7 +170,6 @@ export const JobNode = memo(({ data, id }: NodeProps) => {
         icon={getNodeIcon("JOB")}
         title={(data.label as string) || "Job 설정"}
         description={(data.description as string) || "GitHub Actions Job 설정"}
-        category="workflow"
         handles={handles}
         bgColor={colors.bg}
         borderColor={colors.border}

@@ -232,7 +232,7 @@ export const YamlPreviewPanel = ({
             {selectedBlock.description}
           </div>
           <div className="text-[11px] text-gray-400 mt-1">
-            타입: {selectedBlock.type} | 카테고리: {selectedBlock.category}
+            타입: {selectedBlock.type}
           </div>
         </div>
       )}

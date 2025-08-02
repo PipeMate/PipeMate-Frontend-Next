@@ -231,20 +231,6 @@ const COLOR_PALETTE = [
 ] as const;
 
 //* ========================================
-//* 카테고리별 아이콘 상수
-//* ========================================
-
-//* 각 카테고리별 아이콘 정의
-export const CATEGORY_ICONS = {
-  workflow: <Settings size={16} />,
-  setup: <Database size={16} />,
-  build: <Code size={16} />,
-  test: <Play size={16} />,
-  deploy: <Server size={16} />,
-  docker: <Cloud size={16} />,
-} as const;
-
-//* ========================================
 //* 노드 타입별 CSS 클래스 상수
 //* ========================================
 
@@ -281,11 +267,6 @@ export const getDomainColor = (domain: string) => {
   return generateColorFromHash(domain);
 };
 
-//* 기존 호환성을 위한 함수 (deprecated)
-export const getCategoryColor = (category: string) => {
-  return getDomainColor(category);
-};
-
 //* 노드 타입별 색상 가져오기 함수
 export const getNodeColor = (nodeType: NodeType, category?: string) => {
   if (nodeType === "STEP" && category) {
@@ -298,13 +279,4 @@ export const getNodeColor = (nodeType: NodeType, category?: string) => {
 //* 노드 타입별 핸들 설정 가져오기 함수
 export const getNodeHandles = (nodeType: NodeType) => {
   return NODE_HANDLE_CONFIGS[nodeType];
-};
-
-//* 카테고리별 아이콘 가져오기 함수
-export const getCategoryIcon = (category: string) => {
-  return (
-    CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] || (
-      <Package size={16} />
-    )
-  );
 };

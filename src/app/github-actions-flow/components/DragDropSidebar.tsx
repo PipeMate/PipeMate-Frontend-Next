@@ -6,12 +6,9 @@ import { useCallback, useState, useEffect, useMemo } from "react";
 import { ServerBlock } from "../types";
 import { Lightbulb, Filter } from "lucide-react";
 import React from "react";
-import {
-  getDomainColor,
-  getNodeIcon,
-  getCategoryIcon,
-} from "../constants/nodeConstants";
+import { getDomainColor, getNodeIcon } from "../constants/nodeConstants";
 import { fetchPresetBlocks, PresetBlock } from "../constants/mockData";
+import { NODE_COLORS } from "../constants/nodeConstants";
 
 //* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
 type TabType = "trigger" | "job" | "step";
@@ -178,6 +175,8 @@ export const DragDropSidebar = () => {
                     ? "bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500"
                     : tab.type === "job"
                     ? "bg-white text-blue-500 shadow-sm border-b-2 border-blue-500"
+                    : tab.type === "step"
+                    ? "bg-white text-amber-500 shadow-sm border-b-2 border-amber-500"
                     : "bg-white text-gray-600 shadow-sm border-b-2 border-gray-600"
                   : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
               }
@@ -258,26 +257,12 @@ export const DragDropSidebar = () => {
               //* 블록 타입에 따라 직접 색상 적용
               const colors = (() => {
                 if (block.type === "trigger") {
-                  //* 트리거: 초록색 (워크플로우 트리거 노드와 동일)
-                  return {
-                    bg: "#ecfdf5",
-                    border: "#10b981",
-                    text: "#065f46",
-                    hover: "#d1fae5",
-                  };
+                  return NODE_COLORS.TRIGGER;
                 } else if (block.type === "job") {
-                  //* Job: 파랑색 (워크플로우 Job 노드와 동일)
-                  return {
-                    bg: "#dbeafe",
-                    border: "#3b82f6",
-                    text: "#1e40af",
-                    hover: "#bfdbfe",
-                  };
+                  return NODE_COLORS.JOB;
                 } else if (block.type === "step" && block.domain) {
-                  //* Step: 도메인별 색상
                   return getDomainColor(block.domain);
                 } else {
-                  //* 기본 색상
                   return {
                     bg: "#f3f4f6",
                     border: "#6b7280",
@@ -288,10 +273,6 @@ export const DragDropSidebar = () => {
               })();
 
               const icon = getBlockIcon(block.type);
-              const categoryIcon =
-                block.type === "step" && block.domain
-                  ? getCategoryIcon(block.domain)
-                  : getCategoryIcon(block.category || "workflow");
 
               return (
                 <div
@@ -329,10 +310,9 @@ export const DragDropSidebar = () => {
                           {block.name}
                         </span>
                       </div>
-                      {/* 카테고리 정보 (컴팩트하게) */}
+                      {/* 도메인/태스크 정보 (컴팩트하게) */}
                       <div className="flex items-center gap-1">
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
-                          {categoryIcon}
                           <span className="truncate text-xs">
                             {block.type === "step" && block.domain
                               ? `${block.domain}${
@@ -340,7 +320,7 @@ export const DragDropSidebar = () => {
                                     ? ` • ${block.task.join(", ")}`
                                     : ""
                                 }`
-                              : block.category || "workflow"}
+                              : block.type}
                           </span>
                         </div>
                       </div>

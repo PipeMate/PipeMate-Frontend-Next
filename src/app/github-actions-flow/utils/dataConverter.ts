@@ -33,7 +33,6 @@ export const convertServerBlocksToNodes = (
       data: {
         label: triggerBlock.name,
         type: "workflow_trigger",
-        category: triggerBlock.category,
         domain: triggerBlock.domain,
         task: triggerBlock.task,
         description: triggerBlock.description,
@@ -57,7 +56,6 @@ export const convertServerBlocksToNodes = (
       data: {
         label: jobBlock.name,
         type: "job",
-        category: jobBlock.category,
         domain: jobBlock.domain,
         task: jobBlock.task,
         description: jobBlock.description,
@@ -175,7 +173,6 @@ export const convertServerBlocksToNodes = (
         data: {
           label: stepBlock.name,
           type: "step",
-          category: stepBlock.category,
           domain: stepBlock.domain,
           task: stepBlock.task,
           description: stepBlock.description,
@@ -307,7 +304,6 @@ export const convertNodesToServerBlocks = (
       blocks.push({
         name: nodeData.label,
         type: "trigger",
-        category: nodeData.category,
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
@@ -342,7 +338,6 @@ export const convertNodesToServerBlocks = (
       blocks.push({
         name: nodeData.label,
         type: "job",
-        category: nodeData.category,
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
@@ -356,7 +351,6 @@ export const convertNodesToServerBlocks = (
       blocks.push({
         name: nodeData.label,
         type: "step",
-        category: nodeData.category,
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,

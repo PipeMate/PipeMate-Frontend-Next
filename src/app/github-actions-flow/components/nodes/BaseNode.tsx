@@ -28,9 +28,8 @@ export interface BaseNodeProps {
   title: string; //* 노드 제목
   children: React.ReactNode; //* 노드 내용 (설정 UI 또는 정보 표시)
   description?: string; //* 노드 설명
-  category?: string; //* 카테고리 정보
-  domain?: string; //* 도메인 정보 (github, java, gradle, docker, aws 등)
-  task?: string[]; //* 태스크 정보 (checkout, setup, build, test 등)
+  domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
+  task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   isEditing?: boolean; //* 편집 모드 상태
   onEdit?: (e: React.MouseEvent) => void; //* 편집 시작 핸들러
   onSave?: (e: React.MouseEvent) => void; //* 저장 핸들러
@@ -51,7 +50,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   title,
   children,
   description,
-  category,
   domain,
   task,
   isEditing,
@@ -119,11 +117,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             </span>
             {nodeTypeBadge && <div className="flex">{nodeTypeBadge}</div>}
           </div>
-          {/* 카테고리 정보 표시 */}
-          {(category || domain || task) && (
+          {/* 도메인/태스크 정보 표시 (Step 노드에서만) */}
+          {(domain || task) && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-white/50">
-              {category && <span>{category}</span>}
-              {domain && category && <span>•</span>}
               {domain && <span>{domain}</span>}
               {task && task.length > 0 && (
                 <>

@@ -16,9 +16,8 @@ export interface ServerBlock {
   id?: string; // 고유 식별자(최초 생성 시 uuid 등으로 할당, 이후 불변)
   name: string; //* 블록 이름
   type: "trigger" | "job" | "step"; //* 블록 타입
-  category?: string; //* 블록 카테고리 (trigger, job에는 없음)
-  domain?: string; //* 도메인 정보 (step에만 있음)
-  task?: string[]; //* 태스크 정보 (step에만 있음)
+  domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
+  task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   description: string; //* 블록 설명
   "job-name"?: string; //* Job과 Step에서만 사용, 블록 라이브러리에서는 빈 값
   config: Record<string, unknown>; //* 블록 설정 데이터
@@ -65,9 +64,8 @@ export interface StepConfig {
 export interface WorkflowNodeData {
   label: string; //* 노드 표시 이름
   type: "workflow_trigger" | "job" | "step"; //* 노드 타입
-  category: string; //* 노드 카테고리
-  domain?: string; //* 도메인 정보 (step에만 있음)
-  task?: string[]; //* 태스크 정보 (step에만 있음)
+  domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
+  task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   description: string; //* 노드 설명
   config: Record<string, unknown>; //* 노드 설정 데이터
   parentId?: string; //* 부모 노드 ID (Step용)

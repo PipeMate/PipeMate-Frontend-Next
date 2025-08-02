@@ -305,7 +305,6 @@ export const ReactFlowWorkspace = ({
               data: {
                 label: block.name,
                 type: "workflow_trigger",
-                category: block.category,
                 domain: block.domain,
                 task: block.task,
                 description: block.description,
@@ -341,7 +340,6 @@ export const ReactFlowWorkspace = ({
               data: {
                 label: block.name,
                 type: "job",
-                category: block.category,
                 domain: block.domain,
                 task: block.task,
                 description: block.description,
@@ -509,7 +507,6 @@ export const ReactFlowWorkspace = ({
               data: {
                 label: block.name,
                 type: "step",
-                category: block.category,
                 domain: block.domain,
                 task: block.task,
                 description: block.description,
@@ -797,7 +794,6 @@ export const ReactFlowWorkspace = ({
       {
         name: "워크플로우 기본 설정",
         type: "trigger",
-        category: "workflow",
         description:
           "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
         config: {
@@ -813,7 +809,6 @@ export const ReactFlowWorkspace = ({
       {
         name: "Job 설정",
         type: "job",
-        category: "workflow",
         description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
         config: {
           jobs: {
@@ -827,7 +822,6 @@ export const ReactFlowWorkspace = ({
         name: "Checkout repository",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "workflow",
         description: "GitHub 저장소를 체크아웃하는 단계입니다.",
         config: {
           name: "Checkout repository",
@@ -838,7 +832,6 @@ export const ReactFlowWorkspace = ({
         name: "Set up JDK 21",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "setup",
         description:
           "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
         config: {
@@ -854,7 +847,6 @@ export const ReactFlowWorkspace = ({
         name: "Gradle 빌드 블록",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "build",
         description:
           "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
         config: {
@@ -866,7 +858,6 @@ export const ReactFlowWorkspace = ({
         name: "Gradle 테스트 실행 블록",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "test",
         description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
         config: {
           name: "Test with Gradle",
@@ -877,7 +868,6 @@ export const ReactFlowWorkspace = ({
         name: "Docker 로그인",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "docker",
         description:
           "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
         config: {
@@ -893,7 +883,6 @@ export const ReactFlowWorkspace = ({
         name: "Docker 이미지 빌드 및 푸시 블록",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "deploy",
         description:
           "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
         config: {
@@ -911,19 +900,10 @@ export const ReactFlowWorkspace = ({
         name: "Deploy to AWS EC2",
         type: "step",
         "job-name": "ci-pipeline",
-        category: "deploy",
-        description: "AWS EC2 서버에 SSH를 통해 배포하는 단계입니다.",
+        description: "AWS EC2에 배포하는 단계입니다.",
         config: {
           name: "Deploy to AWS EC2",
-          uses: "appleboy/ssh-action@v0.1.10",
-          with: {
-            host: "${{ secrets.AWS_HOST_IP }}",
-            username: "${{ secrets.REMOTE_USER }}",
-            key: "${{ secrets.AWS_EC2_PRIVATE_KEY }}",
-            port: "${{ secrets.REMOTE_SSH_PORT }}",
-            script:
-              "docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}\ndocker pull ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest\ndocker stop bus-notice-v2\ndocker rm $(docker ps --filter 'status=exited' -a -q)\ndocker run -d --name bus-notice-v2 --log-driver=syslog --network bus-notice -p 8081:8080 --label co.elastic.logs/enabled=true --label co.elastic.logs/module=java ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest",
-          },
+          run: "echo 'Deploying to AWS EC2'",
         },
       },
     ];
@@ -1100,7 +1080,6 @@ export const ReactFlowWorkspace = ({
                                       | "trigger"
                                       | "job"
                                       | "step"),
-                              category: nodeData.category as string,
                               description: nodeData.description as string,
                               "job-name": nodeData.jobName as
                                 | string
@@ -1134,7 +1113,6 @@ export const ReactFlowWorkspace = ({
                                       | "trigger"
                                       | "job"
                                       | "step"),
-                              category: nodeData.category as string,
                               description: nodeData.description as string,
                               "job-name": nodeData.jobName as
                                 | string

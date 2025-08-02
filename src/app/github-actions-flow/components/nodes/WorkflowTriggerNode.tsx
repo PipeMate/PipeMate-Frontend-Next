@@ -141,12 +141,7 @@ export const WorkflowTriggerNode = memo(({ data, id }: NodeProps) => {
   }));
 
   //* Trigger 노드 전용 색상 - 초록색 계열로 구분 (워크플로우와 동일)
-  const colors = {
-    bg: "#ecfdf5", //* 연한 초록색 배경
-    border: "#10b981", //* emerald-500 테두리
-    text: "#065f46", //* 진한 초록색 텍스트
-    hover: "#d1fae5", //* 호버 색상
-  };
+  const colors = NODE_COLORS.TRIGGER;
 
   return (
     <NodeContext.Provider value={{}}>
@@ -157,7 +152,6 @@ export const WorkflowTriggerNode = memo(({ data, id }: NodeProps) => {
           (data.description as string) ||
           "GitHub Actions 워크플로우 트리거 설정"
         }
-        category="workflow"
         handles={handles}
         bgColor={colors.bg}
         borderColor={colors.border}
