@@ -170,7 +170,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
           bgColor={colors.bg}
           borderColor={colors.border}
           textColor={colors.text}
-          nodeTypeBadge={<NodeTypeBadge type="STEP" category={domain} />} //* 노드 타입 뱃지
+          nodeTypeBadge={<NodeTypeBadge type="STEP" domain={domain} />} //* 노드 타입 뱃지
         >
           {!isEditing ? (
             //* 읽기 모드: Step 정보 표시 - 간단한 요약 정보

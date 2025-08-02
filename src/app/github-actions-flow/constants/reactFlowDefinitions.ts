@@ -28,7 +28,6 @@ export const NODE_TEMPLATES = {
   workflow_trigger: {
     label: "워크플로우 기본 설정",
     type: NODE_TYPES.WORKFLOW_TRIGGER,
-    category: "workflow",
     domain: "github",
     task: ["trigger"],
     description:
@@ -48,7 +47,6 @@ export const NODE_TEMPLATES = {
   job: {
     label: "Job 설정",
     type: NODE_TYPES.JOB,
-    category: "workflow",
     domain: "github",
     task: ["job"],
     description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
@@ -69,7 +67,6 @@ export const NODE_TEMPLATES = {
   checkout_step: {
     label: "Checkout repository",
     type: NODE_TYPES.STEP,
-    category: "workflow",
     domain: "github",
     task: ["checkout"],
     description: "GitHub 저장소를 체크아웃하는 단계입니다.",
@@ -83,7 +80,6 @@ export const NODE_TEMPLATES = {
   java_setup_step: {
     label: "Set up JDK 21",
     type: NODE_TYPES.STEP,
-    category: "setup",
     domain: "java",
     task: ["setup"],
     description:
@@ -102,7 +98,6 @@ export const NODE_TEMPLATES = {
   gradle_build_step: {
     label: "Gradle 빌드 블록",
     type: NODE_TYPES.STEP,
-    category: "build",
     domain: "gradle",
     task: ["build"],
     description:
@@ -117,7 +112,6 @@ export const NODE_TEMPLATES = {
   gradle_test_step: {
     label: "Gradle 테스트 실행 블록",
     type: NODE_TYPES.STEP,
-    category: "test",
     domain: "gradle",
     task: ["test"],
     description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
@@ -131,7 +125,6 @@ export const NODE_TEMPLATES = {
   docker_login_step: {
     label: "Docker 로그인",
     type: NODE_TYPES.STEP,
-    category: "docker",
     domain: "docker",
     task: ["login"],
     description:
@@ -150,7 +143,6 @@ export const NODE_TEMPLATES = {
   docker_build_step: {
     label: "Docker 이미지 빌드 및 푸시 블록",
     type: NODE_TYPES.STEP,
-    category: "deploy",
     domain: "docker",
     task: ["build", "push"],
     description: "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
@@ -170,7 +162,6 @@ export const NODE_TEMPLATES = {
   ssh_deploy_step: {
     label: "Deploy to AWS EC2",
     type: NODE_TYPES.STEP,
-    category: "deploy",
     domain: "aws",
     task: ["deploy"],
     description: "AWS EC2 서버에 SSH를 통해 배포하는 단계입니다.",
@@ -236,7 +227,6 @@ export const createNode = (
     data: {
       label: template.label,
       type: template.type as "workflow_trigger" | "job" | "step",
-      category: template.category,
       domain: "domain" in template ? template.domain : undefined,
       task: "task" in template ? template.task : undefined,
       description: template.description,

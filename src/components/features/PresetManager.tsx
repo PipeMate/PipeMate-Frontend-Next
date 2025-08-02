@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getDomainColor } from "@/app/github-actions-flow/constants/nodeConstants";
 
 interface Preset {
   id: string;
   name: string;
   description: string;
-  category: string;
+  domain?: string;
+  task?: string[];
   isActive: boolean;
   config: Record<string, unknown>;
 }
@@ -20,7 +22,8 @@ export default function PresetManager() {
       id: "1",
       name: "기본 CI/CD 파이프라인",
       description: "Node.js 프로젝트를 위한 기본 CI/CD 설정",
-      category: "Node.js",
+      domain: "nodejs",
+      task: ["ci", "cd"],
       isActive: true,
       config: {
         nodeVersion: "18",
@@ -32,7 +35,8 @@ export default function PresetManager() {
       id: "2",
       name: "Python 프로젝트 파이프라인",
       description: "Python 프로젝트를 위한 기본 설정",
-      category: "Python",
+      domain: "python",
+      task: ["ci", "test"],
       isActive: true,
       config: {
         pythonVersion: "3.11",
@@ -44,7 +48,8 @@ export default function PresetManager() {
       id: "3",
       name: "Docker 빌드 파이프라인",
       description: "Docker 이미지 빌드 및 푸시",
-      category: "Docker",
+      domain: "docker",
+      task: ["build", "push"],
       isActive: false,
       config: {
         dockerfile: "Dockerfile",
@@ -76,7 +81,9 @@ export default function PresetManager() {
     alert(`${preset.name} 프리셋이 적용되었습니다.`);
   };
 
-  const categories = Array.from(new Set(presets.map((p) => p.category)));
+  const domains = Array.from(
+    new Set(presets.map((p) => p.domain).filter(Boolean))
+  );
 
   return (
     <div className="space-y-6">
@@ -95,51 +102,92 @@ export default function PresetManager() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {categories.map((category) => (
-                <div key={category}>
-                  <h3 className="font-medium text-gray-700 mb-2">{category}</h3>
+              {domains.map((domain) => (
+                <div key={domain}>
+                  <h3 className="font-medium text-gray-700 mb-2">{domain}</h3>
                   <div className="space-y-2">
                     {presets
-                      .filter((preset) => preset.category === category)
-                      .map((preset) => (
-                        <div
-                          key={preset.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedPreset?.id === preset.id
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                          onClick={() => handlePresetSelect(preset)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium">{preset.name}</h4>
-                              <p className="text-sm text-gray-600">
-                                {preset.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant={
-                                  preset.isActive ? "default" : "secondary"
-                                }
-                              >
-                                {preset.isActive ? "활성" : "비활성"}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePresetToggle(preset.id);
-                                }}
-                              >
-                                {preset.isActive ? "비활성화" : "활성화"}
-                              </Button>
+                      .filter((preset) => preset.domain === domain)
+                      .map((preset) => {
+                        const colors = preset.domain
+                          ? getDomainColor(preset.domain)
+                          : null;
+                        return (
+                          <div
+                            key={preset.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedPreset?.id === preset.id
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                            onClick={() => handlePresetSelect(preset)}
+                            style={
+                              colors
+                                ? {
+                                    backgroundColor: colors.bg,
+                                    borderColor: colors.border,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4
+                                  className="font-medium"
+                                  style={
+                                    colors ? { color: colors.text } : undefined
+                                  }
+                                >
+                                  {preset.name}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {preset.description}
+                                </p>
+                                {preset.task && preset.task.length > 0 && (
+                                  <div className="flex gap-1 mt-1">
+                                    {preset.task.map((task, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="text-xs"
+                                        style={
+                                          colors
+                                            ? {
+                                                borderColor: colors.border,
+                                                color: colors.text,
+                                              }
+                                            : undefined
+                                        }
+                                      >
+                                        {task}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    preset.isActive ? "default" : "secondary"
+                                  }
+                                >
+                                  {preset.isActive ? "활성" : "비활성"}
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePresetToggle(preset.id);
+                                  }}
+                                >
+                                  {preset.isActive ? "비활성화" : "활성화"}
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               ))}
@@ -165,9 +213,28 @@ export default function PresetManager() {
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-2">카테고리</h4>
-                  <Badge variant="outline">{selectedPreset.category}</Badge>
+                  <h4 className="font-medium mb-2">도메인</h4>
+                  <Badge variant="outline">
+                    {selectedPreset.domain || "N/A"}
+                  </Badge>
                 </div>
+
+                {selectedPreset.task && selectedPreset.task.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">태스크</h4>
+                    <div className="flex gap-1 flex-wrap">
+                      {selectedPreset.task.map((task, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {task}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="font-medium mb-2">상태</h4>
@@ -218,18 +285,46 @@ export default function PresetManager() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {presets
               .filter((preset) => preset.isActive)
-              .map((preset) => (
-                <div key={preset.id} className="p-3 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium">{preset.name}</h4>
-                    <Badge variant="default">활성</Badge>
+              .map((preset) => {
+                const colors = preset.domain
+                  ? getDomainColor(preset.domain)
+                  : null;
+                return (
+                  <div
+                    key={preset.id}
+                    className="p-3 border rounded-lg"
+                    style={
+                      colors
+                        ? {
+                            backgroundColor: colors.bg,
+                            borderColor: colors.border,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4
+                        className="font-medium"
+                        style={colors ? { color: colors.text } : undefined}
+                      >
+                        {preset.name}
+                      </h4>
+                      <Badge variant="default">활성</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {preset.description}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      도메인: {preset.domain || "N/A"}
+                    </p>
+                    {preset.task && preset.task.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        태스크: {preset.task.join(", ")}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600">{preset.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    카테고리: {preset.category}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
           </div>
           {presets.filter((p) => p.isActive).length === 0 && (
             <div className="text-center text-gray-500 py-4">

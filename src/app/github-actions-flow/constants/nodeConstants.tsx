@@ -268,10 +268,10 @@ export const getDomainColor = (domain: string) => {
 };
 
 //* 노드 타입별 색상 가져오기 함수
-export const getNodeColor = (nodeType: NodeType, category?: string) => {
-  if (nodeType === "STEP" && category) {
+export const getNodeColor = (nodeType: NodeType, domain?: string) => {
+  if (nodeType === "STEP" && domain) {
     //* Step 노드의 경우 도메인별 색상 적용
-    return getDomainColor(category);
+    return getDomainColor(domain);
   }
   return NODE_COLORS[nodeType];
 };
