@@ -1,9 +1,3 @@
-//* ========================================
-//* GitHub Actions Flow 메인 페이지
-//* ========================================
-//* 이 페이지는 React Flow 기반 GitHub Actions 워크플로우 에디터의
-//* 메인 페이지로, 워크플로우 편집과 YAML 미리보기 기능을 제공합니다.
-
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -13,11 +7,14 @@ import { ServerBlock } from "./types";
 import { useLayout } from "@/components/layout/LayoutContext";
 import { ROUTES } from "@/config/appConstants";
 import { Blocks, Github } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export default function GitHubActionsFlowPage() {
   // 상태 관리
   const [blocks, setBlocks] = useState<ServerBlock[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<ServerBlock | undefined>();
+  const [isEditing, setIsEditing] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   // 레이아웃 slot setter
@@ -48,35 +45,12 @@ export default function GitHubActionsFlowPage() {
       </div>
     );
     setHeaderExtra(
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 0,
-          minWidth: 0,
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "20px",
-            fontWeight: 600,
-            color: "#111827",
-            margin: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Github size={20} style={{ marginRight: 8 }} />
+      <div className="flex flex-col gap-0 min-w-0">
+        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
+          <Github size={20} />
           {ROUTES.ACTION_FLOW.label}
         </h1>
-        <p
-          style={{
-            fontSize: "13px",
-            color: "#6b7280",
-            margin: "2px 0 0 0",
-          }}
-        >
+        <p className="text-sm text-gray-500 m-0">
           블록 기반 GitHub Actions 워크플로우 에디터
         </p>
       </div>
@@ -90,93 +64,126 @@ export default function GitHubActionsFlowPage() {
   // 워크플로우 변경 핸들러
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
     try {
+      console.log(
+        "저장되는 워크플로우 데이터:",
+        JSON.stringify(newBlocks, null, 2)
+      );
       setBlocks(newBlocks);
     } catch (error) {
       console.error("워크플로우 처리 오류:", error);
     }
   }, []);
 
-  // 워크스페이스 초기화 핸들러
-  const handleClearWorkspace = useCallback(() => {
-    setBlocks([]); // blocks 상태도 직접 초기화
-  }, []);
-
   // 노드 선택 핸들러
   const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
     setSelectedBlock(selectedBlock);
+    // 편집 모드가 활성화되어 있으면 해제
+    if (selectedBlock === undefined) {
+      setIsEditing(false);
+    }
   }, []);
 
-  // 클라이언트 사이드에서만 렌더링
+  // 편집 모드 토글 핸들러
+  const handleEditModeToggle = useCallback(() => {
+    if (selectedBlock) {
+      setIsEditing(!isEditing);
+    }
+  }, [selectedBlock, isEditing]);
+
+  // 편집된 블록 저장 핸들러
+  const handleBlockUpdate = useCallback(
+    (updatedBlock: ServerBlock) => {
+      if (selectedBlock) {
+        const updatedBlocks = blocks.map((block) =>
+          block.name === selectedBlock.name && block.type === selectedBlock.type
+            ? updatedBlock
+            : block
+        );
+        setBlocks(updatedBlocks);
+        setSelectedBlock(updatedBlock);
+      }
+    },
+    [selectedBlock, blocks]
+  );
+
+  // 전체 워크플로우 업데이트 핸들러
+  const handleWorkflowUpdate = useCallback((updatedBlocks: ServerBlock[]) => {
+    setBlocks(updatedBlocks);
+  }, []);
+
+  // Suspense fallback UI (Skeleton 활용)
+  const SuspenseFallback = (
+    <div className="flex-1 h-full flex flex-col items-center justify-center bg-gray-50 p-8 gap-4">
+      <div className="w-full h-full max-w-lg flex flex-col gap-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-6 w-5/6" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+      <div className="text-gray-400 mt-4">워크스페이스 로딩 중...</div>
+    </div>
+  );
+
+  // 1. 클라이언트 마운트 전: 전체 Skeleton만 보여줌 (Suspense 사용 X)
   if (!isClient) {
     return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f9fafb",
-          color: "#6b7280",
-        }}
-      >
-        로딩 중...
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="w-full max-w-lg flex flex-col gap-4">
+          <Skeleton className="h-8 w-1/2" />
+          <Skeleton className="h-6 w-full" />
+          <Skeleton className="h-6 w-5/6" />
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     );
   }
 
-  // 메인 컨텐츠만 렌더링 (헤더/사이드바 UI 제거)
+  // 2. 클라이언트 마운트 후: 실제 페이지 + Suspense fallback
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        minHeight: 0,
-        minWidth: 0,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* 메인 컨텐츠 영역 */}
+    <ErrorBoundary>
       <div
         style={{
-          flex: 1,
-          display: "flex",
+          width: "100%",
+          height: "100%",
           minHeight: 0,
           minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
           overflow: "hidden",
         }}
       >
-        {/* React Flow 워크스페이스 */}
-        <Suspense
-          fallback={
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#f9fafb",
-                color: "#6b7280",
-              }}
-            >
-              React Flow 워크스페이스 로딩 중...
-            </div>
-          }
+        {/* 메인 컨텐츠 영역 */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            minHeight: 0,
+            minWidth: 0,
+            overflow: "hidden",
+          }}
         >
-          <ReactFlowWorkspace
-            onWorkflowChange={handleWorkflowChange}
-            onNodeSelect={handleNodeSelect}
-            initialBlocks={blocks}
-            onClearWorkspace={handleClearWorkspace}
-          />
-        </Suspense>
-        {/* YAML 미리보기 패널: 노드가 선택된 경우에만 표시 */}
-        {selectedBlock && (
-          <YamlPreviewPanel blocks={blocks} selectedBlock={selectedBlock} />
-        )}
+          {/* React Flow 워크스페이스 */}
+          <Suspense fallback={SuspenseFallback}>
+            <ReactFlowWorkspace
+              onWorkflowChange={handleWorkflowChange}
+              onNodeSelect={handleNodeSelect}
+              onEditModeToggle={handleEditModeToggle}
+              isEditing={isEditing}
+              initialBlocks={blocks}
+            />
+          </Suspense>
+          {/* YAML 미리보기 패널: 노드가 선택된 경우에만 표시 */}
+          {selectedBlock && (
+            <YamlPreviewPanel
+              blocks={blocks}
+              selectedBlock={selectedBlock}
+              isEditing={isEditing}
+              onBlockUpdate={handleBlockUpdate}
+              onWorkflowUpdate={handleWorkflowUpdate}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

@@ -1,23 +1,39 @@
 //* 인터랙티브 Step 노드 컴포넌트
+//* GitHub Actions Step 실행을 관리하는 노드 - Action 또는 Command 실행
 "use client";
 
 import { memo, useCallback, useState, useRef, useEffect } from "react";
-import { Position, NodeProps } from "reactflow";
-import { useNodeUpdate, useNodeDelete } from "../ReactFlowWorkspace";
+import { Position, NodeProps } from "@xyflow/react";
+import { useNodeUpdate } from "../ReactFlowWorkspace";
 import BaseNode from "./BaseNode";
-import { Wrench, Plus, X, Check } from "lucide-react";
+import { Plus, X, Check } from "lucide-react";
 import { NodeContext } from "./BaseNode";
+import { NodeTypeBadge } from "./NodeTypeBadge";
+import {
+  NODE_COLORS,
+  NODE_HANDLE_CONFIGS,
+  getNodeIcon,
+  NODE_TITLES,
+  getDomainColor,
+} from "../../constants/nodeConstants";
 
+//* Step 노드 컴포넌트 - GitHub Actions Step 실행 관리
 export const StepNode = memo(({ data, id }: NodeProps) => {
+  //* 노드 데이터 업데이트 훅 - ReactFlowWorkspace에서 제공
   const updateNodeData = useNodeUpdate();
-  const deleteNode = useNodeDelete();
-  const [isEditing, setIsEditing] = useState(false);
+
+  //* 새로운 설정 추가 UI 상태 관리
   const [showAddConfig, setShowAddConfig] = useState(false);
   const [newConfigKey, setNewConfigKey] = useState("");
   const [newConfigValue, setNewConfigValue] = useState("");
+
+  //* 노드 크기 측정을 위한 ref
   const nodeRef = useRef<HTMLDivElement>(null);
 
-  // 노드 크기 측정 및 저장
+  //* 편집 모드 상태 (외부에서 전달받음)
+  const isEditing = (data.isEditing as boolean) || false;
+
+  //* 노드 크기 측정 및 저장 - 동적 크기 조절을 위해
   useEffect(() => {
     if (nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -27,14 +43,14 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     }
   }, [id, data.width, data.height, isEditing, data.config, updateNodeData]);
 
-  //* Step 이름 변경 핸들러
+  //* Step 이름 변경 핸들러 - Step의 표시 이름
   const onStepNameChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       const newName = evt.target.value;
       updateNodeData(id, {
         label: newName,
         config: {
-          ...data.config,
+          ...(data.config as Record<string, unknown>),
           name: newName,
         },
       });
@@ -42,26 +58,28 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     [id, data.config, updateNodeData]
   );
 
-  //* Step 타입 변경 핸들러
+  //* Step 타입 변경 핸들러 - Action vs Command 선택
   const onStepTypeChange = useCallback(
     (evt: React.ChangeEvent<HTMLSelectElement>) => {
       const newType = evt.target.value;
-      const currentConfig = data.config || {};
+      const currentConfig = (data.config as Record<string, unknown>) || {};
 
       if (newType === "action") {
+        //* Action 타입으로 변경 - uses 속성 사용
         updateNodeData(id, {
           config: {
             ...currentConfig,
             uses: currentConfig.uses || "actions/checkout@v4",
-            run: undefined,
+            run: undefined, //* Command 속성 제거
           },
         });
       } else {
+        //* Command 타입으로 변경 - run 속성 사용
         updateNodeData(id, {
           config: {
             ...currentConfig,
             run: currentConfig.run || "./gradlew build",
-            uses: undefined,
+            uses: undefined, //* Action 속성 제거
           },
         });
       }
@@ -69,13 +87,14 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     [id, data.config, updateNodeData]
   );
 
-  //* Action/Command 변경 핸들러
+  //* Action/Command 변경 핸들러 - 실제 실행할 명령어나 액션
   const onActionChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = evt.target.value;
-      const currentConfig = data.config || {};
+      const currentConfig = (data.config as Record<string, unknown>) || {};
 
       if (currentConfig.uses) {
+        //* Action 타입인 경우 uses 속성 업데이트
         updateNodeData(id, {
           config: {
             ...currentConfig,
@@ -83,6 +102,7 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
           },
         });
       } else {
+        //* Command 타입인 경우 run 속성 업데이트
         updateNodeData(id, {
           config: {
             ...currentConfig,
@@ -94,12 +114,12 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     [id, data.config, updateNodeData]
   );
 
-  //* 새로운 설정 추가 핸들러
+  //* 새로운 설정 추가 핸들러 - 동적으로 Step 설정 추가
   const onAddConfig = useCallback(() => {
     if (newConfigKey && newConfigValue) {
       updateNodeData(id, {
         config: {
-          ...data.config,
+          ...(data.config as Record<string, unknown>),
           [newConfigKey]: newConfigValue,
         },
       });
@@ -109,10 +129,11 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     }
   }, [id, data.config, newConfigKey, newConfigValue, updateNodeData]);
 
-  //* 설정 삭제 핸들러
+  //* 설정 삭제 핸들러 - 동적으로 추가된 설정 제거
   const onRemoveConfig = useCallback(
     (key: string) => {
-      const newConfig = { ...data.config };
+      const currentConfig = (data.config as Record<string, unknown>) || {};
+      const newConfig = { ...currentConfig };
       delete newConfig[key];
       updateNodeData(id, {
         config: newConfig,
@@ -121,72 +142,68 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
     [id, data.config, updateNodeData]
   );
 
-  // 핸들 설정
-  const handles = [
-    {
-      type: "target" as const,
-      position: Position.Top,
-      className: "reactflow-handle",
-      style: { top: -4 },
-    },
-    {
-      type: "source" as const,
-      position: Position.Bottom,
-      className: "reactflow-handle",
-      style: { bottom: -4 },
-    },
-    {
-      type: "target" as const,
-      position: Position.Left,
-      className: "reactflow-handle job-connection",
-      style: { left: -4, top: "50%", transform: "translateY(-50%)" },
-    },
-  ];
+  //* 핸들 설정 - Step 노드의 연결점 정의
+  const handles = NODE_HANDLE_CONFIGS.STEP.map((handle) => ({
+    ...handle,
+    position: handle.position as Position,
+  }));
 
-  // Step 노드 전용 색상
-  const colors = { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" };
+  //* Step 노드 전용 색상 - 도메인별로 동적 적용
+  const domain = (data.domain as string) || "github";
+  const colors = getDomainColor(domain);
+
+  //* 현재 Step 설정 데이터 추출
+  const config = data.config as Record<string, unknown>;
 
   return (
-    <NodeContext.Provider
-      value={{
-        isEditing,
-        onEdit: () => {
-          if (!isEditing) setIsEditing(true);
-        },
-        onSave: () => setIsEditing(false),
-        onDelete: (e) => {
-          e.stopPropagation();
-          deleteNode(id);
-        },
-      }}
-    >
+    <NodeContext.Provider value={{}}>
       <div ref={nodeRef}>
         <BaseNode
-          icon={<Wrench size={18} />}
-          title="Step"
+          icon={getNodeIcon("STEP")}
+          title={(config.name as string) || "Step"}
+          description={
+            (data.description as string) || "GitHub Actions Step 실행"
+          }
+          category={domain}
+          domain={data.domain as string}
+          task={data.task as string[]}
           handles={handles}
           bgColor={colors.bg}
           borderColor={colors.border}
           textColor={colors.text}
+          nodeTypeBadge={<NodeTypeBadge type="STEP" category={domain} />} //* 노드 타입 뱃지
         >
           {!isEditing ? (
+            //* 읽기 모드: Step 정보 표시 - 간단한 요약 정보
             <div className="flex flex-col gap-2">
               <div className="text-xs text-gray-700">
-                Step
-                <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
-                  {data.config?.name || "Step"}
-                </span>
-                will execute
-                <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
-                  {data.config?.uses ? "Action" : "Command"}
+                <span
+                  className="font-bold rounded px-1"
+                  style={{
+                    color: colors.text,
+                    backgroundColor: colors.bg,
+                  }}
+                >
+                  {(data.config as Record<string, unknown>)?.uses
+                    ? "Action"
+                    : "Command"}
                 </span>
                 :
-                <span className="font-bold text-amber-600 bg-amber-100 rounded px-1">
-                  {data.config?.uses || data.config?.run || ""}
+                <span
+                  className="font-bold rounded px-1"
+                  style={{
+                    color: colors.text,
+                    backgroundColor: colors.bg,
+                  }}
+                >
+                  {((data.config as Record<string, unknown>)?.uses as string) ||
+                    ((data.config as Record<string, unknown>)?.run as string) ||
+                    ""}
                 </span>
               </div>
             </div>
           ) : (
+            //* 편집 모드: Step 설정 편집 UI - 상세 설정 가능
             <div className="flex flex-col gap-3">
               {/* Step 이름 설정 */}
               <div className="flex flex-col gap-1">
@@ -199,13 +216,38 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                 <input
                   id={`step-name-${id}`}
                   type="text"
-                  value={data.config?.name || "Step"}
+                  value={(config.name as string) || "Step"}
                   onChange={onStepNameChange}
-                  className="nodrag px-2 py-1 border rounded text-xs"
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500 focus:ring-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500`}
                   placeholder="Step name"
                 />
               </div>
-              {/* Step 타입 설정 */}
+
+              {/* Step 타입 설정 - Action vs Command */}
               <div className="flex flex-col gap-1">
                 <label
                   htmlFor={`step-type-${id}`}
@@ -215,37 +257,96 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                 </label>
                 <select
                   id={`step-type-${id}`}
-                  value={data.config?.uses ? "action" : "command"}
+                  value={config.uses ? "action" : "command"}
                   onChange={onStepTypeChange}
-                  className="nodrag px-2 py-1 border rounded text-xs"
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500 focus:ring-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500`}
                 >
                   <option value="action">Action</option>
                   <option value="command">Command</option>
                 </select>
               </div>
+
               {/* Action/Command 설정 */}
               <div className="flex flex-col gap-1">
                 <label
                   htmlFor={`step-action-${id}`}
                   className="text-xs font-medium text-gray-600"
                 >
-                  {data.config?.uses ? "Action:" : "Command:"}
+                  {(data.config as Record<string, unknown>)?.uses
+                    ? "Action:"
+                    : "Command:"}
                 </label>
                 <input
                   id={`step-action-${id}`}
                   type="text"
-                  value={data.config?.uses || data.config?.run || ""}
+                  value={
+                    ((data.config as Record<string, unknown>)
+                      ?.uses as string) ||
+                    ((data.config as Record<string, unknown>)?.run as string) ||
+                    ""
+                  }
                   onChange={onActionChange}
-                  className="nodrag px-2 py-1 border rounded text-xs"
+                  className={`nodrag px-3 py-2 border border-gray-300 rounded-lg text-sm transition-all duration-200 focus:ring-2 focus:border-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500 focus:ring-${
+                    domain === "github"
+                      ? "blue"
+                      : domain === "java"
+                      ? "amber"
+                      : domain === "gradle"
+                      ? "pink"
+                      : domain === "docker"
+                      ? "indigo"
+                      : domain === "aws"
+                      ? "orange"
+                      : "gray"
+                  }-500`}
                   placeholder={
-                    data.config?.uses
+                    (data.config as Record<string, unknown>)?.uses
                       ? "actions/checkout@v4"
                       : "./gradlew build"
                   }
                 />
               </div>
-              {/* 추가 설정들 */}
-              {Object.entries(data.config || {}).map(
+
+              {/* 추가 설정들 - 동적으로 추가된 설정들 표시 */}
+              {Object.entries(
+                (data.config as Record<string, unknown>) || {}
+              ).map(
                 ([key, value]) =>
                   key !== "name" &&
                   key !== "uses" &&
@@ -269,7 +370,8 @@ export const StepNode = memo(({ data, id }: NodeProps) => {
                     </div>
                   )
               )}
-              {/* 새로운 설정 추가 */}
+
+              {/* 새로운 설정 추가 UI */}
               {showAddConfig ? (
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-col gap-1">

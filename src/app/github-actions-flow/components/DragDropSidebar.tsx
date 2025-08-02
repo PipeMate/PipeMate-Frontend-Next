@@ -1,19 +1,43 @@
 //* 드래그 앤 드롭 사이드바 컴포넌트
+//* 블록 라이브러리 역할 - 사용자가 워크스페이스에 추가할 수 있는 블록들을 제공
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { ServerBlock } from "../types";
-import { Package, RefreshCcw, Cog, Wrench, Lightbulb } from "lucide-react";
+import { Lightbulb, Filter } from "lucide-react";
 import React from "react";
+import {
+  getDomainColor,
+  getNodeIcon,
+  getCategoryIcon,
+} from "../constants/nodeConstants";
+import { fetchPresetBlocks, PresetBlock } from "../constants/mockData";
 
+//* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
 type TabType = "trigger" | "job" | "step";
 
+//* 필터 타입 정의
+type FilterType = "all" | string;
+
+//* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리
 export const DragDropSidebar = () => {
+  //* 현재 활성화된 탭 상태 관리
   const [activeTab, setActiveTab] = useState<TabType>("trigger");
 
-  //* 드래그 시작 핸들러
+  //* Step 탭 필터 상태 관리
+  const [selectedDomain, setSelectedDomain] = useState<FilterType>("all");
+  const [selectedTask, setSelectedTask] = useState<FilterType>("all");
+
+  //* 프리셋 블록 데이터 상태 관리
+  const [presetBlocks, setPresetBlocks] = useState<
+    Record<string, PresetBlock[]>
+  >({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
   const onDragStart = useCallback(
     (event: React.DragEvent, block: ServerBlock) => {
+      //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
       event.dataTransfer.setData(
         "application/reactflow",
         JSON.stringify(block)
@@ -23,285 +47,345 @@ export const DragDropSidebar = () => {
     []
   );
 
-  //* 기본 블록 템플릿들
-  const blockTemplates: Record<TabType, ServerBlock[]> = {
-    trigger: [
-      {
-        name: "워크플로우 트리거",
-        type: "trigger",
-        category: "workflow",
-        description: "GitHub Actions 워크플로우 트리거 설정",
-        config: {
-          name: "My Workflow",
-          on: {
-            workflow_dispatch: {},
-            push: {
-              branches: ["main"],
-            },
-          },
-        },
-      },
-    ],
-    job: [
-      {
-        name: "Job 설정",
-        type: "job",
-        category: "workflow",
-        description: "GitHub Actions Job 설정",
-        config: {
-          jobs: {
-            "build-job": {
-              "runs-on": "ubuntu-latest",
-            },
-          },
-        },
-      },
-    ],
-    step: [
-      {
-        name: "Checkout",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "workflow",
-        description: "저장소 체크아웃",
-        config: {
-          name: "Checkout repository",
-          uses: "actions/checkout@v4",
-        },
-      },
-      {
-        name: "Java Setup",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "setup",
-        description: "Java 환경 설정",
-        config: {
-          name: "Set up JDK 21",
-          uses: "actions/setup-java@v4",
-          with: {
-            distribution: "adopt",
-            "java-version": "21",
-          },
-        },
-      },
-      {
-        name: "Gradle Build",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "build",
-        description: "Gradle 빌드 실행",
-        config: {
-          name: "Build with Gradle",
-          run: "./gradlew build",
-        },
-      },
-      {
-        name: "Gradle Test",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "test",
-        description: "Gradle 테스트 실행",
-        config: {
-          name: "Test with Gradle",
-          run: "./gradlew test",
-        },
-      },
-      {
-        name: "Docker Login",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "docker",
-        description: "Docker Hub 로그인",
-        config: {
-          name: "Docker Login",
-          uses: "docker/login-action@v2.2.0",
-          with: {
-            username: "${{ secrets.DOCKER_USERNAME }}",
-            password: "${{ secrets.DOCKER_PASSWORD }}",
-          },
-        },
-      },
-      {
-        name: "Docker Build & Push",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "deploy",
-        description: "Docker 이미지 빌드 및 푸시",
-        config: {
-          name: "Build and push Docker image",
-          uses: "docker/build-push-action@v4.1.1",
-          with: {
-            context: ".",
-            push: true,
-            tags: "${{ secrets.DOCKER_USERNAME }}/my-app:latest",
-          },
-        },
-      },
-      {
-        name: "Deploy to Server",
-        type: "step",
-        "job-name": "", // 동적으로 설정됨
-        category: "deploy",
-        description: "서버에 배포",
-        config: {
-          name: "Deploy to server",
-          uses: "appleboy/ssh-action@v0.1.10",
-          with: {
-            host: "${{ secrets.HOST }}",
-            username: "${{ secrets.USERNAME }}",
-            key: "${{ secrets.KEY }}",
-            script: "docker pull ${{ secrets.DOCKER_USERNAME }}/my-app:latest",
-          },
-        },
-      },
-    ],
-  };
+  //* 프리셋 블록 데이터 로드 (컴포넌트 마운트 시)
+  useEffect(() => {
+    const loadPresetBlocks = async () => {
+      try {
+        setIsLoading(true);
+        const blocks = await fetchPresetBlocks();
+        setPresetBlocks(blocks);
+      } catch (error) {
+        console.error("프리셋 블록 로드 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  //* 카테고리별 색상
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "workflow":
-        return { bg: "#dbeafe", border: "#3b82f6", text: "#1e40af" };
-      case "setup":
-        return { bg: "#ecfdf5", border: "#10b981", text: "#065f46" };
-      case "build":
-        return { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" };
-      case "test":
-        return { bg: "#fce7f3", border: "#ec4899", text: "#be185d" };
-      case "deploy":
-        return { bg: "#fef2f2", border: "#ef4444", text: "#991b1b" };
-      case "docker":
-        return { bg: "#e0e7ff", border: "#6366f1", text: "#3730a3" };
-      default:
-        return { bg: "#f3f4f6", border: "#6b7280", text: "#374151" };
+    loadPresetBlocks();
+  }, []);
+
+  //* 탭 변경 시 필터 초기화
+  useEffect(() => {
+    if (activeTab !== "step") {
+      setSelectedDomain("all");
+      setSelectedTask("all");
     }
-  };
+  }, [activeTab]);
 
-  //* 블록 타입별 아이콘
+  //* 도메인과 태스크를 동적으로 추출하는 함수
+  const { domains, tasks } = useMemo(() => {
+    if (activeTab !== "step") {
+      return { domains: [], tasks: [] };
+    }
+
+    const stepBlocks = presetBlocks.step || [];
+
+    //* 모든 도메인 추출 (중복 제거)
+    const allDomains = Array.from(
+      new Set(stepBlocks.map((block) => block.domain).filter(Boolean))
+    ).sort();
+
+    //* 선택된 도메인의 모든 태스크 추출 (중복 제거)
+    const allTasks =
+      selectedDomain === "all"
+        ? Array.from(
+            new Set(
+              stepBlocks.flatMap((block) => block.task || []).filter(Boolean)
+            )
+          ).sort()
+        : Array.from(
+            new Set(
+              stepBlocks
+                .filter((block) => block.domain === selectedDomain)
+                .flatMap((block) => block.task || [])
+                .filter(Boolean)
+            )
+          ).sort();
+
+    return { domains: allDomains, tasks: allTasks };
+  }, [activeTab, presetBlocks.step, selectedDomain]);
+
+  //* 필터링된 블록 목록 생성
+  const filteredBlocks = useMemo(() => {
+    const currentBlocks = presetBlocks[activeTab] || [];
+
+    if (activeTab !== "step") {
+      return currentBlocks;
+    }
+
+    return currentBlocks.filter((block) => {
+      //* 도메인 필터링
+      if (selectedDomain !== "all" && block.domain !== selectedDomain) {
+        return false;
+      }
+
+      //* 태스크 필터링
+      if (selectedTask !== "all") {
+        const blockTasks = block.task || [];
+        if (!blockTasks.includes(selectedTask)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [activeTab, presetBlocks, selectedDomain, selectedTask]);
+
+  //* 블록 타입별 아이콘 - 각 블록 타입을 아이콘으로 구분
   const getBlockIcon = (type: string) => {
     switch (type) {
       case "trigger":
-        return <RefreshCcw size={18} />;
+        return getNodeIcon("TRIGGER");
       case "job":
-        return <Cog size={18} />;
+        return getNodeIcon("JOB");
       case "step":
-        return <Wrench size={18} />;
+        return getNodeIcon("STEP");
       default:
-        return <Package size={18} />;
+        return getNodeIcon("STEPS");
     }
   };
 
-  //* 탭 정보
+  //* 탭 정보 - 탭별 라벨과 아이콘 정의
   const tabs: { type: TabType; label: string; icon: React.ReactNode }[] = [
-    { type: "trigger", label: "트리거", icon: <RefreshCcw size={18} /> },
-    { type: "job", label: "Job", icon: <Cog size={18} /> },
-    { type: "step", label: "Step", icon: <Wrench size={18} /> },
+    { type: "trigger", label: "Trigger", icon: getNodeIcon("TRIGGER") },
+    { type: "job", label: "Job", icon: getNodeIcon("JOB") },
+    { type: "step", label: "Step", icon: getNodeIcon("STEP") },
   ];
 
   return (
-    <div className="w-full border-t border-gray-200 flex flex-col h-full min-w-0 min-h-0 box-border">
-      {/* 헤더 */}
-      <div className="p-4 border-b border-gray-200 w-full">
-        <h3 className="text-base font-semibold text-gray-700 mb-2 text-center w-full">
-          <Package size={18} className="inline mr-2" /> 블록 라이브러리
+    <div className="w-full border-t border-gray-200 flex flex-col h-full min-w-0 min-h-0 box-border bg-white">
+      {/* 헤더 - 블록 라이브러리 제목과 설명 (컴팩트하게) */}
+      <div className="p-4 border-b border-gray-200 w-full bg-gradient-to-r from-blue-50 to-indigo-50">
+        <h3 className="text-base font-bold text-gray-800 mb-2 text-center w-full flex items-center justify-center gap-2">
+          {getNodeIcon("STEPS")}
+          <span className="truncate">블록 라이브러리</span>
         </h3>
-        <div className="text-xs text-gray-500 text-center leading-[1.4] w-full">
+        <div className="text-xs text-gray-600 text-center leading-relaxed w-full">
           블록을 드래그하여 워크스페이스에 추가하세요
         </div>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <div className="flex border-b border-gray-200 w-full">
+      {/* 탭 네비게이션 - 트리거, Job, Step 탭 (컴팩트하게) */}
+      <div className="flex border-b border-gray-200 w-full bg-gray-50">
         {tabs.map((tab) => (
           <button
             key={tab.type}
             onClick={() => setActiveTab(tab.type)}
-            className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all flex flex-col items-center gap-1 w-full
+            className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-1 w-full
               ${
                 activeTab === tab.type
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-50 text-gray-500 hover:bg-slate-100"
+                  ? tab.type === "trigger"
+                    ? "bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500"
+                    : tab.type === "job"
+                    ? "bg-white text-blue-500 shadow-sm border-b-2 border-blue-500"
+                    : "bg-white text-gray-600 shadow-sm border-b-2 border-gray-600"
+                  : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
               }
             `}
           >
-            <span className="text-base">{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span className="text-sm">{tab.icon}</span>
+            <span className="truncate w-full text-center">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      {/* 블록 리스트 */}
-      <div className="flex-1 p-4 overflow-y-auto w-full flex flex-col justify-between">
-        <div className="flex flex-col gap-3 w-full">
-          {blockTemplates[activeTab].map((block, index) => {
-            const colors = getCategoryColor(block.category);
-            const icon = getBlockIcon(block.type);
+      {/* Step 탭 필터 - 도메인과 태스크 필터링 */}
+      {activeTab === "step" && (
+        <div className="p-3 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter size={14} className="text-gray-500" />
+            <span className="text-xs font-medium text-gray-700">필터</span>
+          </div>
 
-            return (
-              <div
-                key={index}
-                draggable
-                onDragStart={(e) => onDragStart(e, block)}
-                style={{
-                  backgroundColor: colors.bg,
-                  border: `2px solid ${colors.border}`,
-                  color: colors.text,
-                  cursor: "grab",
-                  userSelect: "none",
-                  width: "100%",
+          {/* 도메인 필터 */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                도메인:
+              </label>
+              <select
+                value={selectedDomain}
+                onChange={(e) => {
+                  setSelectedDomain(e.target.value as FilterType);
+                  setSelectedTask("all"); //* 도메인 변경 시 태스크 초기화
                 }}
-                className="p-3 rounded-lg transition-all w-full"
-                onMouseDown={(e) => {
-                  e.currentTarget.style.cursor = "grabbing";
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.cursor = "grab";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.cursor = "grab";
-                }}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               >
-                <div className="flex items-center gap-2 mb-1.5 w-full">
-                  <span className="text-base">{icon}</span>
-                  <span
-                    style={{ color: colors.text }}
-                    className="text-sm font-semibold w-full"
-                  >
-                    {block.name}
-                  </span>
-                </div>
+                <option value="all">전체</option>
+                {domains.map((domain) => (
+                  <option key={domain} value={domain}>
+                    {domain}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div
-                  style={{ color: colors.text, opacity: 0.8 }}
-                  className="text-[11px] leading-[1.3] w-full"
-                >
-                  {block.description}
-                </div>
+            {/* 태스크 필터 */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                태스크:
+              </label>
+              <select
+                value={selectedTask}
+                onChange={(e) => setSelectedTask(e.target.value as FilterType)}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                disabled={selectedDomain === "all" && tasks.length === 0}
+              >
+                <option value="all">전체</option>
+                {tasks.map((task) => (
+                  <option key={task} value={task}>
+                    {task}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
-                <div
-                  style={{
-                    backgroundColor: colors.border,
-                    color: "#ffffff",
-                  }}
-                  className="mt-1.5 px-2 py-1 text-[10px] rounded font-medium inline-block w-auto"
-                >
-                  {block.type.toUpperCase()}
-                </div>
+      {/* 블록 리스트 - 현재 탭의 블록들 표시 (컴팩트하게) */}
+      <div className="flex-1 p-3 overflow-y-auto w-full flex flex-col justify-between bg-gray-50">
+        <div className="flex flex-col gap-3 w-full">
+          {isLoading ? (
+            //* 로딩 상태 표시
+            <div className="flex items-center justify-center py-6">
+              <div className="text-gray-500 text-xs">
+                프리셋 블록을 불러오는 중...
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            filteredBlocks.map((block, index) => {
+              //* 블록 타입에 따라 직접 색상 적용
+              const colors = (() => {
+                if (block.type === "trigger") {
+                  //* 트리거: 초록색 (워크플로우 트리거 노드와 동일)
+                  return {
+                    bg: "#ecfdf5",
+                    border: "#10b981",
+                    text: "#065f46",
+                    hover: "#d1fae5",
+                  };
+                } else if (block.type === "job") {
+                  //* Job: 파랑색 (워크플로우 Job 노드와 동일)
+                  return {
+                    bg: "#dbeafe",
+                    border: "#3b82f6",
+                    text: "#1e40af",
+                    hover: "#bfdbfe",
+                  };
+                } else if (block.type === "step" && block.domain) {
+                  //* Step: 도메인별 색상
+                  return getDomainColor(block.domain);
+                } else {
+                  //* 기본 색상
+                  return {
+                    bg: "#f3f4f6",
+                    border: "#6b7280",
+                    text: "#374151",
+                    hover: "#e5e7eb",
+                  };
+                }
+              })();
+
+              const icon = getBlockIcon(block.type);
+              const categoryIcon =
+                block.type === "step" && block.domain
+                  ? getCategoryIcon(block.domain)
+                  : getCategoryIcon(block.category || "workflow");
+
+              return (
+                <div
+                  key={index}
+                  draggable
+                  onDragStart={(e) => onDragStart(e, block)}
+                  style={{
+                    backgroundColor: colors.bg,
+                    border: `2px solid ${colors.border}`,
+                    color: colors.text,
+                  }}
+                  className="p-3 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing group"
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.cursor = "grabbing";
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.cursor = "grab";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.cursor = "grab";
+                  }}
+                >
+                  {/* 블록 헤더 - 아이콘과 제목 (컴팩트하게) */}
+                  <div className="flex items-start gap-2 mb-2 w-full">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0">
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span
+                          style={{ color: colors.text }}
+                          className="text-xs font-bold truncate"
+                          title={block.name}
+                        >
+                          {block.name}
+                        </span>
+                      </div>
+                      {/* 카테고리 정보 (컴팩트하게) */}
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                          {categoryIcon}
+                          <span className="truncate text-xs">
+                            {block.type === "step" && block.domain
+                              ? `${block.domain}${
+                                  block.task && block.task.length > 0
+                                    ? ` • ${block.task.join(", ")}`
+                                    : ""
+                                }`
+                              : block.category || "workflow"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 블록 설명 (컴팩트하게) */}
+                  <div
+                    style={{ color: colors.text, opacity: 0.8 }}
+                    className="text-xs leading-relaxed w-full mb-2 line-clamp-2"
+                    title={block.description}
+                  >
+                    {block.description}
+                  </div>
+
+                  {/* 블록 타입 라벨 (컴팩트하게) */}
+                  <div
+                    style={{
+                      backgroundColor: colors.border,
+                      color: "#ffffff",
+                    }}
+                    className="px-2 py-0.5 text-xs rounded-full font-semibold inline-block w-auto shadow-sm"
+                  >
+                    {block.type.toUpperCase()}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
-        {/* 사용법 안내 */}
-        <div className="mt-5 p-3 bg-slate-50 border border-gray-200 rounded-lg text-[11px] text-gray-500 leading-[1.4] w-full">
-          <strong>
-            <Lightbulb size={14} className="inline mr-1" /> 사용법:
-          </strong>
-          <br />
-          • 블록을 드래그하여 워크스페이스에 드롭
-          <br />
-          • Job 블록 아래에 Step 블록을 드롭하면 자동으로 연결
-          <br />• 트리거 블록은 최상위에 배치됩니다
+        {/* 사용법 안내 - 사용자에게 도움말 제공 (컴팩트하게) */}
+        <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed w-full shadow-sm">
+          <div className="flex items-center gap-1 mb-1">
+            <Lightbulb size={12} className="text-amber-500 flex-shrink-0" />
+            <strong className="text-gray-800 text-xs">사용법:</strong>
+          </div>
+          <ul className="space-y-0.5 text-xs">
+            <li>• 블록을 드래그하여 워크스페이스에 드롭</li>
+            <li>• Job 블록 아래에 Step 블록을 드롭하면 자동으로 연결</li>
+            <li>• 트리거 블록은 최상위에 배치됩니다</li>
+            {activeTab === "step" && (
+              <li>• 도메인과 태스크로 Step 블록을 필터링할 수 있습니다</li>
+            )}
+          </ul>
         </div>
       </div>
     </div>

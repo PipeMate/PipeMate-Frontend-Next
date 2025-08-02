@@ -1,4 +1,5 @@
 //* 인터랙티브 React Flow 워크스페이스 컴포넌트
+//* GitHub Actions 워크플로우를 시각적으로 편집할 수 있는 메인 컴포넌트
 "use client";
 
 import {
@@ -8,7 +9,8 @@ import {
   createContext,
   useContext,
 } from "react";
-import ReactFlow, {
+import {
+  ReactFlow,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -20,11 +22,15 @@ import ReactFlow, {
   Panel,
   Node,
   MarkerType,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import "@/styles/reactflow.css";
 
-import { ReactFlowWorkspaceProps, ServerBlock } from "../types";
+import {
+  ReactFlowWorkspaceProps,
+  ServerBlock,
+  WorkflowNodeData,
+} from "../types";
 import { WorkflowTriggerNode } from "./nodes/WorkflowTriggerNode";
 import { JobNode } from "./nodes/JobNode";
 import { StepNode } from "./nodes/StepNode";
@@ -39,10 +45,20 @@ import {
   convertNodesToServerBlocks,
   convertServerBlocksToNodes,
 } from "../utils/dataConverter";
-import { Save, ClipboardList, Trash2, Lightbulb } from "lucide-react";
+import {
+  Save,
+  ClipboardList,
+  Trash2,
+  Lightbulb,
+  Edit,
+  Eye,
+  X,
+  Layers,
+} from "lucide-react";
 import { SubFlowNode } from "./nodes/SubFlowNode";
+import type { NodeChange, EdgeChange } from "@xyflow/react";
 
-//* 커스텀 노드 타입 정의
+//* 커스텀 노드 타입 정의 - 각 노드 타입별 컴포넌트 매핑
 const nodeTypes: NodeTypes = {
   workflowTrigger: WorkflowTriggerNode,
   job: JobNode,
@@ -50,7 +66,7 @@ const nodeTypes: NodeTypes = {
   subflow: SubFlowNode,
 };
 
-//* 노드 데이터 업데이트 Context
+//* 노드 데이터 업데이트 Context - 노드 간 데이터 공유를 위한 Context API
 type UpdateNodeDataFunction = (
   nodeId: string,
   newData: Record<string, unknown>
@@ -60,7 +76,7 @@ type DeleteNodeFunction = (nodeId: string) => void;
 const NodeUpdateContext = createContext<UpdateNodeDataFunction | null>(null);
 const NodeDeleteContext = createContext<DeleteNodeFunction | null>(null);
 
-//* Context 사용 훅
+//* Context 사용 훅 - 노드 컴포넌트에서 사용할 수 있는 커스텀 훅들
 export const useNodeUpdate = () => {
   const updateNodeData = useContext(NodeUpdateContext);
   if (!updateNodeData) {
@@ -78,16 +94,19 @@ export const useNodeDelete = () => {
 };
 
 //! Hydration 오류 방지를 위한 클라이언트 사이드 렌더링
+//? SSR과 React Flow의 호환성 문제를 해결하기 위한 패턴
 export const ReactFlowWorkspace = ({
   onWorkflowChange,
   initialBlocks,
   onNodeSelect,
+  onEditModeToggle,
+  isEditing,
 }: ReactFlowWorkspaceProps) => {
   const [isClient, setIsClient] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const { setSidebarExtra } = useLayout();
 
-  //* 초기 노드 설정
+  //* 초기 노드 설정 - 서버에서 받은 데이터가 있으면 사용, 없으면 기본값 사용
   const getInitialNodes = () => {
     if (initialBlocks && initialBlocks.length > 0) {
       const { nodes } = convertServerBlocksToNodes(initialBlocks);
@@ -104,48 +123,151 @@ export const ReactFlowWorkspace = ({
     return INITIAL_EDGES;
   };
 
+  //* React Flow 상태 관리 - 노드와 엣지의 상태를 관리
   const [nodes, setNodes, onNodesChange] = useNodesState(getInitialNodes());
   const [edges, setEdges, onEdgesChange] = useEdgesState(getInitialEdges());
 
-  //* 클라이언트 사이드 마운트 확인
+  //* 클라이언트 사이드 마운트 확인 - SSR 문제 해결
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  //* 사이드바에 드래그 앤 드롭 패널 설정 - 레이아웃과 연동
   useEffect(() => {
     setSidebarExtra(<DragDropSidebar />);
     return () => setSidebarExtra(null);
   }, [setSidebarExtra]);
 
-  //* 엣지 연결 핸들러
+  //* 엣지 연결 핸들러 - 노드 간 연결을 처리
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds) => addEdge(params, eds));
+      setEdges((eds) => addEdge({ ...params, type: "straight" }, eds));
     },
     [setEdges]
   );
 
-  //* 노드 데이터 업데이트 함수
+  //* 노드 데이터 업데이트 함수 - 개별 노드의 데이터를 수정
   const updateNodeData = useCallback(
     (nodeId: string, newData: Record<string, unknown>) => {
-      setNodes((nds) =>
-        nds.map((node) =>
+      setNodes((nds) => {
+        const updatedNodes = nds.map((node) =>
           node.id === nodeId
             ? { ...node, data: { ...node.data, ...newData } }
             : node
-        )
-      );
+        );
+
+        //* Job 노드의 job-name이 변경된 경우 연결된 Step들의 job-name도 업데이트
+        if (newData.jobName) {
+          const jobNode = updatedNodes.find((n) => n.id === nodeId);
+          if (jobNode && jobNode.type === "job") {
+            const newJobName = newData.jobName as string;
+            const subflowNode = updatedNodes.find(
+              (n) => n.type === "subflow" && n.parentId === nodeId
+            );
+
+            if (subflowNode) {
+              //* 해당 Job의 subflow에 연결된 모든 Step들의 job-name 업데이트
+              updatedNodes.forEach((stepNode) => {
+                if (
+                  stepNode.type === "step" &&
+                  stepNode.parentId === subflowNode.id
+                ) {
+                  const stepData = stepNode.data as unknown as WorkflowNodeData;
+                  stepNode.data = {
+                    ...stepData,
+                    jobName: newJobName,
+                  };
+                }
+              });
+            }
+          }
+        }
+
+        return updatedNodes;
+      });
     },
     [setNodes]
   );
 
-  //* 드래그 오버 핸들러
+  //* 서브플로우 노드와 관련 Step 노드들을 처리하는 헬퍼 함수
+  //! Job 노드 삭제 시 서브플로우와 Step 노드들을 적절히 처리
+  const handleSubflowNodes = useCallback(
+    (jobNodeId: string, action: "delete" | "independent") => {
+      const subflowNode = nodes.find(
+        (n) => n.type === "subflow" && n.parentId === jobNodeId
+      );
+
+      if (!subflowNode) {
+        console.log(`Job ${jobNodeId}에 연결된 서브플로우가 없습니다.`);
+        return [];
+      }
+
+      const stepNodes = nodes.filter(
+        (n) => n.type === "step" && n.parentId === subflowNode.id
+      );
+
+      console.log(
+        `서브플로우 처리: ${subflowNode.id}, Step 노드 ${stepNodes.length}개`
+      );
+
+      if (action === "delete") {
+        //* 서브플로우와 모든 Step 노드들을 삭제 대상에 추가
+        return [subflowNode.id, ...stepNodes.map((n) => n.id)];
+      } else {
+        //* 서브플로우와 Step 노드들을 독립적으로 만듦
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (
+              node.id === subflowNode.id ||
+              stepNodes.some((s) => s.id === node.id)
+            ) {
+              return {
+                ...node,
+                parentId: undefined,
+                position: {
+                  x: node.position.x ?? 0,
+                  y: node.position.y ?? 0,
+                },
+              };
+            }
+            return node;
+          })
+        );
+        return [];
+      }
+    },
+    [nodes, setNodes]
+  );
+
+  //* 편집 모드 상태를 노드에 반영 - 선택된 노드만 편집 모드 활성화
+  useEffect(() => {
+    if (selectedNode) {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === selectedNode.id
+            ? { ...node, data: { ...node.data, isEditing } }
+            : { ...node, data: { ...node.data, isEditing: false } }
+        )
+      );
+    } else {
+      //! 선택된 노드가 없으면 모든 노드의 편집 모드 해제
+      setNodes((nds) =>
+        nds.map((node) => ({
+          ...node,
+          data: { ...node.data, isEditing: false },
+        }))
+      );
+    }
+  }, [selectedNode, isEditing, setNodes]);
+
+  //* 드래그 오버 핸들러 - 드롭 영역 설정
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  //* 드롭 핸들러
+  //* 드롭 핸들러 - 블록을 워크스페이스에 추가
+  //! 가장 복잡한 로직 - 블록 타입별로 다른 처리 방식
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -156,7 +278,7 @@ export const ReactFlowWorkspace = ({
       if (data && reactFlowBounds) {
         try {
           const block: ServerBlock = JSON.parse(data as string);
-          // 고유 ID 생성 함수
+          //* 고유 ID 생성 함수 - 중복 방지
           const getUniqueId = (prefix: string) => {
             const existingIds = nodes.map((n) => n.id);
             let counter = 1;
@@ -167,11 +289,11 @@ export const ReactFlowWorkspace = ({
             }
             return newId;
           };
-          // 노드/엣지 추가용 임시 배열
+          //* 노드/엣지 추가용 임시 배열
           const newNodes: Node[] = [...nodes];
           const newEdges = [...edges];
           if (block.type === "trigger") {
-            // 트리거 노드 추가
+            //* 트리거 노드 추가 - 워크플로우의 시작점
             const triggerCount = newNodes.filter(
               (n) => n.type === "workflowTrigger"
             ).length;
@@ -184,15 +306,33 @@ export const ReactFlowWorkspace = ({
                 label: block.name,
                 type: "workflow_trigger",
                 category: block.category,
+                domain: block.domain,
+                task: block.task,
                 description: block.description,
                 config: block.config,
               },
             };
             newNodes.push(triggerNode);
           } else if (block.type === "job") {
-            // Job 노드 추가
+            //* Job 노드 추가 - 워크플로우의 실행 단위 (여러 Job 지원)
             const jobCount = newNodes.filter((n) => n.type === "job").length;
             const jobId = getUniqueId("job");
+
+            //* 동적 Job 이름 생성 (job1, job2, job3...)
+            const jobName = `job${jobCount + 1}`;
+
+            //* config.jobs의 키를 job-name과 동일하게 설정
+            const updatedConfig = {
+              ...block.config,
+              jobs: {
+                [jobName]: (block.config.jobs as Record<string, unknown>)?.[
+                  Object.keys(block.config.jobs || {})[0]
+                ] || {
+                  "runs-on": "ubuntu-latest",
+                },
+              },
+            };
+
             const jobNode: Node = {
               id: jobId,
               type: "job",
@@ -202,20 +342,25 @@ export const ReactFlowWorkspace = ({
                 label: block.name,
                 type: "job",
                 category: block.category,
+                domain: block.domain,
+                task: block.task,
                 description: block.description,
-                config: block.config,
+                config: updatedConfig, //* 업데이트된 config 사용
+                jobName: jobName, //* 동적 job-name 설정
+                jobIndex: jobCount, //* Job 순서 추적
               },
             };
             newNodes.push(jobNode);
-            // 서브플로우 노드 추가 (Job마다 1:1)
+
+            //* 서브플로우 노드 추가 (Job마다 1:1) - Step들을 담는 컨테이너
             const subflowId = getUniqueId("subflow");
             const SUBFLOW_WIDTH = 320;
             const SUBFLOW_HEIGHT = 180;
             const subflowNode: Node = {
               id: subflowId,
               type: "subflow",
-              position: { x: 0, y: 180 }, // 부모(Job) 기준 바로 아래 일직선
-              parentNode: jobId,
+              position: { x: 0, y: 180 }, //* 부모(Job) 기준 바로 아래 일직선
+              parentId: jobId,
               data: {
                 label: `${block.name} - Subflow`,
                 type: "subflow",
@@ -227,7 +372,7 @@ export const ReactFlowWorkspace = ({
               style: { minWidth: SUBFLOW_WIDTH, minHeight: SUBFLOW_HEIGHT },
             };
             newNodes.push(subflowNode);
-            // 엣지: Job → Subflow
+            //* 엣지: Job → Subflow
             newEdges.push({
               id: `job-to-subflow-${jobId}-${subflowId}`,
               source: jobId,
@@ -240,52 +385,116 @@ export const ReactFlowWorkspace = ({
                 color: "#64748b",
               },
             });
-            // 트리거가 있으면 트리거 → Job 엣지
-            const firstTrigger = newNodes.find(
-              (n) => n.type === "workflowTrigger"
+            //* Job 간 의존성 설정
+            const existingJobs = newNodes.filter(
+              (n) => n.type === "job" && n.id !== jobId
             );
-            if (firstTrigger) {
+
+            if (existingJobs.length > 0) {
+              //* 이전 Job이 있으면 의존성 엣지 생성 (needs 관계)
+              const previousJob = existingJobs[existingJobs.length - 1];
               newEdges.push({
-                id: `trigger-to-job-${firstTrigger.id}-${jobId}`,
-                source: firstTrigger.id,
+                id: `job-to-job-${previousJob.id}-${jobId}`,
+                source: previousJob.id,
                 target: jobId,
                 type: "straight",
                 markerEnd: {
                   type: MarkerType.ArrowClosed,
                   width: 16,
                   height: 16,
-                  color: "#64748b",
+                  color: "#3b82f6", //* 파란색으로 의존성 표시
+                },
+                style: { strokeDasharray: "5,5" }, //* 점선으로 의존성 표시
+                data: {
+                  isDependency: true,
+                  dependencyType: "needs",
                 },
               });
+            } else {
+              //* 첫 번째 Job이면 트리거 → Job 엣지
+              const firstTrigger = newNodes.find(
+                (n) => n.type === "workflowTrigger"
+              );
+              if (firstTrigger) {
+                newEdges.push({
+                  id: `trigger-to-job-${firstTrigger.id}-${jobId}`,
+                  source: firstTrigger.id,
+                  target: jobId,
+                  type: "straight",
+                  markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 16,
+                    height: 16,
+                    color: "#64748b",
+                  },
+                });
+              }
             }
+
+            //* Job 생성 후 job-name이 빈 Step들을 새 Job에 연결
+            const jobConfig = jobNode.data.config as Record<string, unknown>;
+            const jobs = jobConfig.jobs as Record<string, unknown> | undefined;
+            const jobKeys = Object.keys(jobs || {});
+            const newJobKey = jobKeys[0] || "ci-pipeline";
+
+            //* 기존 Step들 중 job-name이 빈 것들을 새 Job에 연결
+            newNodes.forEach((node) => {
+              if (node.type === "step") {
+                const nodeData = node.data as unknown as WorkflowNodeData;
+                if (nodeData.jobName === "") {
+                  //* Step의 job-name을 새 Job의 키로 업데이트
+                  node.data = {
+                    ...nodeData,
+                    jobName: newJobKey,
+                  };
+
+                  //* Step을 새 Job의 subflow로 이동
+                  const newSubflowNode = newNodes.find(
+                    (n) => n.type === "subflow" && n.parentId === jobId
+                  );
+                  if (newSubflowNode) {
+                    node.parentId = newSubflowNode.id;
+                  }
+                }
+              }
+            });
           } else if (block.type === "step") {
-            // Step 추가: 가장 최근 Job의 서브플로우에 추가
-            const lastJob = [...newNodes]
-              .reverse()
-              .find((n) => n.type === "job");
-            if (!lastJob) {
+            //* Step 추가: 여러 Job 중에서 선택하여 서브플로우에 추가
+            const allJobs = newNodes.filter((n) => n.type === "job");
+            if (allJobs.length === 0) {
               alert("Job이 필요합니다. 먼저 Job 블록을 추가해주세요.");
               return;
             }
-            // 해당 Job의 서브플로우 찾기
+
+            //* 가장 최근 Job을 기본으로 선택 (나중에 사용자가 선택할 수 있도록 개선 가능)
+            const targetJob = allJobs[allJobs.length - 1];
+            const targetJobConfig = targetJob.data.config as Record<
+              string,
+              unknown
+            >;
+            const jobs = targetJobConfig.jobs as
+              | Record<string, unknown>
+              | undefined;
+            const jobName = Object.keys(jobs || {})[0] || "default-job";
+            //* 해당 Job의 서브플로우 찾기
             const subflowNode = newNodes.find(
-              (n) => n.type === "subflow" && n.parentNode === lastJob.id
+              (n) => n.type === "subflow" && n.parentId === targetJob.id
             );
             if (!subflowNode) {
               alert("서브플로우가 필요합니다. Job을 먼저 추가해주세요.");
               return;
             }
-            // 해당 서브플로우의 Step 개수
+            //* 해당 서브플로우의 Step 개수
             const subflowSteps = newNodes.filter(
-              (n) => n.parentNode === subflowNode.id && n.type === "step"
+              (n) => n.parentId === subflowNode.id && n.type === "step"
             );
-            // Step 노드 크기/간격 상수
+            //* Step 노드 크기/간격 상수
             const SUBFLOW_PADDING_X = 32;
-            const SUBFLOW_PADDING_Y = 32;
+            const SUBFLOW_PADDING_Y = 100;
             const STEP_WIDTH = 220;
             const STEP_HEIGHT = 56;
-            const STEP_MARGIN = 18;
-            // Step position (서브플로우 기준 상대좌표)
+            const STEP_MARGIN = 56 + 56;
+            //* Step position (서브플로우 기준 상대좌표)
             const stepX = SUBFLOW_PADDING_X;
             const stepY =
               SUBFLOW_PADDING_Y +
@@ -295,20 +504,24 @@ export const ReactFlowWorkspace = ({
               id: stepId,
               type: "step",
               position: { x: stepX, y: stepY },
-              parentNode: subflowNode.id,
+              parentId: subflowNode.id,
               extent: "parent",
               data: {
                 label: block.name,
                 type: "step",
                 category: block.category,
+                domain: block.domain,
+                task: block.task,
                 description: block.description,
-                config: block.config,
+                config: {
+                  ...block.config,
+                },
                 parentId: subflowNode.id,
-                jobName: lastJob.data.label || "",
+                jobName: jobName, //* 부모 Job의 job-name과 일치시킴
               },
             };
             newNodes.push(stepNode);
-            // Step 간 엣지 (순차 연결)
+            //* Step 간 엣지 (순차 연결)
             if (subflowSteps.length > 0) {
               const prevStep = subflowSteps[subflowSteps.length - 1];
               newEdges.push({
@@ -326,7 +539,7 @@ export const ReactFlowWorkspace = ({
                 data: { isParentChild: true },
               });
             } else {
-              // 첫 Step이면 Subflow → Step 엣지
+              //* 첫 Step이면 Subflow → Step 엣지
               newEdges.push({
                 id: `subflow-to-step-${subflowNode.id}-${stepId}`,
                 source: subflowNode.id,
@@ -342,7 +555,7 @@ export const ReactFlowWorkspace = ({
                 data: { isParentChild: true },
               });
             }
-            // 서브플로우 크기 동적 조절 (Step 개수/크기 반영)
+            //* 서브플로우 크기 동적 조절 (Step 개수/크기 반영)
             const stepCount = subflowSteps.length + 1;
             const subflowWidth = STEP_WIDTH + SUBFLOW_PADDING_X * 2;
             const subflowHeight =
@@ -364,49 +577,202 @@ export const ReactFlowWorkspace = ({
         }
       }
     },
-    [nodes, setNodes, setEdges, updateNodeData, edges]
+    [nodes, setNodes, setEdges, edges]
   );
 
-  //* 노드 선택 핸들러
+  //* 노드/엣지 변경 핸들러 - React Flow의 내장 변경 감지
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      onNodesChange(changes);
+    },
+    [onNodesChange]
+  );
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      onEdgesChange(changes);
+    },
+    [onEdgesChange]
+  );
+
+  //* 노드 선택 핸들러 - 편집 모드와 연동
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === node.id ? { ...n, data: { ...n.data, isEditing: true } } : n
-        )
-      );
       setSelectedNode(node);
-      if (onNodeSelect) {
-        const selectedBlock: ServerBlock = {
-          name: node.data.label,
-          type:
-            node.data.type === "workflow_trigger" ? "trigger" : node.data.type,
-          category: node.data.category,
-          description: node.data.description,
-          "job-name": node.data.jobName,
-          config: node.data.config,
-        };
-        onNodeSelect(selectedBlock);
-      }
     },
-    [setNodes, setSelectedNode, onNodeSelect]
+    [setSelectedNode]
   );
 
-  //* 노드 삭제 함수
-  const onNodeDelete = useCallback(
+  //* 노드만 삭제 (하위 노드들은 독립적으로 만듦)
+  //! 상위 노드 삭제 시 하위 노드들을 독립적으로 만드는 안전한 삭제 방식
+  const deleteNodeOnly = useCallback(
     (nodeId: string) => {
-      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      const nodeToDelete = nodes.find((n) => n.id === nodeId);
+      if (!nodeToDelete) {
+        console.warn(`삭제할 노드를 찾을 수 없습니다: ${nodeId}`);
+        return;
+      }
+
+      //* Job 노드인 경우 서브플로우 처리
+      if (nodeToDelete.type === "job") {
+        handleSubflowNodes(nodeId, "independent");
+      }
+
+      //* 삭제할 노드의 하위 노드들을 찾아서 독립적으로 만듦
+      const childNodes = nodes.filter((n) => n.parentId === nodeId);
+
+      setNodes((nds) => {
+        const updatedNodes = nds.filter((n) => n.id !== nodeId);
+
+        //* 하위 노드들을 독립적으로 만듦
+        return updatedNodes.map((node) => {
+          if (childNodes.some((child) => child.id === node.id)) {
+            //* 절대 좌표로 변환 (부모 기준 상대좌표 + 부모 절대좌표)
+            const absoluteX = nodeToDelete.position.x + (node.position.x ?? 0);
+            const absoluteY = nodeToDelete.position.y + (node.position.y ?? 0);
+
+            return {
+              ...node,
+              parentId: undefined, //* 부모 관계 제거
+              position: {
+                x: absoluteX,
+                y: absoluteY,
+              },
+            };
+          }
+          return node;
+        });
+      });
+
+      //* 관련된 엣지들 삭제 (삭제되는 노드와 직접 연결된 엣지만)
       setEdges((eds) =>
-        eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
+        eds.filter((e) => {
+          //* 삭제되는 노드와 직접 연결된 엣지 제거
+          if (e.source === nodeId || e.target === nodeId) {
+            return false;
+          }
+          //* 하위 노드들 간의 연결은 유지
+          return true;
+        })
       );
+
+      //* 선택된 노드가 삭제 대상이면 선택 해제
       if (selectedNode?.id === nodeId) {
         setSelectedNode(null);
       }
+
+      console.log(
+        `노드 삭제 완료: ${nodeId}, 하위 노드 ${childNodes.length}개 독립화`
+      );
     },
-    [setNodes, setEdges, selectedNode]
+    [setNodes, setEdges, selectedNode, nodes, handleSubflowNodes]
   );
 
-  //* 워크스페이스 초기화
+  //* 노드와 모든 하위 노드들을 재귀적으로 삭제
+  //! 완전한 삭제 - 모든 하위 노드들을 포함하여 삭제
+  const deleteNodeRecursive = useCallback(
+    (nodeId: string) => {
+      const nodeToDelete = nodes.find((n) => n.id === nodeId);
+      if (!nodeToDelete) {
+        console.warn(`삭제할 노드를 찾을 수 없습니다: ${nodeId}`);
+        return;
+      }
+
+      //* Job 노드인 경우 서브플로우 처리
+      if (nodeToDelete.type === "job") {
+        const subflowNodeIds = handleSubflowNodes(nodeId, "delete");
+        console.log(
+          `Job 노드 ${nodeId}의 서브플로우 노드들: ${subflowNodeIds.join(", ")}`
+        );
+      }
+
+      //* 삭제할 노드와 모든 하위 노드들의 ID를 수집 (순환 참조 방지)
+      const nodesToDelete = new Set<string>();
+      const visited = new Set<string>();
+
+      const collectNodesToDelete = (targetId: string) => {
+        if (visited.has(targetId)) {
+          console.warn(`순환 참조 감지: ${targetId}`);
+          return;
+        }
+
+        visited.add(targetId);
+        nodesToDelete.add(targetId);
+
+        //* parentId가 targetId인 모든 하위 노드들을 찾아서 재귀적으로 추가
+        nodes.forEach((node) => {
+          if (node.parentId === targetId) {
+            collectNodesToDelete(node.id);
+          }
+        });
+      };
+
+      collectNodesToDelete(nodeId);
+
+      //* 삭제할 노드들의 정보 로깅
+      const nodesToDeleteArray = Array.from(nodesToDelete);
+      console.log(`재귀 삭제 대상 노드들: ${nodesToDeleteArray.join(", ")}`);
+
+      //* 노드들 삭제 및 Job 삭제 시 Step들의 job-name 갱신
+      setNodes((nds) => {
+        const remainingNodes = nds.filter((n) => !nodesToDelete.has(n.id));
+
+        //* Job이 삭제된 경우, 해당 Job에 연결된 Step들의 job-name을 빈 문자열로 설정
+        const updatedNodes = remainingNodes.map((node) => {
+          if (node.type === "step") {
+            const nodeData = node.data as unknown as WorkflowNodeData;
+            const deletedJobIds = Array.from(nodesToDelete).filter((id) => {
+              const deletedNode = nds.find((n) => n.id === id);
+              return deletedNode?.type === "job";
+            });
+
+            //* Step의 부모 Job이 삭제된 경우 job-name을 빈 문자열로 설정
+            if (
+              deletedJobIds.some((jobId) => {
+                const subflowNode = remainingNodes.find(
+                  (n) => n.id === node.parentId
+                );
+                return subflowNode?.parentId === jobId;
+              })
+            ) {
+              return {
+                ...node,
+                data: {
+                  ...nodeData,
+                  jobName: "",
+                },
+              };
+            }
+          }
+          return node;
+        });
+
+        console.log(`삭제 후 남은 노드 수: ${updatedNodes.length}`);
+        return updatedNodes;
+      });
+
+      //* 관련된 모든 엣지들 삭제
+      setEdges((eds) => {
+        const remainingEdges = eds.filter(
+          (e) => !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
+        );
+        console.log(`삭제 후 남은 엣지 수: ${remainingEdges.length}`);
+        return remainingEdges;
+      });
+
+      //* 선택된 노드가 삭제 대상이면 선택 해제
+      if (selectedNode && nodesToDelete.has(selectedNode.id)) {
+        setSelectedNode(null);
+        console.log("선택된 노드가 삭제되어 선택 해제됨");
+      }
+
+      console.log(
+        `재귀 삭제 완료: ${nodeId}, 총 ${nodesToDeleteArray.length}개 노드 삭제`
+      );
+    },
+    [setNodes, setEdges, selectedNode, nodes, handleSubflowNodes]
+  );
+
+  //* 워크스페이스 초기화 - 모든 노드와 엣지를 초기 상태로 리셋
   const clearWorkspace = useCallback(() => {
     setNodes(INITIAL_NODES);
     setEdges(INITIAL_EDGES);
@@ -417,7 +783,7 @@ export const ReactFlowWorkspace = ({
     }
   }, [setNodes, setEdges, onWorkflowChange]);
 
-  //* 워크플로우 저장 함수
+  //* 워크플로우 저장 함수 - 현재 상태를 서버 블록으로 변환하여 저장
   const saveWorkflow = useCallback(() => {
     const blocks = convertNodesToServerBlocks(nodes);
     console.log("저장된 워크플로우 데이터:", JSON.stringify(blocks, null, 2));
@@ -425,7 +791,7 @@ export const ReactFlowWorkspace = ({
     onWorkflowChange(blocks);
   }, [nodes, onWorkflowChange]);
 
-  //* 예제 워크플로우 추가
+  //* 예제 워크플로우 추가 - 개발 및 테스트용 샘플 데이터
   const addExampleWorkflow = useCallback(() => {
     const exampleBlocks: ServerBlock[] = [
       {
@@ -568,10 +934,57 @@ export const ReactFlowWorkspace = ({
     setEdges(exampleEdges);
   }, [setNodes, setEdges]);
 
-  //* 워크플로우 변경 감지 및 콜백 호출
+  //* 노드 상태 검증 함수 - 데이터 무결성 보장
+  //! 고아 노드와 잘못된 엣지를 자동으로 정리
+  const validateNodeState = useCallback(() => {
+    const orphanedNodes = nodes.filter(
+      (node) => node.parentId && !nodes.find((n) => n.id === node.parentId)
+    );
+
+    if (orphanedNodes.length > 0) {
+      console.warn(
+        `고아 노드 발견: ${orphanedNodes.map((n) => n.id).join(", ")}`
+      );
+      //* 고아 노드들의 부모 관계 제거
+      setNodes((nds) =>
+        nds.map((node) =>
+          orphanedNodes.some((orphan) => orphan.id === node.id)
+            ? { ...node, parentId: undefined }
+            : node
+        )
+      );
+    }
+
+    const invalidEdges = edges.filter(
+      (edge) =>
+        !nodes.find((n) => n.id === edge.source) ||
+        !nodes.find((n) => n.id === edge.target)
+    );
+
+    if (invalidEdges.length > 0) {
+      console.warn(
+        `잘못된 엣지 발견: ${invalidEdges
+          .map((e) => `${e.source}->${e.target}`)
+          .join(", ")}`
+      );
+      //* 잘못된 엣지들 제거
+      setEdges((eds) =>
+        eds.filter(
+          (edge) =>
+            nodes.find((n) => n.id === edge.source) &&
+            nodes.find((n) => n.id === edge.target)
+        )
+      );
+    }
+  }, [nodes, edges, setNodes, setEdges]);
+
+  //* 워크플로우 변경 감지 및 콜백 호출 - 실시간 업데이트
   useEffect(() => {
     if (nodes.length > 0 && onWorkflowChange) {
       try {
+        //* 노드 상태 검증
+        validateNodeState();
+
         //* 노드를 서버 블록으로 변환
         const blocks = convertNodesToServerBlocks(nodes);
         onWorkflowChange(blocks);
@@ -579,14 +992,14 @@ export const ReactFlowWorkspace = ({
         console.error("워크플로우 생성 오류:", error);
       }
     }
-  }, [nodes, edges, onWorkflowChange]);
+  }, [nodes, edges, onWorkflowChange, validateNodeState]);
 
-  // onPaneClick: 노드가 아닌 곳 클릭 시 YAML 패널 닫기
+  //* onPaneClick: 노드가 아닌 곳 클릭 시 YAML 패널 닫기
   const handlePaneClick = useCallback(() => {
     if (onNodeSelect) onNodeSelect(undefined);
   }, [onNodeSelect]);
 
-  //* 클라이언트 사이드에서만 렌더링
+  //* 클라이언트 사이드에서만 렌더링 - SSR 문제 해결
   if (!isClient) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50 text-gray-500">
@@ -597,15 +1010,15 @@ export const ReactFlowWorkspace = ({
 
   return (
     <NodeUpdateContext.Provider value={updateNodeData}>
-      <NodeDeleteContext.Provider value={onNodeDelete}>
+      <NodeDeleteContext.Provider value={deleteNodeOnly}>
         <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full">
           {/* React Flow 영역 */}
           <div className="flex-1 relative min-w-0 min-h-0 overflow-hidden w-full h-full">
             <ReactFlow
               nodes={nodes}
               edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
               onConnect={onConnect}
               onDragOver={onDragOver}
               onDrop={onDrop}
@@ -618,8 +1031,13 @@ export const ReactFlowWorkspace = ({
               snapGrid={[15, 15]}
               multiSelectionKeyCode="Shift"
               deleteKeyCode="Delete"
-              minZoom={0.1}
-              maxZoom={4}
+              minZoom={0.5}
+              maxZoom={2}
+              zoomOnScroll={true}
+              zoomOnPinch={true}
+              panOnScroll={true}
+              panOnDrag={true}
+              //* 확대/축소 및 팬 동작을 예제와 동일하게 명시
               onPaneClick={handlePaneClick}
             >
               <Background color="#e5e7eb" gap={20} />
@@ -636,6 +1054,7 @@ export const ReactFlowWorkspace = ({
               {/* 상단 컨트롤 패널 */}
               <Panel position="top-right">
                 <div className="flex gap-2 p-2 bg-white border border-gray-200 rounded shadow-sm flex-wrap">
+                  {/* 워크플로우 전체 액션 */}
                   <button
                     onClick={saveWorkflow}
                     className="px-3 py-1.5 text-xs bg-emerald-500 text-white border-none rounded font-semibold cursor-pointer transition-colors hover:bg-emerald-600 flex items-center gap-1"
@@ -654,6 +1073,109 @@ export const ReactFlowWorkspace = ({
                   >
                     <Trash2 size={16} /> 초기화
                   </button>
+
+                  {/* 선택된 노드가 있을 때만 표시되는 액션들 */}
+                  {selectedNode && (
+                    <>
+                      <div className="w-px bg-gray-300 mx-2"></div>
+                      <div className="text-xs text-gray-500 font-medium px-2 py-1">
+                        {
+                          (selectedNode.data as Record<string, unknown>)
+                            .label as string
+                        }
+                      </div>
+                      <button
+                        onClick={() => {
+                          const nodeData = selectedNode.data as Record<
+                            string,
+                            unknown
+                          >;
+                          if (onNodeSelect) {
+                            const selectedBlock: ServerBlock = {
+                              name: nodeData.label as string,
+                              type:
+                                nodeData.type === "workflow_trigger"
+                                  ? "trigger"
+                                  : (nodeData.type as
+                                      | "trigger"
+                                      | "job"
+                                      | "step"),
+                              category: nodeData.category as string,
+                              description: nodeData.description as string,
+                              "job-name": nodeData.jobName as
+                                | string
+                                | undefined,
+                              config: nodeData.config as Record<
+                                string,
+                                unknown
+                              >,
+                            };
+                            onNodeSelect(selectedBlock);
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs bg-blue-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-blue-600 flex items-center gap-1"
+                        title="YAML 미리보기"
+                      >
+                        <Eye size={16} /> 미리보기
+                      </button>
+                      <button
+                        onClick={() => {
+                          const nodeData = selectedNode.data as Record<
+                            string,
+                            unknown
+                          >;
+                          if (onNodeSelect) {
+                            const selectedBlock: ServerBlock = {
+                              name: nodeData.label as string,
+                              type:
+                                nodeData.type === "workflow_trigger"
+                                  ? "trigger"
+                                  : (nodeData.type as
+                                      | "trigger"
+                                      | "job"
+                                      | "step"),
+                              category: nodeData.category as string,
+                              description: nodeData.description as string,
+                              "job-name": nodeData.jobName as
+                                | string
+                                | undefined,
+                              config: nodeData.config as Record<
+                                string,
+                                unknown
+                              >,
+                            };
+                            onNodeSelect(selectedBlock);
+                            //* 편집 모드 활성화
+                            if (onEditModeToggle) {
+                              onEditModeToggle();
+                            }
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs border-none rounded cursor-pointer transition-colors flex items-center gap-1 ${
+                          isEditing
+                            ? "bg-green-500 text-white hover:bg-green-600"
+                            : "bg-yellow-500 text-white hover:bg-yellow-600"
+                        }`}
+                        title={isEditing ? "편집 모드 활성화됨" : "YAML 편집"}
+                      >
+                        <Edit size={16} /> {isEditing ? "편집 중" : "편집"}
+                      </button>
+                      <button
+                        onClick={() => deleteNodeOnly(selectedNode.id)}
+                        className="px-3 py-1.5 text-xs bg-orange-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-orange-600 flex items-center gap-1"
+                        title="노드만 삭제 (하위 노드들은 독립적으로 유지)"
+                      >
+                        <X size={16} /> 노드만 삭제
+                      </button>
+                      <button
+                        onClick={() => deleteNodeRecursive(selectedNode.id)}
+                        className="px-3 py-1.5 text-xs bg-red-500 text-white border-none rounded cursor-pointer transition-colors hover:bg-red-600 flex items-center gap-1"
+                        title="노드와 모든 하위 노드 삭제"
+                      >
+                        <Layers size={16} /> 전체 삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               </Panel>
 
@@ -661,7 +1183,8 @@ export const ReactFlowWorkspace = ({
               <Panel position="bottom-center">
                 <div className="px-3 py-2 bg-white border border-gray-200 rounded shadow-sm text-xs text-gray-500">
                   <Lightbulb size={14} className="inline mr-1" />{" "}
-                  <strong>팁:</strong> 노드를 클릭하여 YAML을 확인하고,{" "}
+                  <strong>팁:</strong> 노드를 클릭하여 선택한 후, 우측 상단의
+                  액션 버튼을 사용하세요.{" "}
                   <Save size={12} className="inline mx-1" /> 저장 버튼을 눌러
                   서버 데이터를 확인하세요.
                 </div>

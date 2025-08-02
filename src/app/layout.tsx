@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Header, Main, Sidebar, LayoutProvider } from "@/components/layout";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import {
+  Header,
+  MainLayout,
+  Sidebar,
+  LayoutProvider,
+} from "@/components/layout";
+import QueryProvider from "@/providers/QueryProvider";
+import { RepositoryProvider } from "@/contexts/RepositoryContext";
 
 export const metadata: Metadata = {
   title: "PipeMate",
@@ -28,18 +24,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100 h-full`}
-      >
-        <SidebarProvider>
-          <LayoutProvider>
-            <Sidebar />
-            <SidebarInset>
-              <Header />
-              <Main>{children}</Main>
-            </SidebarInset>
-          </LayoutProvider>
-        </SidebarProvider>
+      <body className="antialiased bg-gray-100 h-full">
+        <QueryProvider>
+          <RepositoryProvider>
+            <SidebarProvider>
+              <LayoutProvider>
+                <Sidebar />
+                <SidebarInset>
+                  <Header />
+                  <MainLayout>{children}</MainLayout>
+                </SidebarInset>
+              </LayoutProvider>
+            </SidebarProvider>
+          </RepositoryProvider>
+        </QueryProvider>
       </body>
     </html>
   );

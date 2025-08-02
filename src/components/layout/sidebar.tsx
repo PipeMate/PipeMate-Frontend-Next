@@ -18,6 +18,67 @@ import {
 import { ROUTE_LIST, BRAND } from "@/config";
 import { cn } from "@/lib/utils";
 import { useLayout } from "./LayoutContext";
+import { GithubTokenDialog } from "@/components/features/GithubTokenDialog";
+import { useRepository } from "@/contexts/RepositoryContext";
+import { getCookie } from "@/lib/cookieUtils";
+import { STORAGES } from "@/config/appConstants";
+import { Github, GitBranch, CheckCircle, XCircle } from "lucide-react";
+
+// * 설정 상태 컴포넌트
+function SettingsStatus() {
+  const { owner, repo, isConfigured } = useRepository();
+  const [hasToken, setHasToken] = React.useState(false);
+
+  React.useEffect(() => {
+    const token = getCookie(STORAGES.GITHUB_TOKEN);
+    setHasToken(!!token);
+  }, []);
+
+  return (
+    <div className="p-3 border-t border-border space-y-3">
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-700">설정 상태</h3>
+
+        {/* 토큰 상태 */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <Github size={14} className="text-gray-500" />
+            <span className="text-gray-600">GitHub 토큰</span>
+          </div>
+          {hasToken ? (
+            <CheckCircle size={14} className="text-green-500" />
+          ) : (
+            <XCircle size={14} className="text-red-500" />
+          )}
+        </div>
+
+        {/* 레포지토리 상태 */}
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <GitBranch size={14} className="text-gray-500" />
+            <span className="text-gray-600">레포지토리</span>
+          </div>
+          {isConfigured ? (
+            <CheckCircle size={14} className="text-green-500" />
+          ) : (
+            <XCircle size={14} className="text-red-500" />
+          )}
+        </div>
+
+        {/* 레포지토리 정보 표시 */}
+        {isConfigured && owner && repo && (
+          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+            <div className="font-medium">
+              {owner}/{repo}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <GithubTokenDialog />
+    </div>
+  );
+}
 
 // * 사이드바 헤더 컴포넌트
 function SidebarHeaderContent() {
@@ -99,6 +160,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
         )}
       </SidebarContent>
+      {/* 설정 상태 및 관리 다이얼로그 */}
+      <SettingsStatus />
       <SidebarRail />
     </Sidebar>
   );

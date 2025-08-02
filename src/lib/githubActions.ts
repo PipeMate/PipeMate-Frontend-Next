@@ -1,19 +1,266 @@
-import { Octokit } from "@octokit/action";
+import {
+  pipelineAPI,
+  secretsAPI,
+  workflowAPI,
+  PipelineRequest,
+  GithubSecretRequest,
+} from "@/api/githubClient";
+import { AxiosError } from "axios";
+import {
+  mockWorkflows,
+  mockWorkflowRuns,
+  mockJobDetails,
+  mockPipelineData,
+  mockLogs,
+} from "./mockData";
 
-const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
-
-export async function fetchWorkflowJobs(
-  owner: string,
-  repo: string,
-  runId: number
-) {
-  const res = await octokit.request(
-    "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
-    {
-      owner,
-      repo,
-      run_id: runId,
+// * 파이프라인 관리 유틸리티
+export const pipelineUtils = {
+  // * 파이프라인 생성
+  createPipeline: async (data: PipelineRequest) => {
+    try {
+      const response = await pipelineAPI.create(data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("파이프라인 생성 실패:", error);
+      return { success: false, error };
     }
-  );
-  return res.data.jobs;
-}
+  },
+
+  // * 파이프라인 조회
+  getPipeline: async (ymlFileName: string, owner: string, repo: string) => {
+    try {
+      const response = await pipelineAPI.get(ymlFileName, owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("파이프라인 조회 실패:", error);
+
+      // * 네트워크 오류인 경우 mock 데이터 사용
+      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
+        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
+        return { success: true, data: mockPipelineData };
+      }
+
+      return { success: false, error };
+    }
+  },
+
+  // * 파이프라인 업데이트
+  updatePipeline: async (data: PipelineRequest) => {
+    try {
+      const response = await pipelineAPI.update(data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("파이프라인 업데이트 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * 파이프라인 삭제
+  deletePipeline: async (ymlFileName: string, owner: string, repo: string) => {
+    try {
+      await pipelineAPI.delete(ymlFileName, owner, repo);
+      return { success: true };
+    } catch (error) {
+      console.error("파이프라인 삭제 실패:", error);
+      return { success: false, error };
+    }
+  },
+};
+
+// * GitHub Secrets 관리 유틸리티
+export const secretsUtils = {
+  // * Secrets 목록 조회
+  getSecretsList: async (owner: string, repo: string) => {
+    try {
+      const response = await secretsAPI.getList(owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Secrets 목록 조회 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Secret 생성/수정
+  createOrUpdateSecret: async (
+    owner: string,
+    repo: string,
+    secretName: string,
+    value: string
+  ) => {
+    try {
+      const data: GithubSecretRequest = { value };
+      await secretsAPI.createOrUpdate(owner, repo, secretName, data);
+      return { success: true };
+    } catch (error) {
+      console.error("Secret 생성/수정 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * 퍼블릭 키 조회
+  getPublicKey: async (owner: string, repo: string) => {
+    try {
+      const response = await secretsAPI.getPublicKey(owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("퍼블릭 키 조회 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Secret 삭제
+  deleteSecret: async (owner: string, repo: string, secretName: string) => {
+    try {
+      await secretsAPI.delete(owner, repo, secretName);
+      return { success: true };
+    } catch (error) {
+      console.error("Secret 삭제 실패:", error);
+      return { success: false, error };
+    }
+  },
+};
+
+// * GitHub Workflow 관리 유틸리티
+export const workflowUtils = {
+  // * Workflow 목록 조회
+  getWorkflowsList: async (owner: string, repo: string) => {
+    try {
+      const response = await workflowAPI.getList(owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 목록 조회 실패:", error);
+
+      // * 네트워크 오류인 경우 mock 데이터 사용
+      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
+        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
+        return { success: true, data: { workflows: mockWorkflows } };
+      }
+
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 상세 정보 조회
+  getWorkflowDetail: async (
+    workflowId: string,
+    owner: string,
+    repo: string
+  ) => {
+    try {
+      const response = await workflowAPI.getDetail(workflowId, owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 상세 정보 조회 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 실행 목록 조회
+  getWorkflowRuns: async (owner: string, repo: string) => {
+    try {
+      const response = await workflowAPI.getRuns(owner, repo);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 실행 목록 조회 실패:", error);
+
+      // * 네트워크 오류인 경우 mock 데이터 사용
+      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
+        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
+        return { success: true, data: { workflow_runs: mockWorkflowRuns } };
+      }
+
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 실행 상세 정보 조회
+  getWorkflowRunDetail: async (owner: string, repo: string, runId: string) => {
+    try {
+      const response = await workflowAPI.getRunDetail(owner, repo, runId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 실행 상세 정보 조회 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 실행 로그 조회
+  getWorkflowRunLogs: async (owner: string, repo: string, runId: string) => {
+    try {
+      const response = await workflowAPI.getRunLogs(owner, repo, runId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 실행 로그 조회 실패:", error);
+
+      // * 네트워크 오류인 경우 mock 데이터 사용
+      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
+        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
+        return { success: true, data: mockLogs };
+      }
+
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 실행의 모든 Job 조회
+  getWorkflowRunJobs: async (owner: string, repo: string, runId: string) => {
+    try {
+      const response = await workflowAPI.getRunJobs(owner, repo, runId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 실행 Job 조회 실패:", error);
+
+      // * 네트워크 오류인 경우 mock 데이터 사용
+      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
+        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
+        return { success: true, data: mockJobDetails };
+      }
+
+      return { success: false, error };
+    }
+  },
+
+  // * 특정 Job 상세 정보 조회
+  getJobDetail: async (owner: string, repo: string, jobId: string) => {
+    try {
+      const response = await workflowAPI.getJobDetail(owner, repo, jobId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Job 상세 정보 조회 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 수동 실행
+  dispatchWorkflow: async (
+    owner: string,
+    repo: string,
+    ymlFileName: string,
+    ref: string
+  ) => {
+    try {
+      const response = await workflowAPI.dispatch(
+        owner,
+        repo,
+        ymlFileName,
+        ref
+      );
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 수동 실행 실패:", error);
+      return { success: false, error };
+    }
+  },
+
+  // * Workflow 실행 취소
+  cancelWorkflowRun: async (owner: string, repo: string, runId: string) => {
+    try {
+      const response = await workflowAPI.cancelRun(owner, repo, runId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Workflow 실행 취소 실패:", error);
+      return { success: false, error };
+    }
+  },
+};

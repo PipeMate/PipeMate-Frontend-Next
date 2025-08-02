@@ -1,9 +1,9 @@
 import React from "react";
 
-interface MainProps {
+interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-export default function Main({ children }: Readonly<MainProps>) {
+export default function MainLayout({ children }: Readonly<MainLayoutProps>) {
   return <main className="flex flex-1 flex-col min-h-0">{children}</main>;
 }
