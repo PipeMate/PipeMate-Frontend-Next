@@ -23,6 +23,20 @@ export interface ServerBlock {
   config: Record<string, unknown>; //* 블록 설정 데이터
 }
 
+//* 서버와 통신하는 파이프라인 데이터 형식
+//? 완성된 워크플로우를 파이프라인으로 제공
+export interface Pipeline {
+  id: string; //* 파이프라인 고유 식별자
+  name: string; //* 파이프라인 이름
+  description: string; //* 파이프라인 설명
+  type: "ci" | "cd" | "cicd" | "test" | "deploy"; //* 파이프라인 타입
+  domain?: string; //* 주요 도메인 (github, java, python, docker, aws 등)
+  task?: string[]; //* 포함된 태스크들
+  blocks: ServerBlock[]; //* 완성된 워크플로우의 블록들
+  config: Record<string, unknown>; //* 전체 워크플로우 설정
+  isActive: boolean; //* 활성화 상태
+}
+
 //* ========================================
 //* 워크플로우 구성 요소 타입
 //* ========================================

@@ -206,7 +206,11 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
         //* 해당 Job의 Step들 처리
         //* ========================================
         const stepBlocks = blocks.filter(
-          (block) => block.type === "step" && block["job-name"] === jobName
+          (block) =>
+            block.type === "step" &&
+            (block["job-name"] === jobName ||
+              //* job-name이 없는 경우 기본값으로 매칭
+              (!block["job-name"] && index === 0))
         );
 
         if (stepBlocks.length > 0) {

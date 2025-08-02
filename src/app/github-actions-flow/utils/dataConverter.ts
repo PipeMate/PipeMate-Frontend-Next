@@ -345,8 +345,22 @@ export const convertNodesToServerBlocks = (
         config: jobConfig,
       });
     } else if (nodeData.type === "step") {
-      //* Step의 config에서 job-name 제거하고 별도 속성으로 설정
-      const { "job-name": jobName, ...stepConfig } = nodeData.config;
+      //* Step의 job-name을 올바르게 설정
+      //* 부모 Job 노드를 찾아서 job-name을 가져옴
+      let jobName = nodeData.jobName || "";
+
+      //* 부모 Job이 없는 경우, 부모 Subflow를 통해 Job을 찾음
+      if (!jobName && node.parentId) {
+        const parentSubflow = nodes.find((n) => n.id === node.parentId);
+        if (parentSubflow && parentSubflow.parentId) {
+          const parentJob = nodes.find((n) => n.id === parentSubflow.parentId);
+          if (parentJob) {
+            const jobData = parentJob.data as unknown as WorkflowNodeData;
+            const jobsConfig = jobData.config.jobs || {};
+            jobName = Object.keys(jobsConfig)[0] || "job1";
+          }
+        }
+      }
 
       blocks.push({
         name: nodeData.label,
@@ -354,8 +368,8 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        "job-name": nodeData.jobName || "",
-        config: stepConfig,
+        "job-name": jobName,
+        config: nodeData.config,
       });
     }
   });
