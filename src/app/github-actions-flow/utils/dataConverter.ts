@@ -29,7 +29,7 @@ export const convertServerBlocksToNodes = (
     const triggerNode: Node = {
       id: triggerBlock.id || `trigger-${nodeIdCounter++}`,
       type: "workflowTrigger",
-      position: { x: 200 + index * 350, y: 50 }, // 트리거 간격 넓힘
+      position: { x: 300 + index * 350, y: 150 }, // 트리거 간격 넓힘
       data: {
         label: triggerBlock.name,
         type: "workflow_trigger",
@@ -52,7 +52,7 @@ export const convertServerBlocksToNodes = (
     const jobNode: Node = {
       id: jobNodeId,
       type: "job",
-      position: { x: 200 + index * 350, y: 250 },
+      position: { x: 300 + index * 350, y: 350 },
       data: {
         label: jobBlock.name,
         type: "job",
@@ -169,7 +169,7 @@ export const convertServerBlocksToNodes = (
           y: stepY,
         },
         parentId: subflowId,
-        extent: "parent",
+        draggable: true,
         data: {
           label: stepBlock.name,
           type: "step",
@@ -310,9 +310,8 @@ export const convertNodesToServerBlocks = (
         config: nodeData.config,
       });
     } else if (nodeData.type === "job") {
-      //* Job의 job-name을 config.jobs의 키에서 추출 (job-name과 config.jobs 키 동일)
-      const jobsConfig = nodeData.config.jobs || {};
-      const jobName = Object.keys(jobsConfig)[0] || "job1";
+      //* Job의 job-name을 nodeData.jobName에서 추출
+      const jobName = nodeData.jobName || "job1";
 
       //* Job 간 의존성 (needs) 처리
       const jobDependencies =
@@ -341,7 +340,7 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        "job-name": jobName, //* config.jobs의 키와 동일
+        "job-name": jobName, //* nodeData.jobName 사용
         config: jobConfig,
       });
     } else if (nodeData.type === "step") {

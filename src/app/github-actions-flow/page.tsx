@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { ReactFlowWorkspace } from "./components/ReactFlowWorkspace";
+import { AreaBasedWorkflowEditor } from "./components/AreaBasedWorkflowEditor";
 import { YamlPreviewPanel } from "./components/YamlPreviewPanel";
 import { ServerBlock } from "./types";
 import { useLayout } from "@/components/layout/LayoutContext";
@@ -162,9 +162,9 @@ export default function GitHubActionsFlowPage() {
             overflow: "hidden",
           }}
         >
-          {/* React Flow 워크스페이스 */}
+          {/* 영역 기반 워크플로우 에디터 */}
           <Suspense fallback={SuspenseFallback}>
-            <ReactFlowWorkspace
+            <AreaBasedWorkflowEditor
               onWorkflowChange={handleWorkflowChange}
               onNodeSelect={handleNodeSelect}
               onEditModeToggle={handleEditModeToggle}

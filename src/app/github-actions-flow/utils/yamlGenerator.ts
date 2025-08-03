@@ -114,21 +114,30 @@ export const generateBlockYaml = (block: ServerBlock): string => {
   else if (block.type === "step") {
     //* config 내용만 사용하여 YAML 생성
     Object.entries(block.config).forEach(([key, value]) => {
-      if (key === "name") {
-        yamlLines.push(`- ${key}: ${value}`);
-      } else if (typeof value === "string") {
-        yamlLines.push(`  ${key}: ${value}`);
+      if (typeof value === "string") {
+        yamlLines.push(`${key}: ${value}`);
       } else if (typeof value === "object" && value !== null) {
-        yamlLines.push(`  ${key}:`);
-        Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
-          if (typeof v === "string") {
-            yamlLines.push(`    ${k}: ${v}`);
-          } else {
-            yamlLines.push(`    ${k}: ${JSON.stringify(v)}`);
-          }
-        });
+        if (Array.isArray(value)) {
+          yamlLines.push(`${key}:`);
+          value.forEach((item: unknown) => {
+            if (typeof item === "string") {
+              yamlLines.push(`  - ${item}`);
+            } else {
+              yamlLines.push(`  - ${JSON.stringify(item)}`);
+            }
+          });
+        } else {
+          yamlLines.push(`${key}:`);
+          Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
+            if (typeof v === "string") {
+              yamlLines.push(`  ${k}: ${v}`);
+            } else {
+              yamlLines.push(`  ${k}: ${JSON.stringify(v)}`);
+            }
+          });
+        }
       } else {
-        yamlLines.push(`  ${key}: ${JSON.stringify(value)}`);
+        yamlLines.push(`${key}: ${JSON.stringify(value)}`);
       }
     });
   }
@@ -203,14 +212,13 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
         }
 
         //* ========================================
-        //* 해당 Job의 Step들 처리
+        //* 해당 Job의 Step들 처리 (job-name으로 연결)
         //* ========================================
+        // job-name을 사용하여 step들을 찾음
+        const jobNameForSteps = jobBlock["job-name"] || jobName;
         const stepBlocks = blocks.filter(
           (block) =>
-            block.type === "step" &&
-            (block["job-name"] === jobName ||
-              //* job-name이 없는 경우 기본값으로 매칭
-              (!block["job-name"] && index === 0))
+            block.type === "step" && block["job-name"] === jobNameForSteps
         );
 
         if (stepBlocks.length > 0) {

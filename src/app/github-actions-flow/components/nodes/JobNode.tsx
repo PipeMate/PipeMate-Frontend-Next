@@ -6,7 +6,7 @@ import { memo, useCallback, useState } from "react";
 import { Position, NodeProps } from "@xyflow/react";
 import { useNodeUpdate } from "../ReactFlowWorkspace";
 import BaseNode from "./BaseNode";
-import { Plus, X, Check } from "lucide-react";
+import { Plus, X, Check, List } from "lucide-react";
 import { NodeContext } from "./BaseNode";
 import { NodeTypeBadge } from "./NodeTypeBadge";
 import {
@@ -164,6 +164,10 @@ export const JobNode = memo(({ data, id }: NodeProps) => {
     position: handle.position as Position,
   }));
 
+  //* 연결된 Step들 가져오기 (외부에서 전달받음)
+  const connectedSteps =
+    (data.connectedSteps as Array<{ id: string; label: string }>) || [];
+
   return (
     <NodeContext.Provider value={{}}>
       <BaseNode
@@ -190,9 +194,34 @@ export const JobNode = memo(({ data, id }: NodeProps) => {
               </span>{" "}
               with{" "}
               <span className="font-bold text-blue-500 bg-blue-100 rounded px-1">
-                {(data.stepCount as number) || 0} steps
+                {connectedSteps.length} steps
               </span>
             </div>
+
+            {/* 연결된 Step 리스트 표시 */}
+            {connectedSteps.length > 0 && (
+              <div className="mt-2">
+                <div className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-2">
+                  <List size={12} />
+                  Steps:
+                </div>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {connectedSteps.map((step, index) => (
+                    <div
+                      key={step.id}
+                      className="flex items-center gap-2 text-xs bg-gray-50 rounded px-2 py-1"
+                    >
+                      <span className="font-bold text-blue-500 min-w-[20px]">
+                        {index + 1}.
+                      </span>
+                      <span className="text-gray-700 flex-1 truncate">
+                        {step.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           //* 편집 모드: Job 설정 편집 UI - 상세 설정 가능

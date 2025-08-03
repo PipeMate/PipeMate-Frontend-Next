@@ -45,9 +45,10 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       name: "Job 설정",
       type: "job",
       description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
+      "job-name": "job1",
       config: {
         jobs: {
-          "ci-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
           },
         },
@@ -64,6 +65,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       domain: "github",
       task: ["checkout"],
       description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+      "job-name": "job1",
       config: {
         name: "Checkout repository",
         uses: "actions/checkout@v4",
@@ -77,6 +79,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       task: ["setup"],
       description:
         "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
+      "job-name": "job1",
       config: {
         name: "Set up JDK 21",
         uses: "actions/setup-java@v4",
@@ -94,6 +97,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       task: ["build"],
       description:
         "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
+      "job-name": "job1",
       config: {
         name: "Gradle Build (no test)",
         run: "chmod +x ./gradlew\n./gradlew clean build -x test",
@@ -106,6 +110,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       domain: "gradle",
       task: ["test"],
       description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
+      "job-name": "job1",
       config: {
         name: "Test with Gradle",
         run: "./gradlew test",
@@ -119,6 +124,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       task: ["login"],
       description:
         "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
+      "job-name": "job1",
       config: {
         name: "Docker Login",
         uses: "docker/login-action@v2.2.0",
@@ -135,6 +141,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       domain: "docker",
       task: ["build", "push"],
       description: "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
+      "job-name": "job1",
       config: {
         name: "image build and push docker images",
         uses: "docker/build-push-action@v4.1.1",
@@ -153,6 +160,7 @@ export const PRESET_BLOCKS: Record<string, PresetBlock[]> = {
       domain: "aws",
       task: ["deploy"],
       description: "Docker 이미지를 EC2 서버에 배포하는 단계입니다.",
+      "job-name": "job1",
       config: {
         name: "Deploy to AWS EC2",
         uses: "appleboy/ssh-action@v0.1.10",
@@ -208,9 +216,10 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           name: "CI Pipeline Job",
           type: "job",
           description: "CI 파이프라인을 실행하는 Job입니다.",
+          "job-name": "job1",
           config: {
             jobs: {
-              "ci-pipeline": {
+              job1: {
                 "runs-on": "ubuntu-latest",
               },
             },
@@ -223,6 +232,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "github",
           task: ["checkout"],
           description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Checkout repository",
             uses: "actions/checkout@v4",
@@ -236,6 +246,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["setup"],
           description:
             "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Set up JDK 21",
             uses: "actions/setup-java@v4",
@@ -253,6 +264,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["build"],
           description:
             "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
+          "job-name": "job1",
           config: {
             name: "Gradle Build (no test)",
             run: "chmod +x ./gradlew\n./gradlew clean build -x test",
@@ -265,6 +277,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "gradle",
           task: ["test"],
           description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
+          "job-name": "job1",
           config: {
             name: "Test with Gradle",
             run: "./gradlew test",
@@ -278,6 +291,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["login"],
           description:
             "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
+          "job-name": "job1",
           config: {
             name: "Docker Login",
             uses: "docker/login-action@v2.2.0",
@@ -295,6 +309,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["build", "push"],
           description:
             "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "image build and push docker images",
             uses: "docker/build-push-action@v4.1.1",
@@ -313,6 +328,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "aws",
           task: ["deploy"],
           description: "Docker 이미지를 EC2 서버에 배포하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Deploy to AWS EC2",
             uses: "appleboy/ssh-action@v0.1.10",
@@ -336,7 +352,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           },
         },
         jobs: {
-          "ci-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
             steps: [
               {
@@ -432,9 +448,10 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           name: "CI Pipeline Job",
           type: "job",
           description: "CI 파이프라인을 실행하는 Job입니다.",
+          "job-name": "job1",
           config: {
             jobs: {
-              "ci-pipeline": {
+              job1: {
                 "runs-on": "ubuntu-latest",
               },
             },
@@ -447,6 +464,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "github",
           task: ["checkout"],
           description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Checkout repository",
             uses: "actions/checkout@v4",
@@ -460,6 +478,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["setup"],
           description:
             "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Set up JDK 21",
             uses: "actions/setup-java@v4",
@@ -477,6 +496,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["build"],
           description:
             "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
+          "job-name": "job1",
           config: {
             name: "Gradle Build (no test)",
             run: "chmod +x ./gradlew\n./gradlew clean build -x test",
@@ -489,6 +509,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "gradle",
           task: ["test"],
           description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
+          "job-name": "job1",
           config: {
             name: "Test with Gradle",
             run: "./gradlew test",
@@ -507,7 +528,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           },
         },
         jobs: {
-          "ci-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
             steps: [
               {
@@ -569,9 +590,10 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           name: "Deploy Pipeline Job",
           type: "job",
           description: "배포 파이프라인을 실행하는 Job입니다.",
+          "job-name": "job1",
           config: {
             jobs: {
-              "deploy-pipeline": {
+              job1: {
                 "runs-on": "ubuntu-latest",
               },
             },
@@ -584,6 +606,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "github",
           task: ["checkout"],
           description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Checkout repository",
             uses: "actions/checkout@v4",
@@ -597,6 +620,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["login"],
           description:
             "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
+          "job-name": "job1",
           config: {
             name: "Docker Login",
             uses: "docker/login-action@v2.2.0",
@@ -614,6 +638,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["build", "push"],
           description:
             "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "image build and push docker images",
             uses: "docker/build-push-action@v4.1.1",
@@ -632,6 +657,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "aws",
           task: ["deploy"],
           description: "Docker 이미지를 EC2 서버에 배포하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Deploy to AWS EC2",
             uses: "appleboy/ssh-action@v0.1.10",
@@ -655,7 +681,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           },
         },
         jobs: {
-          "deploy-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
             steps: [
               {
@@ -734,9 +760,10 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           name: "Test Pipeline Job",
           type: "job",
           description: "테스트 파이프라인을 실행하는 Job입니다.",
+          "job-name": "job1",
           config: {
             jobs: {
-              "test-pipeline": {
+              job1: {
                 "runs-on": "ubuntu-latest",
               },
             },
@@ -749,6 +776,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "github",
           task: ["checkout"],
           description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Checkout repository",
             uses: "actions/checkout@v4",
@@ -762,6 +790,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           task: ["setup"],
           description:
             "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Set up JDK 21",
             uses: "actions/setup-java@v4",
@@ -778,6 +807,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "gradle",
           task: ["test"],
           description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
+          "job-name": "job1",
           config: {
             name: "Test with Gradle",
             run: "./gradlew test",
@@ -796,7 +826,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           },
         },
         jobs: {
-          "test-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
             steps: [
               {
@@ -854,9 +884,10 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           name: "Deploy Pipeline Job",
           type: "job",
           description: "배포 파이프라인을 실행하는 Job입니다.",
+          "job-name": "job1",
           config: {
             jobs: {
-              "deploy-pipeline": {
+              job1: {
                 "runs-on": "ubuntu-latest",
               },
             },
@@ -869,6 +900,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "github",
           task: ["checkout"],
           description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Checkout repository",
             uses: "actions/checkout@v4",
@@ -881,6 +913,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           domain: "aws",
           task: ["deploy"],
           description: "Docker 이미지를 EC2 서버에 배포하는 단계입니다.",
+          "job-name": "job1",
           config: {
             name: "Deploy to AWS EC2",
             uses: "appleboy/ssh-action@v0.1.10",
@@ -904,7 +937,7 @@ export const PRESET_PIPELINES: Record<string, PresetPipeline[]> = {
           },
         },
         jobs: {
-          "deploy-pipeline": {
+          job1: {
             "runs-on": "ubuntu-latest",
             steps: [
               {
