@@ -5,16 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  useWorkflows,
-  usePipeline,
-  useUpdatePipeline,
-} from "@/hooks/useWorkflows";
+import { useWorkflows, usePipeline, useUpdatePipeline } from "@/api/hooks";
 import { WorkflowItem } from "@/api/githubClient";
 import { useRepository } from "@/contexts/RepositoryContext";
+import { GithubTokenDialog } from "./GithubTokenDialog";
 
 export default function WorkflowManager() {
-  const { owner, repo } = useRepository();
+  const { owner, repo, isConfigured } = useRepository();
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(
     null
   );
@@ -66,24 +63,61 @@ export default function WorkflowManager() {
 
   return (
     <div className="space-y-6">
+      {/* 설정 안내 메시지 */}
+      {!isConfigured && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800">설정이 필요합니다</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-orange-700">
+              <p className="mb-2">
+                GitHub 워크플로우를 조회하려면 다음 설정이 필요합니다:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>GitHub Personal Access Token</li>
+                <li>Repository Owner (사용자명 또는 조직명)</li>
+                <li>Repository Name</li>
+              </ul>
+              <div className="mt-4">
+                <GithubTokenDialog />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 워크플로우 목록 */}
       <Card>
         <CardHeader>
           <CardTitle>워크플로우 목록</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading && <div className="text-center py-4">로딩 중...</div>}
-          {error && (
-            <div className="text-red-600 text-center py-4">
-              오류가 발생했습니다: {error.toString()}
+          {!isConfigured && (
+            <div className="text-center py-8 text-gray-500">
+              <p className="mb-4">위의 설정을 완료해주세요.</p>
             </div>
           )}
-          {!loading && !error && workflows.length === 0 && (
+          {isConfigured && loading && (
+            <div className="text-center py-4">로딩 중...</div>
+          )}
+          {isConfigured && error && (
+            <div className="text-red-600 text-center py-4">
+              <div className="font-semibold mb-2">오류가 발생했습니다:</div>
+              <div className="text-sm bg-red-50 p-3 rounded border">
+                {error.toString()}
+              </div>
+              <div className="mt-2 text-xs text-gray-600">
+                GitHub 토큰과 레포지토리 설정을 확인해주세요.
+              </div>
+            </div>
+          )}
+          {isConfigured && !loading && !error && workflows.length === 0 && (
             <div className="text-center py-4 text-gray-500">
               워크플로우가 없습니다.
             </div>
           )}
-          {!loading && !error && workflows.length > 0 && (
+          {isConfigured && !loading && !error && workflows.length > 0 && (
             <div className="grid gap-4">
               {workflows.map((workflow) => (
                 <Card

@@ -6,13 +6,8 @@ import {
   GithubSecretRequest,
 } from "@/api/githubClient";
 import { AxiosError } from "axios";
-import {
-  mockWorkflows,
-  mockWorkflowRuns,
-  mockJobDetails,
-  mockPipelineData,
-  mockLogs,
-} from "./mockData";
+import { getCookie } from "@/lib/cookieUtils";
+import { STORAGES } from "@/config/appConstants";
 
 // * 파이프라인 관리 유틸리티
 export const pipelineUtils = {
@@ -34,13 +29,6 @@ export const pipelineUtils = {
       return { success: true, data: response.data };
     } catch (error) {
       console.error("파이프라인 조회 실패:", error);
-
-      // * 네트워크 오류인 경우 mock 데이터 사용
-      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
-        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
-        return { success: true, data: mockPipelineData };
-      }
-
       return { success: false, error };
     }
   },
@@ -126,16 +114,40 @@ export const workflowUtils = {
   // * Workflow 목록 조회
   getWorkflowsList: async (owner: string, repo: string) => {
     try {
+      console.log("API 호출 시작:", { owner, repo });
+
+      // * GitHub 토큰 확인
+      const savedGithubToken = getCookie(STORAGES.GITHUB_TOKEN);
+      if (!savedGithubToken) {
+        console.error("GitHub 토큰이 설정되지 않았습니다.");
+        return {
+          success: false,
+          error: new Error(
+            "GitHub Personal Access Token이 설정되지 않았습니다. 설정에서 토큰을 입력해주세요."
+          ),
+        };
+      }
+
+      console.log(
+        "GitHub 토큰 확인됨:",
+        savedGithubToken.substring(0, 10) + "..."
+      );
+
       const response = await workflowAPI.getList(owner, repo);
+      console.log("API 응답 성공:", response.data);
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Workflow 목록 조회 실패:", error);
-
-      // * 네트워크 오류인 경우 mock 데이터 사용
-      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
-        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
-        return { success: true, data: { workflows: mockWorkflows } };
-      }
+      console.error("오류 상세 정보:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        code: error instanceof AxiosError ? error.code : undefined,
+        response:
+          error instanceof AxiosError ? error.response?.data : undefined,
+        status:
+          error instanceof AxiosError ? error.response?.status : undefined,
+        headers:
+          error instanceof AxiosError ? error.response?.headers : undefined,
+      });
 
       return { success: false, error };
     }
@@ -163,13 +175,6 @@ export const workflowUtils = {
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Workflow 실행 목록 조회 실패:", error);
-
-      // * 네트워크 오류인 경우 mock 데이터 사용
-      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
-        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
-        return { success: true, data: { workflow_runs: mockWorkflowRuns } };
-      }
-
       return { success: false, error };
     }
   },
@@ -192,13 +197,6 @@ export const workflowUtils = {
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Workflow 실행 로그 조회 실패:", error);
-
-      // * 네트워크 오류인 경우 mock 데이터 사용
-      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
-        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
-        return { success: true, data: mockLogs };
-      }
-
       return { success: false, error };
     }
   },
@@ -210,13 +208,6 @@ export const workflowUtils = {
       return { success: true, data: response.data };
     } catch (error) {
       console.error("Workflow 실행 Job 조회 실패:", error);
-
-      // * 네트워크 오류인 경우 mock 데이터 사용
-      if (error instanceof AxiosError && error.code === "ERR_NETWORK") {
-        console.log("백엔드 서버 연결 실패 - Mock 데이터를 사용합니다.");
-        return { success: true, data: mockJobDetails };
-      }
-
       return { success: false, error };
     }
   },

@@ -7,12 +7,6 @@ import { ServerBlock, Pipeline } from "../types";
 import { Lightbulb, Filter, Blocks, GitBranch } from "lucide-react";
 import React from "react";
 import { getDomainColor, getNodeIcon } from "../constants/nodeConstants";
-import {
-  fetchPresetBlocks,
-  fetchPresetPipelines,
-  PresetBlock,
-  PresetPipeline,
-} from "../constants/mockData";
 import { NODE_COLORS } from "../constants/nodeConstants";
 
 //* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
@@ -26,6 +20,16 @@ type FilterType = "all" | string;
 
 //* 라이브러리 모드 타입 정의
 type LibraryMode = "blocks" | "pipelines";
+
+//* 프리셋 블록 데이터 타입
+interface PresetBlock extends ServerBlock {
+  id: string;
+}
+
+//* 프리셋 파이프라인 데이터 타입
+interface PresetPipeline extends Pipeline {
+  id: string;
+}
 
 //* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
 export const DragDropSidebar = () => {
@@ -88,8 +92,8 @@ export const DragDropSidebar = () => {
     const loadPresetBlocks = async () => {
       try {
         setIsLoadingBlocks(true);
-        const blocks = await fetchPresetBlocks();
-        setPresetBlocks(blocks);
+        // TODO: 실제 API 호출로 대체
+        setPresetBlocks({});
       } catch (error) {
         console.error("프리셋 블록 로드 실패:", error);
       } finally {
@@ -105,8 +109,8 @@ export const DragDropSidebar = () => {
     const loadPresetPipelines = async () => {
       try {
         setIsLoadingPipelines(true);
-        const pipelines = await fetchPresetPipelines();
-        setPresetPipelines(pipelines);
+        // TODO: 실제 API 호출로 대체
+        setPresetPipelines({});
       } catch (error) {
         console.error("프리셋 파이프라인 로드 실패:", error);
       } finally {
