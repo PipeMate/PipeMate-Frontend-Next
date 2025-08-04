@@ -152,7 +152,7 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
         {/* 헤더 섹션 */}
         <div className="bg-white rounded-xl shadow-sm p-6">

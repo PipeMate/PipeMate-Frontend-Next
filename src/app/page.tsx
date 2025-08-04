@@ -91,7 +91,7 @@ export default function Home() {
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="max-w-4xl mx-auto p-8">
           <div className="text-center space-y-8">
             <div className="space-y-4">
@@ -167,7 +167,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-8">
         {/* 헤더 섹션 */}
         <div className="bg-white rounded-xl shadow-sm p-6">

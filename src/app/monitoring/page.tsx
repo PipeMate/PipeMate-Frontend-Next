@@ -150,7 +150,7 @@ export default function MonitoringPage() {
 
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+      <div className="min-h-full bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
         <div className="max-w-2xl mx-auto p-8 text-center">
           <Monitor className="w-16 h-16 text-green-600 mx-auto mb-6" />
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -173,7 +173,7 @@ export default function MonitoringPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
         {/* 헤더 섹션 */}
         <div className="bg-white rounded-xl shadow-sm p-6">
