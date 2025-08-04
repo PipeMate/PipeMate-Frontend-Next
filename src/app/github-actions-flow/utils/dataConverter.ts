@@ -259,6 +259,7 @@ export const convertNodesToServerBlocks = (
     //* 워크플로우 트리거 노드부터 시작
     const triggerNodes = nodes.filter(
       (node) =>
+        node.data &&
         (node.data as unknown as WorkflowNodeData).type === "workflow_trigger"
     );
 
@@ -297,6 +298,8 @@ export const convertNodesToServerBlocks = (
     if (!node || processedNodes.has(nodeId)) return;
 
     const nodeData = node.data as unknown as WorkflowNodeData;
+    if (!nodeData) return; //* nodeData가 없는 경우 건너뛰기
+
     processedNodes.add(nodeId);
 
     //* 노드 타입에 따른 블록 생성

@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Toast 스타일 커스터마이징 */
+.Toastify__toast {
+  @apply bg-white border border-gray-200 shadow-lg rounded-lg text-sm font-medium;
+}
+
+.Toastify__toast--success {
+  @apply border-green-200 bg-green-50;
+}
+
+.Toastify__toast--error {
+  @apply border-red-200 bg-red-50;
+}
+
+.Toastify__toast-body {
+  @apply p-3;
+}
+
 /* Line clamp utilities for text truncation */
 @layer utilities {
   .line-clamp-1 {

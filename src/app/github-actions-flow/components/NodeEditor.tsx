@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { WorkflowNodeData } from "../types";
-import { NodeType } from "./AreaBasedWorkflowEditor";
+import { NodeType } from "./area-editor/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

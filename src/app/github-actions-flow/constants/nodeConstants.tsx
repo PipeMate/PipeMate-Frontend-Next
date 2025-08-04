@@ -81,6 +81,32 @@ export const NODE_COLORS: Record<
 } as const;
 
 //* ========================================
+//* 워크스페이스 영역 색상 상수
+//* ========================================
+
+//* 워크스페이스 드롭 영역 색상 정의
+export const WORKSPACE_AREA_COLORS: Record<NodeType, string> = {
+  TRIGGER: "border-green-300 bg-green-50/50",
+  JOB: "border-blue-300 bg-blue-50/50",
+  STEP: "border-yellow-300 bg-yellow-50/50",
+  STEPS: "border-orange-300 bg-orange-50/50",
+} as const;
+
+//* 워크스페이스 영역 색상 가져오기 함수
+export const getWorkspaceAreaColor = (nodeType: NodeType): string => {
+  return WORKSPACE_AREA_COLORS[nodeType];
+};
+
+//* Step 영역 색상 상수
+export const STEP_AREA_COLORS = {
+  container: "bg-orange-50 border border-orange-200",
+  title: "text-orange-800",
+  badge: "bg-orange-100 text-orange-700",
+  subtitle: "text-orange-600",
+  placeholder: "text-orange-500",
+} as const;
+
+//* ========================================
 //* 노드 아이콘 상수
 //* ========================================
 
