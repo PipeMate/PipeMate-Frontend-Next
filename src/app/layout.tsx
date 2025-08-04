@@ -30,7 +30,7 @@ export default function RootLayout({
             <SidebarProvider>
               <LayoutProvider>
                 <Sidebar />
-                <SidebarInset>
+                <SidebarInset className="relative flex flex-col min-h-screen">
                   <Header />
                   <MainLayout>{children}</MainLayout>
                 </SidebarInset>

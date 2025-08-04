@@ -5,5 +5,7 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: Readonly<MainLayoutProps>) {
-  return <main className="flex flex-1 flex-col min-h-0">{children}</main>;
+  return (
+    <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
+  );
 }
