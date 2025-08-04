@@ -122,7 +122,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
   return (
     <div
       className={`border-2 border-dashed ${color} rounded-xl transition-all duration-300 ease-in-out ${
-        areaKey === "trigger" ? "p-4 h-fit min-h-32" : "p-6 h-fit min-h-48"
+        areaKey === "trigger" ? "p-4 h-fit" : "p-6 h-fit"
       } ${getDragOverStyle(areaKey)}`}
       onDragOver={(e) => onDragOver(e, areaKey)}
       onDrop={(e) => {
@@ -137,7 +137,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
       <div
         className={
           areaKey === "job"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             : "space-y-3"
         }
       >
@@ -159,7 +159,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
 
             {/* Job 내부에 Step 영역 표시 */}
             {node.type === "job" && (
-              <div className="mt-3">
+              <div className="mt-3 w-full">
                 {renderAreaHeader(
                   "Steps",
                   getStepsByJob()[node.id]?.length || 0,
@@ -167,9 +167,9 @@ export const DropArea: React.FC<DropAreaProps> = ({
                   node.data.jobName
                 )}
 
-                {/* Step 드롭 영역 */}
+                {/* Step 드롭 영역 - Job과 동일한 너비 */}
                 <div
-                  className={`border-2 border-dashed border-orange-300 bg-orange-50/30 rounded-xl p-6 transition-all duration-300 ease-in-out min-h-48 ${getDragOverStyle(
+                  className={`border-2 border-dashed border-orange-300 bg-orange-50/30 rounded-xl p-4 transition-all duration-300 ease-in-out w-full ${getDragOverStyle(
                     areaKey,
                     true,
                     node.id
@@ -181,9 +181,9 @@ export const DropArea: React.FC<DropAreaProps> = ({
                   }}
                   onDragLeave={(e) => onJobDragLeave(e, node.id)}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full">
                     {getStepsByJob()[node.id]?.map((step, stepIndex) => (
-                      <div key={step.id}>
+                      <div key={step.id} className="w-full">
                         <AreaNode
                           node={step}
                           onSelect={onNodeSelect}
@@ -207,8 +207,11 @@ export const DropArea: React.FC<DropAreaProps> = ({
             )}
           </div>
         ))}
-        {nodes.length === 0 &&
-          renderEmptyState(areaKey, title, dragOverArea === areaKey)}
+        {nodes.length === 0 && (
+          <div className={areaKey === "job" ? "col-span-full" : ""}>
+            {renderEmptyState(areaKey, title, dragOverArea === areaKey)}
+          </div>
+        )}
       </div>
     </div>
   );

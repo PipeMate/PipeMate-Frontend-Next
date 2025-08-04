@@ -1,4 +1,4 @@
-import { NodeType } from "./index";
+import { NodeType } from "../types";
 
 export interface AreaNodeProps {
   node: AreaNodeData;
@@ -45,4 +45,23 @@ export interface StepConfig {
   uses: string[];
   run: string[];
   withParams: Record<string, unknown>;
+  name?: string;
+  env?: Record<string, string>;
+  continueOnError?: boolean;
+  if?: string;
+  workingDirectory?: string;
+  shell?: string;
+}
+
+//* Step의 상세 config 정보를 위한 타입
+export interface StepConfigDetail {
+  name?: string;
+  uses?: string;
+  run?: string;
+  with?: Record<string, unknown>;
+  env?: Record<string, string>;
+  continueOnError?: boolean;
+  if?: string;
+  workingDirectory?: string;
+  shell?: string;
 }

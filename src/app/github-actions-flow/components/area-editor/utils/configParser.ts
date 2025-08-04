@@ -1,4 +1,9 @@
-import { TriggerConfig, JobConfig, StepConfig } from "../types/areaNode";
+import {
+  TriggerConfig,
+  JobConfig,
+  StepConfig,
+  StepConfigDetail,
+} from "../types/areaNode";
 
 /**
  * 트리거 설정 파싱 함수
@@ -51,6 +56,12 @@ export const parseTriggerConfig = (
       const pushConfig = onConfig.push as Record<string, unknown>;
       if (pushConfig.paths && Array.isArray(pushConfig.paths)) {
         paths.push(...(pushConfig.paths as string[]));
+      }
+    }
+    if (onConfig.pull_request && typeof onConfig.pull_request === "object") {
+      const prConfig = onConfig.pull_request as Record<string, unknown>;
+      if (prConfig.paths && Array.isArray(prConfig.paths)) {
+        paths.push(...(prConfig.paths as string[]));
       }
     }
   }
@@ -117,15 +128,79 @@ export const parseStepConfig = (
   const run: string[] = [];
   const withParams: Record<string, unknown> = {};
 
+  //* uses 정보 추출
   if (config.uses) {
     uses.push(String(config.uses));
   }
+
+  //* run 정보 추출
   if (config.run) {
     run.push(String(config.run));
   }
+
+  //* with 파라미터들 추출
   if (config.with && typeof config.with === "object") {
     Object.assign(withParams, config.with);
   }
 
+  //* steps 배열 내부의 정보들도 확인
+  if (config.steps && Array.isArray(config.steps)) {
+    config.steps.forEach((step) => {
+      if (typeof step === "object" && step !== null) {
+        const stepConfig = step as Record<string, unknown>;
+
+        if (stepConfig.uses) {
+          uses.push(String(stepConfig.uses));
+        }
+        if (stepConfig.run) {
+          run.push(String(stepConfig.run));
+        }
+        if (stepConfig.with && typeof stepConfig.with === "object") {
+          Object.assign(withParams, stepConfig.with);
+        }
+      }
+    });
+  }
+
   return { uses, run, withParams };
+};
+
+/**
+ * Step 상세 설정 파싱 함수
+ */
+export const parseStepConfigDetail = (
+  config: Record<string, unknown>
+): StepConfigDetail => {
+  const result: StepConfigDetail = {};
+
+  //* 기본 속성들 추출
+  if (config.name) {
+    result.name = String(config.name);
+  }
+  if (config.uses) {
+    result.uses = String(config.uses);
+  }
+  if (config.run) {
+    result.run = String(config.run);
+  }
+  if (config.with && typeof config.with === "object") {
+    result.with = config.with as Record<string, unknown>;
+  }
+  if (config.env && typeof config.env === "object") {
+    result.env = config.env as Record<string, string>;
+  }
+  if (config["continue-on-error"] !== undefined) {
+    result.continueOnError = Boolean(config["continue-on-error"]);
+  }
+  if (config.if) {
+    result.if = String(config.if);
+  }
+  if (config["working-directory"]) {
+    result.workingDirectory = String(config["working-directory"]);
+  }
+  if (config.shell) {
+    result.shell = String(config.shell);
+  }
+
+  return result;
 };

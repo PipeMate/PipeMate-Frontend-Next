@@ -4,7 +4,6 @@ import { NODE_COLORS, getDomainColor } from "../../../constants/nodeConstants";
 export interface NodeStyle {
   width: string;
   minHeight: string;
-  maxHeight: string;
   padding: string;
   borderRadius: string;
   border: string;
@@ -28,9 +27,8 @@ export const getNodeStyle = (
   domain?: string
 ): NodeStyle => {
   const baseStyle = {
-    width: isChild ? "280px" : "320px", //* 최대 크기 제한
-    minHeight: isChild ? "60px" : "80px",
-    maxHeight: isChild ? "100px" : "120px", //* 최대 높이 제한
+    width: "100%", //* 부모 컨테이너의 너비에 맞춤
+    minHeight: isChild ? "60px" : "80px", //* 최소 높이만 설정
     padding: isChild ? "10px" : "14px",
     borderRadius: "10px",
     border: "2px solid",
@@ -39,18 +37,27 @@ export const getNodeStyle = (
     transition: "all 0.2s ease",
     position: "relative" as const,
     boxShadow: "0 2px 6px rgba(0, 0, 0, 0.08)",
-    overflow: "hidden", //* 내용이 넘칠 경우 숨김
+    overflow: "visible", //* 내용이 넘쳐도 보이도록 변경
   };
 
-  //* 트리거 노드는 더 컴팩트하게
+  //* 트리거 노드
   if (nodeType === "workflowTrigger") {
     const nodeColors = NODE_COLORS.TRIGGER;
     return {
       ...baseStyle,
-      width: "280px",
-      minHeight: "60px",
-      maxHeight: "90px",
-      padding: "10px",
+      padding: "12px",
+      backgroundColor: nodeColors.bg,
+      borderColor: nodeColors.border,
+      color: nodeColors.text,
+    };
+  }
+
+  //* Job 노드
+  if (nodeType === "job") {
+    const nodeColors = NODE_COLORS.JOB;
+    return {
+      ...baseStyle,
+      padding: "14px",
       backgroundColor: nodeColors.bg,
       borderColor: nodeColors.border,
       color: nodeColors.text,
@@ -62,30 +69,18 @@ export const getNodeStyle = (
     const domainColors = getDomainColor(domain);
     return {
       ...baseStyle,
+      padding: "12px", //* Step은 좀 더 컴팩트하게
       backgroundColor: domainColors.bg,
       borderColor: domainColors.border,
       color: domainColors.text,
     };
   }
 
-  //* 노드 타입별 색상 적용
-  const getNodeTypeKey = (nodeType: NodeType): keyof typeof NODE_COLORS => {
-    switch (nodeType) {
-      case "workflowTrigger":
-        return "TRIGGER";
-      case "job":
-        return "JOB";
-      case "step":
-        return "STEP";
-      default:
-        return "STEP";
-    }
-  };
-
-  const nodeColors = NODE_COLORS[getNodeTypeKey(nodeType)];
-
+  //* 기본 Step 노드
+  const nodeColors = NODE_COLORS.STEP;
   return {
     ...baseStyle,
+    padding: "12px",
     backgroundColor: nodeColors.bg,
     borderColor: nodeColors.border,
     color: nodeColors.text,
