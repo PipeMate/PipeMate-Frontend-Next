@@ -27,7 +27,6 @@ interface YamlPreviewPanelProps {
   selectedBlock?: ServerBlock; //* 선택된 블록 (선택적)
   isEditing?: boolean; //* 편집 모드 상태
   onBlockUpdate?: (updatedBlock: ServerBlock) => void; //* 블록 업데이트 콜백
-  onWorkflowUpdate?: (updatedBlocks: ServerBlock[]) => void; //* 전체 워크플로우 업데이트 콜백
 }
 
 //* ========================================
@@ -227,7 +226,6 @@ export const YamlPreviewPanel = ({
   selectedBlock,
   isEditing = false,
   onBlockUpdate,
-  onWorkflowUpdate,
 }: YamlPreviewPanelProps) => {
   //* 뷰 모드 상태 (블록별 / 전체 / 트리) - 기본값을 "block"으로 변경
   const [viewMode, setViewMode] = useState<"block" | "full" | "tree">("block");
@@ -354,10 +352,6 @@ export const YamlPreviewPanel = ({
 
         //* 성공 메시지 표시
         setTimeout(() => setSaveStatus("idle"), 2000);
-      } else if (viewMode === "full" && onWorkflowUpdate) {
-        //* 전체 워크플로우 업데이트 (구현 필요)
-        setSaveStatus("success");
-        setTimeout(() => setSaveStatus("idle"), 2000);
       }
     } catch (error) {
       console.error("YAML 파싱 오류:", error);
@@ -366,14 +360,7 @@ export const YamlPreviewPanel = ({
     } finally {
       setIsSaving(false);
     }
-  }, [
-    editableYaml,
-    viewMode,
-    selectedBlock,
-    onBlockUpdate,
-    onWorkflowUpdate,
-    parseYamlToConfig,
-  ]);
+  }, [editableYaml, viewMode, selectedBlock, onBlockUpdate, parseYamlToConfig]);
 
   //* ========================================
   //* 액션 함수들

@@ -8,6 +8,7 @@ import { Lightbulb, Filter, Blocks, GitBranch } from "lucide-react";
 import React from "react";
 import { getDomainColor, getNodeIcon } from "../constants/nodeConstants";
 import { NODE_COLORS } from "../constants/nodeConstants";
+import { fetchPresetBlocks, fetchPresetPipelines } from "../constants/mockData";
 
 //* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
 type TabType = "trigger" | "job" | "step";
@@ -92,8 +93,9 @@ export const DragDropSidebar = () => {
     const loadPresetBlocks = async () => {
       try {
         setIsLoadingBlocks(true);
-        // TODO: 실제 API 호출로 대체
-        setPresetBlocks({});
+        //* mock data에서 블록 데이터 로드 (나중에 API 호출로 대체 가능)
+        const blocksData = await fetchPresetBlocks();
+        setPresetBlocks(blocksData);
       } catch (error) {
         console.error("프리셋 블록 로드 실패:", error);
       } finally {
@@ -109,8 +111,9 @@ export const DragDropSidebar = () => {
     const loadPresetPipelines = async () => {
       try {
         setIsLoadingPipelines(true);
-        // TODO: 실제 API 호출로 대체
-        setPresetPipelines({});
+        //* mock data에서 파이프라인 데이터 로드 (나중에 API 호출로 대체 가능)
+        const pipelinesData = await fetchPresetPipelines();
+        setPresetPipelines(pipelinesData);
       } catch (error) {
         console.error("프리셋 파이프라인 로드 실패:", error);
       } finally {

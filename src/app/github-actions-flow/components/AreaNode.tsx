@@ -7,10 +7,6 @@ interface AreaNodeProps {
   onSelect: (node: AreaNodeData) => void;
   onDragStart: (node: AreaNodeData) => void;
   onDrag: (e: React.DragEvent, node: AreaNodeData) => void;
-  onConnectionStart: (nodeId: string) => void;
-  onConnectionEnd: (nodeId: string) => void;
-  isConnecting: boolean;
-  connectionStart: string | null;
 }
 
 export const AreaNode: React.FC<AreaNodeProps> = ({
@@ -18,10 +14,6 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
   onSelect,
   onDragStart,
   onDrag,
-  onConnectionStart,
-  onConnectionEnd,
-  isConnecting,
-  connectionStart,
 }) => {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -45,24 +37,6 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       onDrag(e, node);
     },
     [node, onDrag]
-  );
-
-  const handleConnectionHandleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onConnectionStart(node.id);
-    },
-    [node.id, onConnectionStart]
-  );
-
-  const handleConnectionHandleMouseUp = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (isConnecting && connectionStart !== node.id) {
-        onConnectionEnd(node.id);
-      }
-    },
-    [node.id, isConnecting, connectionStart, onConnectionEnd]
   );
 
   const getNodeStyle = (nodeType: NodeType, isChild?: boolean) => {
@@ -187,11 +161,6 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
         <div className="text-xs opacity-75 mb-2 line-clamp-2">
           {node.data.description}
         </div>
-      )}
-
-      {/* 연결 가능 표시 */}
-      {isConnecting && connectionStart !== node.id && (
-        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-blue-500 rounded pointer-events-none" />
       )}
 
       {/* 드래그 핸들 */}
