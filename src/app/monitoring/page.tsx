@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLayout } from "@/components/layout/LayoutContext";
 import { useRepository } from "@/contexts/RepositoryContext";
-import { workflowAPI } from "@/api/githubClient";
+import {
+  useWorkflows,
+  useWorkflowRuns,
+  useCancelWorkflowRun,
+} from "@/api/hooks";
 import { WorkflowItem } from "@/api/types";
 import {
   Monitor,
@@ -22,6 +26,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Info,
+  Loader2,
+  X,
 } from "lucide-react";
 import { ROUTES } from "@/config/appConstants";
 
@@ -30,19 +36,33 @@ interface WorkflowRun {
   name: string;
   status: string;
   conclusion: string;
-  createdAt: string;
-  updatedAt: string;
-  runNumber: number;
-  workflowId: number;
+  created_at: string;
+  updated_at: string;
+  run_number: number;
+  workflow_id: number;
 }
 
 export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
-  const [workflowRuns, setWorkflowRuns] = useState<WorkflowRun[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("recent");
+  const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+
+  // 훅 사용
+  const {
+    data: workflowsData,
+    isLoading: workflowsLoading,
+    refetch: refetchWorkflows,
+  } = useWorkflows(owner, repo);
+  const {
+    data: workflowRunsData,
+    isLoading: runsLoading,
+    refetch: refetchRuns,
+  } = useWorkflowRuns(owner, repo);
+  const cancelWorkflowRun = useCancelWorkflowRun();
+
+  const workflows = workflowsData?.data?.workflows || [];
+  const workflowRuns = workflowRunsData?.data?.workflow_runs || [];
 
   // 헤더 설정
   useEffect(() => {
@@ -60,28 +80,15 @@ export default function MonitoringPage() {
     return () => setHeaderExtra(null);
   }, [setHeaderExtra]);
 
-  useEffect(() => {
-    if (isConfigured && owner && repo) {
-      loadData();
-    }
-  }, [isConfigured, owner, repo]);
-
-  const loadData = async () => {
-    setLoading(true);
+  const handleCancelRun = async (run: WorkflowRun) => {
     try {
-      // 워크플로우 목록 로드
-      const workflowsResponse = await workflowAPI.getList(owner, repo);
-      const workflowsData = workflowsResponse.data.workflows || [];
-      setWorkflows(workflowsData);
-
-      // 워크플로우 실행 목록 로드
-      const runsResponse = await workflowAPI.getRuns(owner, repo);
-      const runsData = runsResponse.data.workflow_runs || [];
-      setWorkflowRuns(runsData);
+      await cancelWorkflowRun.mutateAsync({
+        owner,
+        repo,
+        runId: run.id.toString(),
+      });
     } catch (error) {
-      console.error("데이터 로드 실패:", error);
-    } finally {
-      setLoading(false);
+      console.error("워크플로우 실행 취소 실패:", error);
     }
   };
 
@@ -148,6 +155,10 @@ export default function MonitoringPage() {
     return `${Math.floor(diffInMinutes / 1440)}일 전`;
   };
 
+  const getWorkflowRuns = (workflowId: number) => {
+    return workflowRuns.filter((run) => run.workflow_id === workflowId);
+  };
+
   if (!isConfigured) {
     return (
       <div className="min-h-full bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
@@ -190,13 +201,18 @@ export default function MonitoringPage() {
                 실시간
               </Badge>
               <Button
-                onClick={loadData}
-                disabled={loading}
+                onClick={() => {
+                  refetchWorkflows();
+                  refetchRuns();
+                }}
+                disabled={workflowsLoading || runsLoading}
                 variant="outline"
                 size="sm"
               >
                 <RefreshCw
-                  className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  className={`w-4 h-4 mr-2 ${
+                    workflowsLoading || runsLoading ? "animate-spin" : ""
+                  }`}
                 />
                 새로고침
               </Button>
@@ -300,7 +316,7 @@ export default function MonitoringPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {runsLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">데이터를 불러오는 중...</p>
@@ -331,16 +347,36 @@ export default function MonitoringPage() {
                                   {run.name}
                                 </h4>
                                 <p className="text-sm text-gray-600">
-                                  #{run.runNumber} • {getTimeAgo(run.createdAt)}
+                                  #{run.run_number} •{" "}
+                                  {getTimeAgo(run.created_at)}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               {getStatusBadge(run.status, run.conclusion)}
-                              <Button size="sm" variant="outline">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedRun(run)}
+                              >
                                 <Info className="w-4 h-4 mr-2" />
                                 상세보기
                               </Button>
+                              {run.status === "in_progress" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCancelRun(run)}
+                                  disabled={cancelWorkflowRun.isPending}
+                                >
+                                  {cancelWorkflowRun.isPending ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <X className="w-4 h-4 mr-2" />
+                                  )}
+                                  취소
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -361,7 +397,7 @@ export default function MonitoringPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {workflowsLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">워크플로우를 불러오는 중...</p>
@@ -378,39 +414,66 @@ export default function MonitoringPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {workflows.map((workflow) => (
-                      <Card
-                        key={workflow.id}
-                        className="hover:shadow-md transition-shadow"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(workflow.state)}
-                              <h4 className="font-semibold text-gray-900">
-                                {workflow.name}
-                              </h4>
+                    {workflows.map((workflow) => {
+                      const workflowRuns = getWorkflowRuns(workflow.id);
+                      const recentRun = workflowRuns[0];
+
+                      return (
+                        <Card
+                          key={workflow.id}
+                          className="hover:shadow-md transition-shadow"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(workflow.state)}
+                                <h4 className="font-semibold text-gray-900">
+                                  {workflow.name}
+                                </h4>
+                              </div>
+                              {getStatusBadge(workflow.state)}
                             </div>
-                            {getStatusBadge(workflow.state)}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                            {workflow.path}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500">
-                              마지막 업데이트:{" "}
-                              {new Date(
-                                workflow.updatedAt
-                              ).toLocaleDateString()}
-                            </span>
-                            <Button size="sm" variant="outline">
-                              <Play className="w-4 h-4 mr-2" />
-                              실행
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <p className="text-sm text-gray-600 mb-3">
+                              {workflow.path}
+                            </p>
+
+                            {recentRun && (
+                              <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-gray-600">
+                                    최근 실행:
+                                  </span>
+                                  <span className="text-gray-700">
+                                    #{recentRun.run_number} •{" "}
+                                    {getTimeAgo(recentRun.created_at)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-gray-600">상태:</span>
+                                  {getStatusBadge(
+                                    recentRun.status,
+                                    recentRun.conclusion
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500">
+                                마지막 업데이트:{" "}
+                                {new Date(
+                                  workflow.updatedAt
+                                ).toLocaleDateString()}
+                              </span>
+                              <Button size="sm" variant="outline">
+                                <Play className="w-4 h-4 mr-2" />
+                                실행
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

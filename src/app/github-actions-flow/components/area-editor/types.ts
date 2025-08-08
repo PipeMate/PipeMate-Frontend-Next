@@ -27,6 +27,7 @@ export interface AreaBasedWorkflowEditorProps {
   onNodeSelect?: (block: ServerBlock | undefined) => void;
   onEditModeToggle?: () => void;
   isEditing?: boolean;
+  onBlockUpdate?: (updatedBlock: ServerBlock) => void;
 }
 
 //* 영역별 노드 상태

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLayout } from "@/components/layout/LayoutContext";
-import { blockAPI } from "@/api/githubClient";
+import { useBlocks } from "@/api/hooks";
 import { BlockResponse } from "@/api/types";
 import {
   Settings,
@@ -22,16 +22,25 @@ import {
   Database,
   Server,
   Globe,
+  Loader2,
+  CheckCircle,
+  RefreshCw,
 } from "lucide-react";
 import { ROUTES } from "@/config/appConstants";
 
 export default function PresetsPage() {
   const { setHeaderExtra } = useLayout();
-  const [blocks, setBlocks] = useState<BlockResponse[]>([]);
-  const [filteredBlocks, setFilteredBlocks] = useState<BlockResponse[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
+
+  // 훅 사용
+  const {
+    data: blocksData,
+    isLoading: blocksLoading,
+    refetch: refetchBlocks,
+  } = useBlocks();
+  const blocks = blocksData?.data || [];
 
   // 헤더 설정
   useEffect(() => {
@@ -49,56 +58,50 @@ export default function PresetsPage() {
     return () => setHeaderExtra(null);
   }, [setHeaderExtra]);
 
-  useEffect(() => {
-    loadBlocks();
-  }, []);
+  // 프리셋 필터링
+  const filteredBlocks = blocks.filter((block) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      block.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      block.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-  useEffect(() => {
-    filterBlocks();
-  }, [blocks, searchTerm, activeTab]);
+    const matchesTab = activeTab === "all" || block.type === activeTab;
 
-  const loadBlocks = async () => {
-    setLoading(true);
+    return matchesSearch && matchesTab;
+  });
+
+  const handleCopyBlock = async (block: BlockResponse) => {
     try {
-      const response = await blockAPI.getAll();
-      const blocksData = response.data || [];
-      setBlocks(blocksData);
+      const blockData = {
+        name: block.name,
+        description: block.description,
+        type: block.type,
+        content: block.content,
+      };
+
+      await navigator.clipboard.writeText(JSON.stringify(blockData, null, 2));
+      setCopiedBlock(block.id);
+
+      setTimeout(() => {
+        setCopiedBlock(null);
+      }, 2000);
     } catch (error) {
-      console.error("블록 로드 실패:", error);
-    } finally {
-      setLoading(false);
+      console.error("복사 실패:", error);
     }
   };
 
-  const filterBlocks = () => {
-    let filtered = blocks;
+  const handleEditBlock = (block: BlockResponse) => {
+    // 편집 기능은 별도 모달이나 페이지로 이동
+    console.log("편집할 블록:", block);
+  };
 
-    // 검색어 필터링
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (block) =>
-          block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          block.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          block.type.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const handleDeleteBlock = (block: BlockResponse) => {
+    // 삭제 확인 후 API 호출
+    if (confirm(`"${block.name}" 프리셋을 삭제하시겠습니까?`)) {
+      console.log("삭제할 블록:", block);
+      // TODO: 삭제 API 호출
     }
-
-    // 탭별 필터링
-    switch (activeTab) {
-      case "trigger":
-        filtered = filtered.filter((block) => block.type === "trigger");
-        break;
-      case "job":
-        filtered = filtered.filter((block) => block.type === "job");
-        break;
-      case "step":
-        filtered = filtered.filter((block) => block.type === "step");
-        break;
-      default:
-        break;
-    }
-
-    setFilteredBlocks(filtered);
   };
 
   const getTypeIcon = (type: string) => {
@@ -173,6 +176,19 @@ export default function PresetsPage() {
                 <Settings className="w-4 h-4 mr-1" />
                 {blocks.length} 프리셋
               </Badge>
+              <Button
+                onClick={() => refetchBlocks()}
+                disabled={blocksLoading}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${
+                    blocksLoading ? "animate-spin" : ""
+                  }`}
+                />
+                새로고침
+              </Button>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />새 프리셋
               </Button>
@@ -214,7 +230,7 @@ export default function PresetsPage() {
         {/* 프리셋 목록 */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsContent value={activeTab} className="space-y-4">
-            {loading ? (
+            {blocksLoading ? (
               <Card>
                 <CardContent className="p-12">
                   <div className="text-center">
@@ -289,14 +305,21 @@ export default function PresetsPage() {
                             size="sm"
                             variant="outline"
                             className="flex-1"
+                            onClick={() => handleCopyBlock(block)}
+                            disabled={copiedBlock === block.id}
                           >
-                            <Copy className="w-4 h-4 mr-2" />
-                            복사
+                            {copiedBlock === block.id ? (
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                            ) : (
+                              <Copy className="w-4 h-4 mr-2" />
+                            )}
+                            {copiedBlock === block.id ? "복사됨" : "복사"}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             className="flex-1"
+                            onClick={() => handleEditBlock(block)}
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             편집
@@ -305,6 +328,7 @@ export default function PresetsPage() {
                             size="sm"
                             variant="outline"
                             className="flex-1"
+                            onClick={() => handleDeleteBlock(block)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             삭제

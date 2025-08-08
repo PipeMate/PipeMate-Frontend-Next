@@ -22,6 +22,8 @@ export const useAreaNodes = (
     const trigger: AreaNodeData[] = [];
     const job: AreaNodeData[] = [];
     const step: AreaNodeData[] = [];
+    const nodeIds: string[] = [];
+
     initialBlocks.forEach((block, idx) => {
       const node: AreaNodeData = {
         id: uuidv4(),
@@ -49,7 +51,9 @@ export const useAreaNodes = (
       if (block.type === "trigger") trigger.push(node);
       else if (block.type === "job") job.push(node);
       else if (block.type === "step") step.push(node);
+      nodeIds.push(node.id);
     });
+
     return { trigger, job, step };
   });
 
@@ -90,11 +94,22 @@ export const useAreaNodes = (
       nodeData: WorkflowNodeData,
       parentId?: string
     ): AreaNodeData => {
-      //* Job인 경우 job-name 자동 생성
+      //* Job인 경우 job-name 자동 생성 및 config 업데이트
       if (nodeType === "job") {
         const jobIndex = areaNodes.job.length;
         const jobName = generateJobName(jobIndex);
         nodeData.jobName = jobName;
+
+        //* config의 jobs 객체에서 job-name을 올바르게 설정
+        if (nodeData.config && nodeData.config.jobs) {
+          const jobConfig = Object.values(nodeData.config.jobs)[0];
+          nodeData.config = {
+            ...nodeData.config,
+            jobs: {
+              [jobName]: jobConfig,
+            },
+          };
+        }
       }
 
       return {
@@ -181,14 +196,24 @@ export const useAreaNodes = (
 
           //* Job 영역의 경우 순서 재정렬 및 job-name 업데이트
           if (area === "job") {
-            newAreaNodes[area] = newAreaNodes[area].map((node, index) => ({
-              ...node,
-              order: index,
-              data: {
-                ...node.data,
-                jobName: generateJobName(index),
-              },
-            }));
+            newAreaNodes[area] = newAreaNodes[area].map((node, index) => {
+              const newJobName = generateJobName(index);
+              const jobConfig = Object.values(node.data.config?.jobs || {})[0];
+              return {
+                ...node,
+                order: index,
+                data: {
+                  ...node.data,
+                  jobName: newJobName,
+                  config: {
+                    ...node.data.config,
+                    jobs: {
+                      [newJobName as string]: jobConfig,
+                    },
+                  },
+                },
+              };
+            });
           } else {
             //* 다른 영역은 순서만 재정렬
             newAreaNodes[area] = newAreaNodes[area].map((node, index) => ({
@@ -296,12 +321,58 @@ export const useAreaNodes = (
       setAreaNodes((prev) => {
         const newAreaNodes = { ...prev };
 
+        //* 업데이트할 노드 찾기 (Job 노드인지 확인)
+        const targetJob = newAreaNodes.job.find((n) => n.id === nodeId);
+        const isJobNode = targetJob !== undefined;
+        const oldJobName = targetJob?.data.jobName;
+
+        //* 노드 데이터 업데이트
         Object.keys(newAreaNodes).forEach((areaKey) => {
           const area = areaKey as keyof AreaNodes;
           newAreaNodes[area] = newAreaNodes[area].map((node) =>
             node.id === nodeId ? { ...node, data } : node
           );
         });
+
+        //* Job 노드의 job-name이 변경된 경우 관련 Step들 업데이트
+        if (isJobNode && oldJobName && oldJobName !== data.jobName) {
+          const newJobName = data.jobName;
+
+          //* Job 노드의 config 업데이트
+          newAreaNodes.job = newAreaNodes.job.map((job) => {
+            if (job.id === nodeId) {
+              const jobConfig = Object.values(job.data.config?.jobs || {})[0];
+              return {
+                ...job,
+                data: {
+                  ...job.data,
+                  jobName: newJobName,
+                  config: {
+                    ...job.data.config,
+                    jobs: {
+                      [newJobName as string]: jobConfig,
+                    },
+                  },
+                },
+              };
+            }
+            return job;
+          });
+
+          //* 해당 job-name을 참조하는 모든 Step들의 job-name 업데이트
+          newAreaNodes.step = newAreaNodes.step.map((step) => {
+            if (step.data.jobName === oldJobName) {
+              return {
+                ...step,
+                data: {
+                  ...step.data,
+                  jobName: newJobName,
+                },
+              };
+            }
+            return step;
+          });
+        }
 
         //* 노드 데이터 업데이트 후 워크플로우 변경 스케줄링
         const allNodes = [
@@ -333,7 +404,7 @@ export const useAreaNodes = (
   }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
   /**
-   * ServerBlock 배열로 변환
+   * ServerBlock 배열로 변환 (순서 보존)
    */
   const getServerBlocks = useCallback(() => {
     const allNodes = getAllNodes();
@@ -346,6 +417,77 @@ export const useAreaNodes = (
       }))
     );
   }, [getAllNodes]);
+
+  /**
+   * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (job-name 기준 그룹화)
+   */
+  const getServerBlocksInOrder = useCallback(() => {
+    // 모든 노드를 하나의 배열로 합치기
+    const allNodes = [
+      ...areaNodes.trigger,
+      ...areaNodes.job,
+      ...areaNodes.step,
+    ];
+
+    // order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
+    const sortedNodes = allNodes.sort((a, b) => a.order - b.order);
+
+    // job-name을 기준으로 그룹화
+    const groupedBlocks: ServerBlock[] = [];
+
+    // trigger는 먼저 추가
+    const triggerNodes = sortedNodes.filter(
+      (node) => node.type === "workflowTrigger"
+    );
+    groupedBlocks.push(
+      ...triggerNodes.map((node) => ({
+        name: node.data.label,
+        type: "trigger" as const,
+        description: node.data.description,
+        "job-name": node.data.jobName,
+        domain: node.data.domain,
+        task: node.data.task,
+        config: node.data.config,
+      }))
+    );
+
+    // job과 관련 step들을 job-name 기준으로 그룹화
+    const jobNodes = sortedNodes.filter((node) => node.type === "job");
+
+    jobNodes.forEach((jobNode) => {
+      const jobName = jobNode.data.jobName;
+
+      // job 노드 추가
+      groupedBlocks.push({
+        name: jobNode.data.label,
+        type: "job" as const,
+        description: jobNode.data.description,
+        "job-name": jobName,
+        domain: jobNode.data.domain,
+        task: jobNode.data.task,
+        config: jobNode.data.config,
+      });
+
+      // 해당 job-name을 가진 step들 추가
+      const relatedSteps = sortedNodes.filter(
+        (node) => node.type === "step" && node.data.jobName === jobName
+      );
+
+      groupedBlocks.push(
+        ...relatedSteps.map((node) => ({
+          name: node.data.label,
+          type: "step" as const,
+          description: node.data.description,
+          "job-name": node.data.jobName,
+          domain: node.data.domain,
+          task: node.data.task,
+          config: node.data.config,
+        }))
+      );
+    });
+
+    return groupedBlocks;
+  }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
   /**
    * 워크스페이스 초기화
@@ -366,9 +508,15 @@ export const useAreaNodes = (
       setAreaNodes((prev) => {
         const newAreaNodes = { ...prev };
 
-        //* 해당 Job의 하위 Step들의 job-name 업데이트
+        //* 해당 Job을 찾아서 기존 job-name 확인
+        const targetJob = newAreaNodes.job.find((job) => job.id === jobId);
+        if (!targetJob) return prev;
+
+        const oldJobName = targetJob.data.jobName;
+
+        //* 해당 job-name을 참조하는 모든 Step들의 job-name 업데이트
         newAreaNodes.step = newAreaNodes.step.map((step) => {
-          if (step.parentId === jobId) {
+          if (step.data.jobName === oldJobName) {
             return {
               ...step,
               data: {
@@ -394,6 +542,7 @@ export const useAreaNodes = (
     updateNodeData,
     getAllNodes,
     getServerBlocks,
+    getServerBlocksInOrder,
     clearWorkspace,
     updateStepJobNames,
   };

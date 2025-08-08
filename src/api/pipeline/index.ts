@@ -1,6 +1,7 @@
 import githubClient from "@/api/githubClient";
 import { PipelineRequest, PipelineResponse } from "@/api/types";
 import { removeYmlExtension } from "@/lib/utils";
+import { ServerBlock } from "@/app/github-actions-flow/types";
 
 // * Pipeline 관리 API
 export const pipelineAPI = {
@@ -38,4 +39,22 @@ export const pipelineAPI = {
     githubClient.delete(`/api/pipelines/${removeYmlExtension(ymlFileName)}`, {
       params: { owner, repo },
     }),
+
+  // * 1.5 워크플로우 저장 (ServerBlock 배열을 받아서 저장)
+  saveWorkflow: (data: {
+    owner: string;
+    repo: string;
+    workflowName: string;
+    blocks: ServerBlock[];
+    description?: string;
+  }) => {
+    const processedData: PipelineRequest = {
+      owner: data.owner,
+      repo: data.repo,
+      workflowName: removeYmlExtension(data.workflowName),
+      inputJson: data.blocks,
+      description: data.description,
+    };
+    return githubClient.post<string>("/api/pipelines", processedData);
+  },
 };

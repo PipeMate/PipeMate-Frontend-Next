@@ -15,6 +15,11 @@ import { ServerBlock } from "../types";
 export const generateBlockYaml = (block: ServerBlock): string => {
   const yamlLines: string[] = [];
 
+  // config가 없으면 빈 문자열 반환
+  if (!block || !block.config) {
+    return "# 설정이 없습니다.";
+  }
+
   //* ========================================
   //* 트리거 블록 YAML 생성
   //* ========================================
@@ -71,41 +76,45 @@ export const generateBlockYaml = (block: ServerBlock): string => {
   else if (block.type === "job") {
     //* config 내용만 사용하여 YAML 생성
     const jobsConfig = block.config.jobs || {};
-    Object.entries(jobsConfig).forEach(([jobName, jobConfig]) => {
-      yamlLines.push(`${jobName}:`);
+    if (!jobsConfig || Object.keys(jobsConfig).length === 0) {
+      yamlLines.push("# Job 설정이 없습니다.");
+    } else {
+      Object.entries(jobsConfig).forEach(([jobName, jobConfig]) => {
+        yamlLines.push(`${jobName}:`);
 
-      Object.entries(jobConfig as Record<string, unknown>).forEach(
-        ([key, value]) => {
-          if (typeof value === "string") {
-            yamlLines.push(`  ${key}: ${value}`);
-          } else if (typeof value === "object" && value !== null) {
-            if (Array.isArray(value)) {
-              yamlLines.push(`  ${key}:`);
-              value.forEach((item: unknown) => {
-                if (typeof item === "string") {
-                  yamlLines.push(`    - ${item}`);
-                } else {
-                  yamlLines.push(`    - ${JSON.stringify(item)}`);
-                }
-              });
-            } else {
-              yamlLines.push(`  ${key}:`);
-              Object.entries(value as Record<string, unknown>).forEach(
-                ([k, v]) => {
-                  if (typeof v === "string") {
-                    yamlLines.push(`    ${k}: ${v}`);
+        Object.entries(jobConfig as Record<string, unknown>).forEach(
+          ([key, value]) => {
+            if (typeof value === "string") {
+              yamlLines.push(`  ${key}: ${value}`);
+            } else if (typeof value === "object" && value !== null) {
+              if (Array.isArray(value)) {
+                yamlLines.push(`  ${key}:`);
+                value.forEach((item: unknown) => {
+                  if (typeof item === "string") {
+                    yamlLines.push(`    - ${item}`);
                   } else {
-                    yamlLines.push(`    ${k}: ${JSON.stringify(v)}`);
+                    yamlLines.push(`    - ${JSON.stringify(item)}`);
                   }
-                }
-              );
+                });
+              } else {
+                yamlLines.push(`  ${key}:`);
+                Object.entries(value as Record<string, unknown>).forEach(
+                  ([k, v]) => {
+                    if (typeof v === "string") {
+                      yamlLines.push(`    ${k}: ${v}`);
+                    } else {
+                      yamlLines.push(`    ${k}: ${JSON.stringify(v)}`);
+                    }
+                  }
+                );
+              }
+            } else {
+              yamlLines.push(`  ${key}: ${JSON.stringify(value)}`);
             }
-          } else {
-            yamlLines.push(`  ${key}: ${JSON.stringify(value)}`);
           }
-        }
-      );
-    });
+        );
+      });
+    }
   }
 
   //* ========================================
@@ -113,33 +122,39 @@ export const generateBlockYaml = (block: ServerBlock): string => {
   //* ========================================
   else if (block.type === "step") {
     //* config 내용만 사용하여 YAML 생성
-    Object.entries(block.config).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        yamlLines.push(`${key}: ${value}`);
-      } else if (typeof value === "object" && value !== null) {
-        if (Array.isArray(value)) {
-          yamlLines.push(`${key}:`);
-          value.forEach((item: unknown) => {
-            if (typeof item === "string") {
-              yamlLines.push(`  - ${item}`);
-            } else {
-              yamlLines.push(`  - ${JSON.stringify(item)}`);
-            }
-          });
+    if (!block.config || Object.keys(block.config).length === 0) {
+      yamlLines.push("# Step 설정이 없습니다.");
+    } else {
+      Object.entries(block.config).forEach(([key, value]) => {
+        if (typeof value === "string") {
+          yamlLines.push(`${key}: ${value}`);
+        } else if (typeof value === "object" && value !== null) {
+          if (Array.isArray(value)) {
+            yamlLines.push(`${key}:`);
+            value.forEach((item: unknown) => {
+              if (typeof item === "string") {
+                yamlLines.push(`  - ${item}`);
+              } else {
+                yamlLines.push(`  - ${JSON.stringify(item)}`);
+              }
+            });
+          } else {
+            yamlLines.push(`${key}:`);
+            Object.entries(value as Record<string, unknown>).forEach(
+              ([k, v]) => {
+                if (typeof v === "string") {
+                  yamlLines.push(`  ${k}: ${v}`);
+                } else {
+                  yamlLines.push(`  ${k}: ${JSON.stringify(v)}`);
+                }
+              }
+            );
+          }
         } else {
-          yamlLines.push(`${key}:`);
-          Object.entries(value as Record<string, unknown>).forEach(([k, v]) => {
-            if (typeof v === "string") {
-              yamlLines.push(`  ${k}: ${v}`);
-            } else {
-              yamlLines.push(`  ${k}: ${JSON.stringify(v)}`);
-            }
-          });
+          yamlLines.push(`${key}: ${JSON.stringify(value)}`);
         }
-      } else {
-        yamlLines.push(`${key}: ${JSON.stringify(value)}`);
-      }
-    });
+      });
+    }
   }
 
   return yamlLines.join("\n");
@@ -153,6 +168,11 @@ export const generateBlockYaml = (block: ServerBlock): string => {
 //! 모든 블록을 올바른 계층 구조로 조합하여 완전한 GitHub Actions YAML 생성
 export const generateFullYaml = (blocks: ServerBlock[]): string => {
   const yamlLines: string[] = [];
+
+  // blocks가 없으면 빈 문자열 반환
+  if (!blocks || blocks.length === 0) {
+    return "# 워크플로우가 구성되지 않았습니다.";
+  }
 
   //* ========================================
   //* 트리거 블록 처리
@@ -172,7 +192,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
     yamlLines.push("jobs:");
 
     jobBlocks.forEach((jobBlock, index) => {
-      const jobConfig = jobBlock.config.jobs || {};
+      const jobConfig = jobBlock.config?.jobs || {};
       const jobName = Object.keys(jobConfig)[0];
       const jobData = jobConfig[jobName as keyof typeof jobConfig] as Record<
         string,

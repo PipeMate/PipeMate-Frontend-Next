@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from "react";
 import { AreaBasedWorkflowEditor } from "./components/AreaBasedWorkflowEditor";
-import { YamlPreviewPanel } from "./components/YamlPreviewPanel";
+
 import { ServerBlock } from "./types";
 import { useLayout } from "@/components/layout/LayoutContext";
 import { ROUTES } from "@/config/appConstants";
@@ -180,18 +180,9 @@ export default function GitHubActionsFlowPage() {
             onEditModeToggle={handleEditModeToggle}
             isEditing={isEditing}
             initialBlocks={blocks}
-          />
-        </Suspense>
-
-        {/* YAML 미리보기 패널: 노드가 선택된 경우에만 표시 */}
-        {selectedBlock && (
-          <YamlPreviewPanel
-            blocks={blocks}
-            selectedBlock={selectedBlock}
-            isEditing={isEditing}
             onBlockUpdate={handleBlockUpdate}
           />
-        )}
+        </Suspense>
       </div>
     </ErrorBoundary>
   );

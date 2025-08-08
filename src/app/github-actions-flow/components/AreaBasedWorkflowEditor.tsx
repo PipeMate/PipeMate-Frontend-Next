@@ -20,7 +20,7 @@ import {
 import { useAreaNodes } from "./area-editor/hooks/useAreaNodes";
 import { useDragDrop } from "./area-editor/hooks/useDragDrop";
 import { useDropHandlers } from "./area-editor/hooks/useDropHandlers";
-import { ControlPanel } from "./area-editor/components/ControlPanel";
+import { IntegratedSidePanel } from "./IntegratedSidePanel";
 import { DropArea } from "./area-editor/components/DropArea";
 import { EmptyState } from "./area-editor/components/EmptyState";
 
@@ -40,6 +40,7 @@ export const AreaBasedWorkflowEditor: React.FC<
   onNodeSelect,
   onEditModeToggle,
   isEditing,
+  onBlockUpdate,
 }) => {
   //* ========================================
   //* 커스텀 훅 사용
@@ -53,6 +54,7 @@ export const AreaBasedWorkflowEditor: React.FC<
     updateNodeData,
     getAllNodes,
     getServerBlocks,
+    getServerBlocksInOrder,
     clearWorkspace,
     updateStepJobNames,
   } = useAreaNodes(initialBlocks, onWorkflowChange);
@@ -122,6 +124,8 @@ export const AreaBasedWorkflowEditor: React.FC<
   const handleNodeSelect = useCallback(
     (node: AreaNodeData) => {
       setSelectedNode(node);
+      // 노드 선택 시 컨트롤 패널 자동으로 열기
+      setIsControlPanelOpen(true);
 
       if (onNodeSelect) {
         const selectedBlock: ServerBlock = {
@@ -175,6 +179,21 @@ export const AreaBasedWorkflowEditor: React.FC<
    */
   const handleNodeEditCancel = useCallback(() => {
     setEditingNode(null);
+  }, []);
+
+  /**
+   * 워크스페이스 클릭 핸들러
+   * 외부 클릭 시 선택된 노드 해제
+   */
+  const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
+    // 노드나 컨트롤 패널이 아닌 영역 클릭 시
+    if (
+      !(e.target as Element).closest(".area-node") &&
+      !(e.target as Element).closest("[data-radix-popover-content]")
+    ) {
+      setSelectedNode(null);
+      setIsControlPanelOpen(false);
+    }
   }, []);
 
   /**
@@ -276,7 +295,14 @@ export const AreaBasedWorkflowEditor: React.FC<
       {/* 메인 에디터 영역 */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden w-full h-full bg-gray-50 relative">
         {/* 영역별 배치 */}
-        <div className="flex-1 flex flex-col gap-6 p-6 overflow-auto">
+        <div
+          className={`flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300 ${
+            isControlPanelOpen
+              ? "mr-0 sm:mr-96 lg:mr-[450px] xl:mr-[500px]"
+              : ""
+          }`}
+          onClick={handleWorkspaceClick}
+        >
           {/* Trigger 영역 - 컴팩트하게 */}
           <div className="w-full">
             <DropArea
@@ -325,29 +351,20 @@ export const AreaBasedWorkflowEditor: React.FC<
           </div>
         </div>
 
-        {/* 플로팅 액션 버튼 (FAB) - 노드가 있을 때만 표시 */}
-        {hasNodes && (
-          <div className="absolute bottom-6 right-6 z-20">
-            <button
-              onClick={() => setIsControlPanelOpen(!isControlPanelOpen)}
-              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
-            >
-              {isControlPanelOpen ? <X size={24} /> : <Save size={24} />}
-            </button>
-          </div>
-        )}
-
-        {/* 컨트롤 패널 */}
-        <ControlPanel
+        {/* 통합 사이드 패널 */}
+        <IntegratedSidePanel
+          selectedNode={selectedNode}
+          blocks={getServerBlocksInOrder()}
           isOpen={isControlPanelOpen}
           onClose={() => setIsControlPanelOpen(false)}
-          selectedNode={selectedNode}
           onSaveWorkflow={handleSaveWorkflow}
           onClearWorkspace={handleClearWorkspace}
           onNodeSelect={handleNodeSelect}
           onNodeEdit={handleNodeEdit}
           onNodeDelete={handleNodeDelete}
+          onBlockUpdate={onBlockUpdate}
           hasNodes={hasNodes}
+          updateNodeData={updateNodeData}
         />
       </div>
 
