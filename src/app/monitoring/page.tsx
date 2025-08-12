@@ -198,14 +198,14 @@ export default function MonitoringPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
             {metaRows.map((row) => (
               <div
                 key={row.k}
-                className="flex items-center justify-between p-2 rounded border bg-white"
+                className="flex items-center justify-between px-3 py-1.5 rounded border bg-white"
               >
                 <span className="text-slate-500">{row.k}</span>
-                <span className="text-slate-900 font-medium truncate max-w-[60%] text-right">
+                <span className="text-slate-900 font-medium truncate max-w-[65%] text-right">
                   {String(row.v)}
                 </span>
               </div>
@@ -229,13 +229,13 @@ export default function MonitoringPage() {
                     <div key={job.id} className="border rounded-lg p-3 bg-white">
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-slate-900">{job.name}</div>
-                        {getStatusBadge(job.status, job.conclusion)}
+                        <div className="ml-2">{getStatusBadge(job.status, job.conclusion)}</div>
                       </div>
                       <div className="mt-2 grid gap-2">
                         {(job.steps || []).map((st: any, idx: number) => (
                           <button
                             key={idx}
-                            className={`flex items-center justify-between text-sm text-left w-full px-2 py-1 rounded hover:bg-slate-50 border ${
+                            className={`flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded hover:bg-slate-50 border ${
                               focusedJobId === job.id && focusedStepName === st.name
                                 ? 'border-blue-300 bg-blue-50'
                                 : 'border-transparent'
@@ -247,7 +247,7 @@ export default function MonitoringPage() {
                             }}
                           >
                             <div className="text-slate-700 flex items-center gap-2">
-                              <span className="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-700 border border-slate-200">
                                 STEP
                               </span>
                               {st.name}
@@ -365,25 +365,30 @@ export default function MonitoringPage() {
   };
 
   const getStatusBadge = (status: string, conclusion?: string) => {
+    const base = 'border px-2 py-0.5 rounded text-xs font-medium';
     if (status === 'completed') {
       return conclusion === 'success' ? (
-        <Badge variant="default" className="bg-green-100 text-green-800">
-          성공
-        </Badge>
+        <span className={`${base} bg-green-100 text-green-800 border-green-200`}>성공</span>
       ) : (
-        <Badge variant="destructive">실패</Badge>
+        <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>
       );
-    } else if (status === 'in_progress') {
-      return (
-        <Badge variant="default" className="bg-blue-100 text-blue-800">
-          실행 중
-        </Badge>
-      );
-    } else if (status === 'waiting') {
-      return <Badge variant="secondary">대기 중</Badge>;
-    } else {
-      return <Badge variant="outline">알 수 없음</Badge>;
     }
+    if (status === 'in_progress') {
+      return (
+        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>실행 중</span>
+      );
+    }
+    if (status === 'waiting') {
+      return (
+        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>대기 중</span>
+      );
+    }
+    if (status === 'cancelled') {
+      return (
+        <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>취소</span>
+      );
+    }
+    return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>기타</span>;
   };
 
   const _getStatusText = (status: string, conclusion?: string) => {
