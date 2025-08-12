@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+/**
+ * 저장소 선택/설정을 전역으로 관리하는 컨텍스트
+ */
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   getRepositoryConfig,
   setRepositoryConfig,
   deleteRepositoryConfig,
-} from "@/lib/cookieUtils";
+} from '@/lib/cookieUtils';
 
+/**
+ * Repository 컨텍스트 값 인터페이스
+ */
 interface RepositoryContextType {
   owner: string | null;
   repo: string | null;
@@ -21,14 +21,16 @@ interface RepositoryContextType {
   clearRepository: () => void;
 }
 
-const RepositoryContext = createContext<RepositoryContextType | undefined>(
-  undefined
-);
+const RepositoryContext = createContext<RepositoryContextType | undefined>(undefined);
 
 interface RepositoryProviderProps {
   children: ReactNode;
 }
 
+/**
+ * RepositoryProvider
+ * - 초기 마운트 시 쿠키에서 설정을 복원합니다.
+ */
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
   const [owner, setOwner] = useState<string | null>(null);
   const [repo, setRepo] = useState<string | null>(null);
@@ -44,6 +46,9 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
     }
   }, []);
 
+  /**
+   * 저장소 설정
+   */
   const setRepository = (newOwner: string, newRepo: string) => {
     setOwner(newOwner);
     setRepo(newRepo);
@@ -51,6 +56,9 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
     setRepositoryConfig(newOwner, newRepo);
   };
 
+  /**
+   * 저장소 설정 초기화
+   */
   const clearRepository = () => {
     setOwner(null);
     setRepo(null);
@@ -67,16 +75,17 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
   };
 
   return (
-    <RepositoryContext.Provider value={value}>
-      {children}
-    </RepositoryContext.Provider>
+    <RepositoryContext.Provider value={value}>{children}</RepositoryContext.Provider>
   );
 }
 
+/**
+ * Repository 컨텍스트 사용 훅
+ */
 export function useRepository() {
   const context = useContext(RepositoryContext);
   if (context === undefined) {
-    throw new Error("useRepository must be used within a RepositoryProvider");
+    throw new Error('useRepository must be used within a RepositoryProvider');
   }
   return context;
 }
