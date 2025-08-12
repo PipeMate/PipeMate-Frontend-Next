@@ -1,6 +1,6 @@
-import React from "react";
-import { Zap, Settings, Code } from "lucide-react";
-import { AreaNodes } from "../types";
+import React from 'react';
+import { Zap, Settings, Code } from 'lucide-react';
+import { AreaNodes } from '../types';
 
 interface EmptyStateProps {
   areaKey: keyof AreaNodes;
@@ -17,19 +17,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   areaKey,
   title,
   isDragOver,
-  isJobStep = false,
-  jobId,
+  isJobStep,
+  jobId: _jobId,
 }) => {
   /**
    * 빈 상태 아이콘 가져오기
    */
   const getEmptyStateIcon = () => {
     switch (areaKey) {
-      case "trigger":
+      case 'trigger':
         return <Zap size={20} className="text-green-500" />;
-      case "job":
+      case 'job':
         return <Settings size={20} className="text-blue-500" />;
-      case "step":
+      case 'step':
         return <Code size={20} className="text-yellow-500" />;
       default:
         return <Code size={20} className="text-gray-500" />;
@@ -42,17 +42,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const getEmptyStateColors = () => {
     if (isDragOver) {
       switch (areaKey) {
-        case "trigger":
-          return "border-green-400 bg-green-50";
-        case "job":
-          return "border-blue-400 bg-blue-50";
-        case "step":
-          return "border-yellow-400 bg-yellow-50";
+        case 'trigger':
+          return 'border-green-400 bg-green-50';
+        case 'job':
+          return 'border-blue-400 bg-blue-50';
+        case 'step':
+          return 'border-yellow-400 bg-yellow-50';
         default:
-          return "border-gray-400 bg-gray-50";
+          return 'border-gray-400 bg-gray-50';
       }
     }
-    return "border-gray-300";
+    return 'border-gray-300';
   };
 
   /**
@@ -60,16 +60,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
    */
   const getEmptyStateTextColor = () => {
     if (isJobStep) {
-      return isDragOver ? "text-orange-600 font-medium" : "text-orange-400";
+      return isDragOver ? 'text-orange-600 font-medium' : 'text-orange-400';
     }
-    return isDragOver ? "text-gray-600 font-medium" : "text-gray-400";
+    return isDragOver ? 'text-gray-600 font-medium' : 'text-gray-400';
   };
 
   const textColor = getEmptyStateTextColor();
   const iconColors = isJobStep
     ? isDragOver
-      ? "border-orange-400 bg-orange-50"
-      : "border-orange-300"
+      ? 'border-orange-400 bg-orange-50'
+      : 'border-orange-300'
     : getEmptyStateColors();
 
   return (
@@ -87,9 +87,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           )}
         </div>
         <span>
-          {isJobStep
-            ? "Step을 여기에 드롭하세요"
-            : `여기에 ${title}를 드롭하세요`}
+          {isJobStep ? 'Step을 여기에 드롭하세요' : `여기에 ${title}를 드롭하세요`}
         </span>
       </div>
     </div>

@@ -1,24 +1,6 @@
 import React from 'react';
-import {
-  Play,
-  GitBranch,
-  Settings,
-  Code,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  ArrowRight,
-  FileText,
-  Terminal,
-  Folder,
-  Zap,
-  Eye,
-  EyeOff,
-  Workflow,
-  Server,
-} from 'lucide-react';
-import { NodeType } from '../types';
 import { AreaNodeData } from '../types';
+import { GitBranch, Workflow, Code, Settings, CheckCircle, Clock } from 'lucide-react';
 import {
   parseTriggerConfig,
   parseJobConfig,
@@ -88,7 +70,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {/* 트리거 타입들 */}
           {triggerInfo.triggers.length > 0 && (
             <div className="flex items-center gap-1 text-xs opacity-90">
-              <Play size={12} />
+              {/* Play size={12} /> */}
               <span className="text-gray-700 font-medium">
                 {triggerInfo.triggers.join(', ')}
               </span>
@@ -153,7 +135,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {/* 의존성 */}
           {jobInfo.needs.length > 0 && (
             <div className="flex items-center gap-1 text-xs opacity-85">
-              <ArrowRight size={12} />
+              {/* ArrowRight size={12} /> */}
               <span className="text-gray-700 font-medium">
                 의존: {jobInfo.needs.join(', ')}
               </span>
@@ -173,7 +155,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {/* 조건 */}
           {jobInfo.conditions.length > 0 && (
             <div className="flex items-center gap-1 text-xs opacity-80">
-              <AlertCircle size={12} />
+              {/* AlertCircle size={12} /> */}
               <span className="truncate max-w-[180px] text-gray-700 font-medium">
                 {jobInfo.conditions.join(', ')}
               </span>
@@ -203,7 +185,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
       );
 
     case 'step':
-      const stepInfo = parseStepConfig(node.data.config);
+      const _stepInfo = parseStepConfig(node.data.config);
       const stepDetail = parseStepConfigDetail(node.data.config);
 
       return (
@@ -221,7 +203,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {/* 명령어 실행 */}
           {stepDetail.run && (
             <div className="flex items-center gap-1 text-xs opacity-90">
-              <Terminal size={12} />
+              {/* Terminal size={12} /> */}
               <span className="truncate max-w-[200px] text-gray-700 font-medium">
                 {truncateString(stepDetail.run, 80)}
               </span>
@@ -232,7 +214,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {stepDetail.with && Object.keys(stepDetail.with).length > 0 && (
             <div className="space-y-1">
               <div className="flex items-center gap-1 text-xs opacity-85 font-bold">
-                <Zap size={12} />
+                {/* Zap size={12} /> */}
                 <span className="text-gray-800">with 파라미터:</span>
               </div>
               {renderConfigObject(stepDetail.with, 1)}
@@ -254,7 +236,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           <div className="space-y-1">
             {stepDetail.continueOnError !== undefined && (
               <div className="flex items-center gap-1 text-xs opacity-80">
-                {stepDetail.continueOnError ? <Eye size={12} /> : <EyeOff size={12} />}
+                {/* Eye size={12} /> */}
                 <span className="text-gray-700 font-medium">
                   continue-on-error: {stepDetail.continueOnError ? 'true' : 'false'}
                 </span>
@@ -263,7 +245,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
 
             {stepDetail.if && (
               <div className="flex items-center gap-1 text-xs opacity-80">
-                <AlertCircle size={12} />
+                {/* AlertCircle size={12} /> */}
                 <span className="truncate max-w-[180px] text-gray-700 font-medium">
                   if: {stepDetail.if}
                 </span>
@@ -272,7 +254,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
 
             {stepDetail.workingDirectory && (
               <div className="flex items-center gap-1 text-xs opacity-80">
-                <Folder size={12} />
+                {/* Folder size={12} /> */}
                 <span className="truncate max-w-[150px] text-gray-700 font-medium">
                   working-directory: {stepDetail.workingDirectory}
                 </span>
@@ -281,7 +263,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
 
             {stepDetail.shell && (
               <div className="flex items-center gap-1 text-xs opacity-80">
-                <Terminal size={12} />
+                {/* Terminal size={12} /> */}
                 <span className="text-gray-700 font-medium">
                   shell: {stepDetail.shell}
                 </span>
