@@ -1,18 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLayout } from "@/components/layout/LayoutContext";
-import { useRepository } from "@/contexts/RepositoryContext";
-import {
-  useWorkflows,
-  useWorkflowRuns,
-  useCancelWorkflowRun,
-} from "@/api/hooks";
-import { WorkflowItem } from "@/api/types";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLayout } from '@/components/layout/LayoutContext';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { useWorkflows, useWorkflowRuns, useCancelWorkflowRun } from '@/api/hooks';
+import { WorkflowItem } from '@/api/types';
 import {
   Monitor,
   Play,
@@ -28,8 +24,8 @@ import {
   Info,
   Loader2,
   X,
-} from "lucide-react";
-import { ROUTES } from "@/config/appConstants";
+} from 'lucide-react';
+import { ROUTES } from '@/config/appConstants';
 
 interface WorkflowRun {
   id: number;
@@ -45,7 +41,7 @@ interface WorkflowRun {
 export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
-  const [activeTab, setActiveTab] = useState("recent");
+  const [activeTab, setActiveTab] = useState('recent');
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
 
   // 훅 사용
@@ -53,12 +49,12 @@ export default function MonitoringPage() {
     data: workflowsData,
     isLoading: workflowsLoading,
     refetch: refetchWorkflows,
-  } = useWorkflows(owner, repo);
+  } = useWorkflows(owner || '', repo || '');
   const {
     data: workflowRunsData,
     isLoading: runsLoading,
     refetch: refetchRuns,
-  } = useWorkflowRuns(owner, repo);
+  } = useWorkflowRuns(owner || '', repo || '');
   const cancelWorkflowRun = useCancelWorkflowRun();
 
   const workflows = workflowsData?.data?.workflows || [];
@@ -75,7 +71,7 @@ export default function MonitoringPage() {
         <p className="text-sm text-gray-500 m-0">
           GitHub Actions 워크플로우 실행 로그 모니터링
         </p>
-      </div>
+      </div>,
     );
     return () => setHeaderExtra(null);
   }, [setHeaderExtra]);
@@ -83,25 +79,25 @@ export default function MonitoringPage() {
   const handleCancelRun = async (run: WorkflowRun) => {
     try {
       await cancelWorkflowRun.mutateAsync({
-        owner,
-        repo,
+        owner: owner!,
+        repo: repo!,
         runId: run.id.toString(),
       });
     } catch (error) {
-      console.error("워크플로우 실행 취소 실패:", error);
+      console.error('워크플로우 실행 취소 실패:', error);
     }
   };
 
   const getStatusIcon = (status: string, conclusion?: string) => {
-    if (status === "completed") {
-      return conclusion === "success" ? (
+    if (status === 'completed') {
+      return conclusion === 'success' ? (
         <CheckCircle className="w-4 h-4 text-green-600" />
       ) : (
         <XCircle className="w-4 h-4 text-red-600" />
       );
-    } else if (status === "in_progress") {
+    } else if (status === 'in_progress') {
       return <Activity className="w-4 h-4 text-blue-600 animate-pulse" />;
-    } else if (status === "waiting") {
+    } else if (status === 'waiting') {
       return <Clock className="w-4 h-4 text-yellow-600" />;
     } else {
       return <AlertCircle className="w-4 h-4 text-gray-600" />;
@@ -109,21 +105,21 @@ export default function MonitoringPage() {
   };
 
   const getStatusBadge = (status: string, conclusion?: string) => {
-    if (status === "completed") {
-      return conclusion === "success" ? (
+    if (status === 'completed') {
+      return conclusion === 'success' ? (
         <Badge variant="default" className="bg-green-100 text-green-800">
           성공
         </Badge>
       ) : (
         <Badge variant="destructive">실패</Badge>
       );
-    } else if (status === "in_progress") {
+    } else if (status === 'in_progress') {
       return (
         <Badge variant="default" className="bg-blue-100 text-blue-800">
           실행 중
         </Badge>
       );
-    } else if (status === "waiting") {
+    } else if (status === 'waiting') {
       return <Badge variant="secondary">대기 중</Badge>;
     } else {
       return <Badge variant="outline">알 수 없음</Badge>;
@@ -131,32 +127,30 @@ export default function MonitoringPage() {
   };
 
   const getStatusText = (status: string, conclusion?: string) => {
-    if (status === "completed") {
-      return conclusion === "success" ? "성공" : "실패";
-    } else if (status === "in_progress") {
-      return "실행 중";
-    } else if (status === "waiting") {
-      return "대기 중";
+    if (status === 'completed') {
+      return conclusion === 'success' ? '성공' : '실패';
+    } else if (status === 'in_progress') {
+      return '실행 중';
+    } else if (status === 'waiting') {
+      return '대기 중';
     } else {
-      return "알 수 없음";
+      return '알 수 없음';
     }
   };
 
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
-    );
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
-    if (diffInMinutes < 1) return "방금 전";
+    if (diffInMinutes < 1) return '방금 전';
     if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
     return `${Math.floor(diffInMinutes / 1440)}일 전`;
   };
 
   const getWorkflowRuns = (workflowId: number) => {
-    return workflowRuns.filter((run) => run.workflow_id === workflowId);
+    return workflowRuns.filter((run: WorkflowRun) => run.workflow_id === workflowId);
   };
 
   if (!isConfigured) {
@@ -164,17 +158,15 @@ export default function MonitoringPage() {
       <div className="min-h-full bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
         <div className="max-w-2xl mx-auto p-8 text-center">
           <Monitor className="w-16 h-16 text-green-600 mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            로그 모니터링
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">로그 모니터링</h2>
           <p className="text-lg text-gray-600 mb-8">
             GitHub Actions 워크플로우의 실행 로그를 실시간으로 모니터링하세요
           </p>
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6">
               <p className="text-gray-600 mb-4">
-                로그 모니터링을 사용하려면 사이드바에서 GitHub 토큰과
-                레포지토리를 설정해주세요.
+                로그 모니터링을 사용하려면 사이드바에서 GitHub 토큰과 레포지토리를
+                설정해주세요.
               </p>
             </CardContent>
           </Card>
@@ -211,7 +203,7 @@ export default function MonitoringPage() {
               >
                 <RefreshCw
                   className={`w-4 h-4 mr-2 ${
-                    workflowsLoading || runsLoading ? "animate-spin" : ""
+                    workflowsLoading || runsLoading ? 'animate-spin' : ''
                   }`}
                 />
                 새로고침
@@ -226,12 +218,8 @@ export default function MonitoringPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    총 워크플로우
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {workflows.length}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">총 워크플로우</p>
+                  <p className="text-2xl font-bold text-blue-600">{workflows.length}</p>
                 </div>
                 <Monitor className="w-6 h-6 text-blue-600" />
               </div>
@@ -244,10 +232,7 @@ export default function MonitoringPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">실행 중</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {
-                      workflowRuns.filter((r) => r.status === "in_progress")
-                        .length
-                    }
+                    {workflowRuns.filter((r) => r.status === 'in_progress').length}
                   </p>
                 </div>
                 <Activity className="w-6 h-6 text-green-600 animate-pulse" />
@@ -264,12 +249,10 @@ export default function MonitoringPage() {
                     {workflowRuns.length > 0
                       ? Math.round(
                           (workflowRuns.filter(
-                            (r) =>
-                              r.status === "completed" &&
-                              r.conclusion === "success"
+                            (r) => r.status === 'completed' && r.conclusion === 'success',
                           ).length /
                             workflowRuns.length) *
-                            100
+                            100,
                         )
                       : 0}
                     %
@@ -288,8 +271,7 @@ export default function MonitoringPage() {
                   <p className="text-2xl font-bold text-red-600">
                     {
                       workflowRuns.filter(
-                        (r) =>
-                          r.status === "completed" && r.conclusion !== "success"
+                        (r) => r.status === 'completed' && r.conclusion !== 'success',
                       ).length
                     }
                   </p>
@@ -334,10 +316,7 @@ export default function MonitoringPage() {
                 ) : (
                   <div className="space-y-4">
                     {workflowRuns.slice(0, 10).map((run) => (
-                      <Card
-                        key={run.id}
-                        className="hover:shadow-md transition-shadow"
-                      >
+                      <Card key={run.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -347,8 +326,7 @@ export default function MonitoringPage() {
                                   {run.name}
                                 </h4>
                                 <p className="text-sm text-gray-600">
-                                  #{run.run_number} •{" "}
-                                  {getTimeAgo(run.created_at)}
+                                  #{run.run_number} • {getTimeAgo(run.created_at)}
                                 </p>
                               </div>
                             </div>
@@ -362,7 +340,7 @@ export default function MonitoringPage() {
                                 <Info className="w-4 h-4 mr-2" />
                                 상세보기
                               </Button>
-                              {run.status === "in_progress" && (
+                              {run.status === 'in_progress' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -433,37 +411,28 @@ export default function MonitoringPage() {
                               </div>
                               {getStatusBadge(workflow.state)}
                             </div>
-                            <p className="text-sm text-gray-600 mb-3">
-                              {workflow.path}
-                            </p>
+                            <p className="text-sm text-gray-600 mb-3">{workflow.path}</p>
 
                             {recentRun && (
                               <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-gray-600">
-                                    최근 실행:
-                                  </span>
+                                  <span className="text-gray-600">최근 실행:</span>
                                   <span className="text-gray-700">
-                                    #{recentRun.run_number} •{" "}
+                                    #{recentRun.run_number} •{' '}
                                     {getTimeAgo(recentRun.created_at)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between mt-1">
                                   <span className="text-gray-600">상태:</span>
-                                  {getStatusBadge(
-                                    recentRun.status,
-                                    recentRun.conclusion
-                                  )}
+                                  {getStatusBadge(recentRun.status, recentRun.conclusion)}
                                 </div>
                               </div>
                             )}
 
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-gray-500">
-                                마지막 업데이트:{" "}
-                                {new Date(
-                                  workflow.updatedAt
-                                ).toLocaleDateString()}
+                                마지막 업데이트:{' '}
+                                {new Date(workflow.updatedAt).toLocaleDateString()}
                               </span>
                               <Button size="sm" variant="outline">
                                 <Play className="w-4 h-4 mr-2" />

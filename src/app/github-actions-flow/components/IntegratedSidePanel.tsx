@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { AreaNodeData } from "./area-editor/types";
-import { ServerBlock } from "../types";
-import { WorkflowNodeData } from "../types";
-import { NodeType } from "./area-editor/types";
-import { generateBlockYaml, generateFullYaml } from "../utils/yamlGenerator";
-import { useCreatePipeline } from "@/api/hooks/usePipeline";
-import { useRepository } from "@/contexts/RepositoryContext";
-import { toast } from "react-toastify";
-import { GithubTokenDialog } from "@/components/features/GithubTokenDialog";
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { AreaNodeData } from './area-editor/types';
+import { ServerBlock } from '../types';
+import { WorkflowNodeData } from '../types';
+import { NodeType } from './area-editor/types';
+import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
+import { useCreatePipeline } from '@/api/hooks/usePipeline';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { toast } from 'react-toastify';
+import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
 import {
   ChevronDown,
   ChevronRight,
@@ -31,19 +31,19 @@ import {
   Palette,
   Lock,
   AlertCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import "react-toastify/dist/ReactToastify.css";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSecrets } from "@/api/hooks";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import 'react-toastify/dist/ReactToastify.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSecrets } from '@/api/hooks';
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,
   findMissingSecrets,
-} from "../utils/secretsDetector";
+} from '../utils/secretsDetector';
 
 //* ========================================
 //* Props 타입 정의
@@ -85,7 +85,7 @@ interface WorkflowStructure {
 interface ConfigField {
   key: string;
   value: string | object | string[];
-  type: "string" | "object" | "array";
+  type: 'string' | 'object' | 'array';
   isExpanded?: boolean;
   children?: ConfigField[];
 }
@@ -106,22 +106,22 @@ const analyzeWorkflowStructure = (blocks: ServerBlock[]): WorkflowStructure => {
   blocks.forEach((block) => {
     if (!block || !block.type) return;
 
-    if (block.type === "trigger") {
+    if (block.type === 'trigger') {
       structure.trigger = block;
-    } else if (block.type === "job") {
-      const jobName = block["job-name"] || "unknown";
+    } else if (block.type === 'job') {
+      const jobName = block['job-name'] || 'unknown';
       structure.jobs[jobName] = {
         job: block,
         steps: [],
       };
-    } else if (block.type === "step") {
-      const jobName = block["job-name"] || "unknown";
+    } else if (block.type === 'step') {
+      const jobName = block['job-name'] || 'unknown';
       if (!structure.jobs[jobName]) {
         structure.jobs[jobName] = {
           job: {
             name: jobName,
-            type: "job",
-            "job-name": jobName,
+            type: 'job',
+            'job-name': jobName,
           } as ServerBlock,
           steps: [],
         };
@@ -161,9 +161,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   };
 
   const isSelected = (block: ServerBlock) => {
-    return (
-      selectedBlock?.name === block.name && selectedBlock?.type === block.type
-    );
+    return selectedBlock?.name === block.name && selectedBlock?.type === block.type;
   };
 
   if (!structure || !structure.jobs) {
@@ -181,8 +179,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         <div
           className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
             isSelected(structure.trigger)
-              ? "bg-blue-100 border border-blue-300"
-              : "hover:bg-gray-50"
+              ? 'bg-blue-100 border border-blue-300'
+              : 'hover:bg-gray-50'
           }`}
           onClick={() => onBlockSelect?.(structure.trigger!)}
         >
@@ -198,8 +196,8 @@ const TreeView: React.FC<TreeViewProps> = ({
           <div
             className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${
               isSelected(jobData.job)
-                ? "bg-green-100 border-b border-green-300"
-                : "hover:bg-gray-50"
+                ? 'bg-green-100 border-b border-green-300'
+                : 'hover:bg-gray-50'
             }`}
             onClick={() => onBlockSelect?.(jobData.job)}
           >
@@ -232,16 +230,14 @@ const TreeView: React.FC<TreeViewProps> = ({
                   key={`${jobName}-${index}`}
                   className={`flex items-center gap-2 p-2 ml-4 cursor-pointer transition-colors ${
                     isSelected(step)
-                      ? "bg-orange-100 border border-orange-300"
-                      : "hover:bg-gray-100"
+                      ? 'bg-orange-100 border border-orange-300'
+                      : 'hover:bg-gray-100'
                   }`}
                   onClick={() => onBlockSelect?.(step)}
                 >
                   <File size={14} className="text-orange-600" />
                   <span className="text-sm">{step.name}</span>
-                  <span className="text-xs text-gray-500">
-                    (Step {index + 1})
-                  </span>
+                  <span className="text-xs text-gray-500">(Step {index + 1})</span>
                 </div>
               ))}
               {jobData.steps.length === 0 && (
@@ -281,21 +277,21 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 }) => {
   const { owner, repo } = useRepository();
   const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
-  const [configText, setConfigText] = useState<string>("");
-  const [configError, setConfigError] = useState<string>("");
+  const [configText, setConfigText] = useState<string>('');
+  const [configError, setConfigError] = useState<string>('');
   const [showConfigPreview, setShowConfigPreview] = useState(false);
   const [configFields, setConfigFields] = useState<ConfigField[]>([]);
-  const [activeTab] = useState("fields");
+  const [activeTab] = useState('fields');
   const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
 
   // Secrets API 훅
-  const { data: secretsData } = useSecrets(owner || "", repo || "");
+  const { data: secretsData } = useSecrets(owner || '', repo || '');
 
   // 초기 데이터 설정
   useEffect(() => {
     setEditedData(nodeData);
     setConfigText(JSON.stringify(nodeData.config, null, 2));
-    setConfigError("");
+    setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
   }, [nodeData]);
@@ -304,8 +300,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets =
-        secretsData?.data?.secrets?.map((s: any) => s.name) || [];
+      const userSecrets = secretsData?.data?.secrets?.map((s: any) => s.name) || [];
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
       setMissingSecrets(missing);
 
@@ -314,13 +309,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         toast.warning(
           `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
           {
-            position: "top-right",
+            position: 'top-right',
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-          }
+          },
         );
       }
     }
@@ -329,18 +324,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = (
     config: Record<string, unknown>,
-    parentKey = ""
+    parentKey = '',
   ): ConfigField[] => {
     const fields: ConfigField[] = [];
 
     Object.entries(config).forEach(([key, value]) => {
-      let type: "string" | "object" | "array" = "string";
+      let type: 'string' | 'object' | 'array' = 'string';
       let children: ConfigField[] | undefined;
 
       if (Array.isArray(value)) {
-        type = "array";
-      } else if (value && typeof value === "object") {
-        type = "object";
+        type = 'array';
+      } else if (value && typeof value === 'object') {
+        type = 'object';
         // 중첩된 객체의 경우 재귀적으로 파싱
         children = parseConfigFields(value as Record<string, unknown>, key);
       }
@@ -360,36 +355,36 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // 타입별 고정 라벨 정의
   const getFixedLabels = (type: NodeType) => {
     switch (type) {
-      case "workflowTrigger":
+      case 'workflowTrigger':
         return {
-          name: "워크플로우 기본 설정",
+          name: '워크플로우 기본 설정',
           description:
-            "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
+            'GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.',
         };
-      case "job":
+      case 'job':
         return {
-          name: "Job 설정",
-          description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
+          name: 'Job 설정',
+          description: '사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.',
         };
-      case "step":
+      case 'step':
         return {
-          name: "Step 설정",
-          description: "워크플로우 실행 단계를 설정하는 블록입니다.",
+          name: 'Step 설정',
+          description: '워크플로우 실행 단계를 설정하는 블록입니다.',
         };
       default:
-        return { name: "", description: "" };
+        return { name: '', description: '' };
     }
   };
 
   // 타입별 편집 가능한 필드 정의
   const getEditableFields = (type: NodeType) => {
     switch (type) {
-      case "workflowTrigger":
-        return ["label"];
-      case "job":
-        return ["label", "jobName"];
-      case "step":
-        return ["label", "jobName", "domain", "task"];
+      case 'workflowTrigger':
+        return ['label'];
+      case 'job':
+        return ['label', 'jobName'];
+      case 'step':
+        return ['label', 'jobName', 'domain', 'task'];
       default:
         return [];
     }
@@ -399,10 +394,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const validateConfig = (configStr: string): boolean => {
     try {
       JSON.parse(configStr);
-      setConfigError("");
+      setConfigError('');
       return true;
     } catch (error) {
-      setConfigError("유효하지 않은 JSON 형식입니다.");
+      setConfigError('유효하지 않은 JSON 형식입니다.');
       return false;
     }
   };
@@ -411,7 +406,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const handleConfigFieldChange = (
     index: number,
     value: string | object | string[],
-    parentIndex?: number
+    parentIndex?: number,
   ) => {
     const newFields = [...configFields];
 
@@ -438,7 +433,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const newConfig: Record<string, unknown> = {};
 
     fields.forEach((field) => {
-      if (field.type === "object" && field.children) {
+      if (field.type === 'object' && field.children) {
         const nestedConfig: Record<string, unknown> = {};
         field.children.forEach((child) => {
           nestedConfig[child.key] = child.value;
@@ -468,8 +463,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const handleAddConfigField = () => {
     const newField: ConfigField = {
       key: `field_${configFields.length + 1}`,
-      value: "",
-      type: "string",
+      value: '',
+      type: 'string',
     };
     const newFields = [...configFields, newField];
     setConfigFields(newFields);
@@ -497,29 +492,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       };
       onSave(updatedData);
     } catch (error) {
-      setConfigError("설정 저장 중 오류가 발생했습니다.");
+      setConfigError('설정 저장 중 오류가 발생했습니다.');
     }
   };
 
   // 필드 값 렌더링
-  const renderFieldValue = (
-    field: ConfigField,
-    index: number,
-    parentIndex?: number
-  ) => {
+  const renderFieldValue = (field: ConfigField, index: number, parentIndex?: number) => {
     switch (field.type) {
-      case "string":
+      case 'string':
         return (
           <Input
             value={String(field.value)}
-            onChange={(e) =>
-              handleConfigFieldChange(index, e.target.value, parentIndex)
-            }
+            onChange={(e) => handleConfigFieldChange(index, e.target.value, parentIndex)}
             placeholder="값을 입력하세요"
             className="mt-1"
           />
         );
-      case "object":
+      case 'object':
         return (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -535,9 +524,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   <ChevronRight size={16} />
                 )}
               </Button>
-              <span className="text-xs text-gray-500">
-                객체 (클릭하여 확장)
-              </span>
+              <span className="text-xs text-gray-500">객체 (클릭하여 확장)</span>
             </div>
             {field.isExpanded && field.children && (
               <div className="ml-4 space-y-2 border-l-2 border-gray-200 pl-4">
@@ -550,8 +537,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                           onChange={(e) => {
                             const newFields = [...configFields];
                             if (newFields[index].children) {
-                              newFields[index].children![childIndex].key =
-                                e.target.value;
+                              newFields[index].children![childIndex].key = e.target.value;
                               setConfigFields(newFields);
                               updateConfigFromFields(newFields);
                             }
@@ -578,16 +564,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             )}
           </div>
         );
-      case "array":
+      case 'array':
         return (
           <Input
             value={
-              Array.isArray(field.value)
-                ? field.value.join(", ")
-                : String(field.value)
+              Array.isArray(field.value) ? field.value.join(', ') : String(field.value)
             }
             onChange={(e) => {
-              const values = e.target.value.split(",").map((v) => v.trim());
+              const values = e.target.value.split(',').map((v) => v.trim());
               handleConfigFieldChange(index, values, parentIndex);
             }}
             placeholder="쉼표로 구분하여 입력하세요"
@@ -598,9 +582,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         return (
           <Input
             value={String(field.value)}
-            onChange={(e) =>
-              handleConfigFieldChange(index, e.target.value, parentIndex)
-            }
+            onChange={(e) => handleConfigFieldChange(index, e.target.value, parentIndex)}
             placeholder="값을 입력하세요"
             className="mt-1"
           />
@@ -639,22 +621,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Edit size={16} className="text-green-600" />
-          <h3 className="text-sm font-medium text-gray-700">
-            편집 가능한 정보
-          </h3>
+          <h3 className="text-sm font-medium text-gray-700">편집 가능한 정보</h3>
         </div>
         <div className="space-y-3">
           {/* 라벨 */}
-          {editableFields.includes("label") && (
+          {editableFields.includes('label') && (
             <div>
-              <label className="text-xs font-medium text-gray-600">
-                표시 이름
-              </label>
+              <label className="text-xs font-medium text-gray-600">표시 이름</label>
               <Input
                 value={editedData.label}
-                onChange={(e) =>
-                  setEditedData({ ...editedData, label: e.target.value })
-                }
+                onChange={(e) => setEditedData({ ...editedData, label: e.target.value })}
                 placeholder="노드 표시 이름을 입력하세요"
                 className="mt-1"
               />
@@ -662,13 +638,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           )}
 
           {/* Job 이름 */}
-          {editableFields.includes("jobName") && (
+          {editableFields.includes('jobName') && (
             <div>
-              <label className="text-xs font-medium text-gray-600">
-                Job 이름
-              </label>
+              <label className="text-xs font-medium text-gray-600">Job 이름</label>
               <Input
-                value={editedData.jobName || ""}
+                value={editedData.jobName || ''}
                 onChange={(e) =>
                   setEditedData({ ...editedData, jobName: e.target.value })
                 }
@@ -679,16 +653,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           )}
 
           {/* 도메인 */}
-          {editableFields.includes("domain") && (
+          {editableFields.includes('domain') && (
             <div>
-              <label className="text-xs font-medium text-gray-600">
-                도메인
-              </label>
+              <label className="text-xs font-medium text-gray-600">도메인</label>
               <Input
-                value={editedData.domain || ""}
-                onChange={(e) =>
-                  setEditedData({ ...editedData, domain: e.target.value })
-                }
+                value={editedData.domain || ''}
+                onChange={(e) => setEditedData({ ...editedData, domain: e.target.value })}
                 placeholder="도메인을 입력하세요 (예: github, java, docker)"
                 className="mt-1"
               />
@@ -696,17 +666,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           )}
 
           {/* 태스크 */}
-          {editableFields.includes("task") && (
+          {editableFields.includes('task') && (
             <div>
               <label className="text-xs font-medium text-gray-600">
                 태스크 (쉼표로 구분)
               </label>
               <Input
-                value={editedData.task?.join(", ") || ""}
+                value={editedData.task?.join(', ') || ''}
                 onChange={(e) =>
                   setEditedData({
                     ...editedData,
-                    task: e.target.value.split(",").map((t) => t.trim()),
+                    task: e.target.value.split(',').map((t) => t.trim()),
                   })
                 }
                 placeholder="태스크를 쉼표로 구분하여 입력하세요 (예: checkout, build)"
@@ -762,11 +732,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   {renderFieldValue(field, index)}
                 </div>
               ))}
-              <Button
-                variant="outline"
-                onClick={handleAddConfigField}
-                className="w-full"
-              >
+              <Button variant="outline" onClick={handleAddConfigField} className="w-full">
                 <Plus size={14} className="mr-1" />
                 필드 추가
               </Button>
@@ -775,9 +741,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
           <TabsContent value="json">
             <div className="space-y-2">
-              <span className="text-xs text-gray-600">
-                JSON 형식으로 직접 편집
-              </span>
+              <span className="text-xs text-gray-600">JSON 형식으로 직접 편집</span>
               <textarea
                 value={configText}
                 onChange={(e) => {
@@ -787,9 +751,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 className="w-full h-32 p-3 border rounded font-mono text-xs"
                 placeholder="JSON 형식으로 설정을 입력하세요"
               />
-              {configError && (
-                <div className="text-xs text-red-500">{configError}</div>
-              )}
+              {configError && <div className="text-xs text-red-500">{configError}</div>}
             </div>
           </TabsContent>
         </Tabs>
@@ -824,16 +786,16 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 }) => {
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
-  const [workflowName, setWorkflowName] = useState<string>("");
+  const [workflowName, setWorkflowName] = useState<string>('');
   const [viewMode, setViewMode] = useState<
-    "control" | "yaml" | "tree" | "edit" | "settings"
-  >("control");
-  const [yamlViewMode, setYamlViewMode] = useState<"block" | "full">("block");
-  const [editableYaml, setEditableYaml] = useState<string>("");
+    'control' | 'yaml' | 'tree' | 'edit' | 'settings'
+  >('control');
+  const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
+  const [editableYaml, setEditableYaml] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "success" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>(
+    'idle',
+  );
 
   // Secrets 관리 상태
   const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
@@ -843,27 +805,24 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     try {
       return analyzeWorkflowStructure(blocks || []);
     } catch (error) {
-      console.error("워크플로우 구조 분석 오류:", error);
+      console.error('워크플로우 구조 분석 오류:', error);
       return { jobs: {} };
     }
   }, [blocks]);
 
   // AreaNodeData를 ServerBlock로 변환하는 함수
-  const convertAreaNodeToServerBlock = useCallback(
-    (node: AreaNodeData): ServerBlock => {
-      return {
-        name: node.data.label,
-        type:
-          node.type === "workflowTrigger"
-            ? "trigger"
-            : (node.type as "trigger" | "job" | "step"),
-        description: node.data.description,
-        "job-name": node.data.jobName,
-        config: node.data.config || {},
-      };
-    },
-    []
-  );
+  const convertAreaNodeToServerBlock = useCallback((node: AreaNodeData): ServerBlock => {
+    return {
+      name: node.data.label,
+      type:
+        node.type === 'workflowTrigger'
+          ? 'trigger'
+          : (node.type as 'trigger' | 'job' | 'step'),
+      description: node.data.description,
+      'job-name': node.data.jobName,
+      config: node.data.config || {},
+    };
+  }, []);
 
   // Secrets 관리자 열기 핸들러
   const handleOpenSecretsManager = useCallback((secrets: string[]) => {
@@ -872,7 +831,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 
   // 편집 모드가 활성화되면 YAML을 편집 가능한 상태로 설정
   useEffect(() => {
-    if (viewMode === "edit" && selectedNode) {
+    if (viewMode === 'edit' && selectedNode) {
       const serverBlock = convertAreaNodeToServerBlock(selectedNode);
       const yaml = generateBlockYaml(serverBlock);
       setEditableYaml(yaml);
@@ -885,19 +844,19 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
       const serverBlock = convertAreaNodeToServerBlock(selectedNode);
       return generateBlockYaml(serverBlock);
     }
-    return "# 블록을 선택하여 YAML을 확인하세요";
+    return '# 블록을 선택하여 YAML을 확인하세요';
   }, [selectedNode, convertAreaNodeToServerBlock]);
 
   const getFullYaml = useCallback(() => {
     if (blocks && blocks.length > 0) {
       return generateFullYaml(blocks);
     }
-    return "# 워크플로우를 구성하여 YAML을 확인하세요";
+    return '# 워크플로우를 구성하여 YAML을 확인하세요';
   }, [blocks]);
 
   // 현재 YAML 내용 가져오기
   const getCurrentYaml = useCallback(() => {
-    if (yamlViewMode === "block") {
+    if (yamlViewMode === 'block') {
       return getBlockYaml();
     } else {
       return getFullYaml();
@@ -910,72 +869,67 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   }, []);
 
   // YAML 파싱 함수
-  const parseYamlToConfig = useCallback(
-    (yaml: string): Record<string, unknown> => {
-      const lines = yaml.split("\n");
-      const config: Record<string, unknown> = {};
-      let currentKey = "";
-      let currentValue: Record<string, unknown> | unknown[] = {};
+  const parseYamlToConfig = useCallback((yaml: string): Record<string, unknown> => {
+    const lines = yaml.split('\n');
+    const config: Record<string, unknown> = {};
+    let currentKey = '';
+    let currentValue: Record<string, unknown> | unknown[] = {};
 
-      lines.forEach((line) => {
-        const trimmedLine = line.trim();
-        if (!trimmedLine || trimmedLine.startsWith("#")) return;
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.startsWith('#')) return;
 
-        const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value) {
-            config[key] = value;
-          } else {
-            currentKey = key;
-            currentValue = {};
-          }
-        } else if (trimmedLine.startsWith("- ")) {
-          const item = trimmedLine.substring(2);
-          if (!Array.isArray(currentValue)) {
-            currentValue = [];
-          }
-          (currentValue as unknown[]).push(item);
-          config[currentKey] = currentValue;
-        } else if (trimmedLine.includes(":")) {
-          const [key, value] = trimmedLine.split(":").map((s) => s.trim());
-          if (value) {
-            if (!(currentValue as Record<string, unknown>)[key]) {
-              (currentValue as Record<string, unknown>)[key] = {};
-            }
-            (currentValue as Record<string, unknown>)[key] = value;
-          }
-          config[currentKey] = currentValue;
+      const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
+      if (match) {
+        const [, key, value] = match;
+        if (value) {
+          config[key] = value;
+        } else {
+          currentKey = key;
+          currentValue = {};
         }
-      });
+      } else if (trimmedLine.startsWith('- ')) {
+        const item = trimmedLine.substring(2);
+        if (!Array.isArray(currentValue)) {
+          currentValue = [];
+        }
+        (currentValue as unknown[]).push(item);
+        config[currentKey] = currentValue;
+      } else if (trimmedLine.includes(':')) {
+        const [key, value] = trimmedLine.split(':').map((s) => s.trim());
+        if (value) {
+          if (!(currentValue as Record<string, unknown>)[key]) {
+            (currentValue as Record<string, unknown>)[key] = {};
+          }
+          (currentValue as Record<string, unknown>)[key] = value;
+        }
+        config[currentKey] = currentValue;
+      }
+    });
 
-      return config;
-    },
-    []
-  );
+    return config;
+  }, []);
 
   // 편집된 YAML 저장 핸들러
   const handleSaveYaml = useCallback(async () => {
     if (!editableYaml.trim()) return;
 
     setIsSaving(true);
-    setSaveStatus("saving");
+    setSaveStatus('saving');
 
     try {
       if (selectedNode && onBlockUpdate) {
         const parsedConfig = parseYamlToConfig(editableYaml);
-        const updatedBlock = {
-          ...selectedNode,
-          config: parsedConfig,
-        } as ServerBlock;
+        const baseBlock = convertAreaNodeToServerBlock(selectedNode);
+        const updatedBlock: ServerBlock = { ...baseBlock, config: parsedConfig };
         onBlockUpdate(updatedBlock);
-        setSaveStatus("success");
-        setTimeout(() => setSaveStatus("idle"), 2000);
+        setSaveStatus('success');
+        setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (error) {
-      console.error("YAML 파싱 오류:", error);
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      console.error('YAML 파싱 오류:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -985,7 +939,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const copyYaml = useCallback(() => {
     const yaml = getCurrentYaml();
     navigator.clipboard.writeText(yaml).then(() => {
-      console.log("YAML이 클립보드에 복사되었습니다.");
+      console.log('YAML이 클립보드에 복사되었습니다.');
     });
   }, [getCurrentYaml]);
 
@@ -996,7 +950,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         onBlockUpdate(block);
       }
     },
-    [onBlockUpdate]
+    [onBlockUpdate],
   );
 
   // 노드 저장 핸들러 (로컬 편집용)
@@ -1012,28 +966,28 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         const updatedBlock: ServerBlock = {
           name: updatedData.label,
           type:
-            selectedNode.type === "workflowTrigger"
-              ? "trigger"
-              : (selectedNode.type as "trigger" | "job" | "step"),
+            selectedNode.type === 'workflowTrigger'
+              ? 'trigger'
+              : (selectedNode.type as 'trigger' | 'job' | 'step'),
           description: updatedData.description,
-          "job-name": updatedData.jobName,
+          'job-name': updatedData.jobName,
           config: updatedData.config,
         };
         onBlockUpdate(updatedBlock);
       }
     },
-    [selectedNode, updateNodeData, onBlockUpdate]
+    [selectedNode, updateNodeData, onBlockUpdate],
   );
 
   // 서버에 워크플로우 저장 핸들러
   const handleSaveWorkflowToServer = useCallback(async () => {
     if (!isConfigured) {
-      toast.error("저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.");
+      toast.error('저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.');
       return;
     }
 
     if (!hasNodes || blocks.length === 0) {
-      toast.error("저장할 워크플로우가 없습니다.");
+      toast.error('저장할 워크플로우가 없습니다.');
       return;
     }
 
@@ -1046,24 +1000,16 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         repo: repo!,
         workflowName: finalWorkflowName,
         inputJson: blocks as unknown as Record<string, unknown>[],
-        description: "PipeMate로 생성된 워크플로우",
+        description: 'PipeMate로 생성된 워크플로우',
       });
 
-      toast.success("워크플로우가 성공적으로 저장되었습니다!");
-      setWorkflowName(""); // 저장 후 입력 필드 초기화
+      toast.success('워크플로우가 성공적으로 저장되었습니다!');
+      setWorkflowName(''); // 저장 후 입력 필드 초기화
     } catch (error) {
-      console.error("워크플로우 저장 실패:", error);
-      toast.error("워크플로우 저장에 실패했습니다. 다시 시도해주세요.");
+      console.error('워크플로우 저장 실패:', error);
+      toast.error('워크플로우 저장에 실패했습니다. 다시 시도해주세요.');
     }
-  }, [
-    owner,
-    repo,
-    isConfigured,
-    hasNodes,
-    blocks,
-    workflowName,
-    createPipelineMutation,
-  ]);
+  }, [owner, repo, isConfigured, hasNodes, blocks, workflowName, createPipelineMutation]);
 
   if (!isOpen) return null;
 
@@ -1074,9 +1020,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         <div className="flex items-center gap-2">
           <Layers size={20} className="text-blue-600" />
           <h3 className="text-base font-semibold text-gray-900 truncate">
-            {selectedNode
-              ? `${selectedNode.data.label} - 노드 패널`
-              : "워크플로우 패널"}
+            {selectedNode ? `${selectedNode.data.label} - 노드 패널` : '워크플로우 패널'}
           </h3>
         </div>
         <Button
@@ -1092,55 +1036,55 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
       {/* 뷰 모드 탭 */}
       <div className="flex border-b border-gray-200 bg-gray-50">
         <button
-          onClick={() => setViewMode("control")}
+          onClick={() => setViewMode('control')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === "control"
-              ? "bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm"
-              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+            viewMode === 'control'
+              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           <Settings size={14} className="mr-1" />
           컨트롤
         </button>
         <button
-          onClick={() => setViewMode("yaml")}
+          onClick={() => setViewMode('yaml')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === "yaml"
-              ? "bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm"
-              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+            viewMode === 'yaml'
+              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           <Code size={14} className="mr-1" />
           YAML
         </button>
         <button
-          onClick={() => setViewMode("tree")}
+          onClick={() => setViewMode('tree')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === "tree"
-              ? "bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm"
-              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+            viewMode === 'tree'
+              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           <Folder size={14} className="mr-1" />
           트리
         </button>
         <button
-          onClick={() => setViewMode("edit")}
+          onClick={() => setViewMode('edit')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === "edit"
-              ? "bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm"
-              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+            viewMode === 'edit'
+              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           <Edit size={14} className="mr-1" />
           편집
         </button>
         <button
-          onClick={() => setViewMode("settings")}
+          onClick={() => setViewMode('settings')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === "settings"
-              ? "bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm"
-              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+            viewMode === 'settings'
+              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           <Settings size={14} className="mr-1" />
@@ -1150,25 +1094,23 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 
       {/* 컨텐츠 영역 */}
       <div className="flex-1 overflow-auto">
-        {viewMode === "control" && (
+        {viewMode === 'control' && (
           <div className="p-4 space-y-6">
             {/* 저장소 상태 */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Settings size={16} className="text-blue-600" />
-                <div className="text-sm font-medium text-gray-700">
-                  저장소 설정
-                </div>
+                <div className="text-sm font-medium text-gray-700">저장소 설정</div>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-600">상태:</span>
                   <span
                     className={`font-medium ${
-                      isConfigured ? "text-green-600" : "text-red-600"
+                      isConfigured ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {isConfigured ? "설정됨" : "미설정"}
+                    {isConfigured ? '설정됨' : '미설정'}
                   </span>
                 </div>
                 {isConfigured && (
@@ -1190,9 +1132,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Settings size={16} className="text-blue-600" />
-                <div className="text-sm font-medium text-gray-700">
-                  워크플로우 액션
-                </div>
+                <div className="text-sm font-medium text-gray-700">워크플로우 액션</div>
               </div>
 
               {/* 워크플로우 이름 입력 */}
@@ -1212,17 +1152,13 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                 <Button
                   onClick={handleSaveWorkflowToServer}
                   disabled={
-                    createPipelineMutation.isPending ||
-                    !isConfigured ||
-                    !hasNodes
+                    createPipelineMutation.isPending || !isConfigured || !hasNodes
                   }
                   size="sm"
                   className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm disabled:opacity-50"
                 >
                   <Save size={16} />
-                  {createPipelineMutation.isPending
-                    ? "저장 중..."
-                    : "서버 저장"}
+                  {createPipelineMutation.isPending ? '저장 중...' : '서버 저장'}
                 </Button>
                 <Button
                   onClick={onClearWorkspace}
@@ -1259,33 +1195,31 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           </div>
         )}
 
-        {viewMode === "yaml" && (
+        {viewMode === 'yaml' && (
           <div className="p-4 space-y-4">
             {/* YAML 뷰 모드 선택 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Code size={16} className="text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  YAML 미리보기
-                </span>
+                <span className="text-sm font-medium text-gray-700">YAML 미리보기</span>
               </div>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setYamlViewMode("block")}
+                  onClick={() => setYamlViewMode('block')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                    yamlViewMode === "block"
-                      ? "bg-white text-blue-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-800"
+                    yamlViewMode === 'block'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   블록
                 </button>
                 <button
-                  onClick={() => setYamlViewMode("full")}
+                  onClick={() => setYamlViewMode('full')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                    yamlViewMode === "full"
-                      ? "bg-white text-blue-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-800"
+                    yamlViewMode === 'full'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   전체
@@ -1295,9 +1229,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 
             {/* YAML 내용 */}
             <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
-              <pre className="whitespace-pre-wrap break-words">
-                {getCurrentYaml()}
-              </pre>
+              <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
             </div>
 
             {/* 액션 버튼들 */}
@@ -1313,12 +1245,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
               <Button
                 onClick={() => {
                   const yaml = getCurrentYaml();
-                  const blob = new Blob([yaml], { type: "text/yaml" });
+                  const blob = new Blob([yaml], { type: 'text/yaml' });
                   const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
+                  const a = document.createElement('a');
                   a.href = url;
-                  a.download =
-                    yamlViewMode === "block" ? "block.yaml" : "workflow.yaml";
+                  a.download = yamlViewMode === 'block' ? 'block.yaml' : 'workflow.yaml';
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
@@ -1360,13 +1291,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           </div>
         )}
 
-        {viewMode === "tree" && (
+        {viewMode === 'tree' && (
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Folder size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">
-                워크플로우 구조
-              </span>
+              <span className="text-sm font-medium text-gray-700">워크플로우 구조</span>
             </div>
             <div className="bg-white text-gray-900 rounded-lg border border-gray-200 h-80 overflow-auto shadow-sm">
               <TreeView
@@ -1378,13 +1307,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           </div>
         )}
 
-        {viewMode === "edit" && selectedNode && (
+        {viewMode === 'edit' && selectedNode && (
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Edit size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">
-                노드 편집
-              </span>
+              <span className="text-sm font-medium text-gray-700">노드 편집</span>
             </div>
             <NodeEditor
               nodeData={selectedNode.data}
@@ -1393,15 +1320,15 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                 if (updateNodeData) {
                   updateNodeData(selectedNode.id, updatedData);
                 }
-                setViewMode("control");
+                setViewMode('control');
               }}
-              onCancel={() => setViewMode("control")}
+              onCancel={() => setViewMode('control')}
             />
           </div>
         )}
 
         {/* 설정 탭 */}
-        {viewMode === "settings" && (
+        {viewMode === 'settings' && (
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Settings size={16} className="text-blue-600" />
@@ -1445,7 +1372,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Save size={14} />
-                        {isSaving ? "저장 중..." : "워크플로우 저장"}
+                        {isSaving ? '저장 중...' : '워크플로우 저장'}
                       </Button>
                       <Button
                         onClick={onClearWorkspace}
@@ -1472,9 +1399,8 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                   <CardContent>
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600">
-                        GitHub Secrets를 생성하고 관리하세요. 워크플로우에서
-                        사용되는 secrets가 누락된 경우 여기서 추가할 수
-                        있습니다.
+                        GitHub Secrets를 생성하고 관리하세요. 워크플로우에서 사용되는
+                        secrets가 누락된 경우 여기서 추가할 수 있습니다.
                       </p>
                       <GithubTokenDialog
                         trigger={
