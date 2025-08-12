@@ -1,4 +1,5 @@
-import githubClient from '@/api/githubClient';
+import { githubClient } from '@/api';
+import { API_ENDPOINTS } from '@/config/apiConfig';
 import { BlockResponse } from '@/api/types';
 
 /**
@@ -7,5 +8,5 @@ import { BlockResponse } from '@/api/types';
 export const blockAPI = {
   // * 4.1 모든 블록 조회
   // PresetController에 맞춘 엔드포인트로 변경
-  getAll: () => githubClient.get<BlockResponse[]>('/api/presets/blocks'),
+  getAll: () => githubClient.get<BlockResponse[]>(API_ENDPOINTS.PRESETS.BLOCKS),
 };

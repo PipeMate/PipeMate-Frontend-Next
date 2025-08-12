@@ -4,7 +4,7 @@
 
 ## 구조
 
-```
+```text
 src/api/
 ├── index.ts              # 기본 API 클라이언트 설정
 ├── githubClient.ts       # GitHub 전용 클라이언트 (토큰 인터셉터 포함)
@@ -25,21 +25,16 @@ src/api/
 ### 기본 사용법
 
 ```typescript
-import {
-  pipelineAPI,
-  workflowAPI,
-  secretsAPI,
-  blockAPI,
-} from "@/api/githubClient";
+import { pipelineAPI, workflowAPI, secretsAPI, blockAPI } from '@/api';
 
 // 파이프라인 API 사용
-const result = await pipelineAPI.get("workflow-name", "owner", "repo");
+const result = await pipelineAPI.get('workflow-name', 'owner', 'repo');
 
 // 워크플로우 API 사용
-const workflows = await workflowAPI.getList("owner", "repo");
+const workflows = await workflowAPI.getList('owner', 'repo');
 
 // 시크릿 API 사용
-const secrets = await secretsAPI.getList("owner", "repo");
+const secrets = await secretsAPI.getList('owner', 'repo');
 
 // 블록 API 사용
 const blocks = await blockAPI.getAll();
@@ -48,18 +43,14 @@ const blocks = await blockAPI.getAll();
 ### 타입 사용법
 
 ```typescript
-import {
-  PipelineRequest,
-  WorkflowItem,
-  BlockResponse,
-} from "@/api/githubClient";
+import { PipelineRequest, WorkflowItem, BlockResponse } from '@/api';
 
 const request: PipelineRequest = {
-  owner: "username",
-  repo: "repository",
-  workflowName: "workflow.yml",
+  owner: 'username',
+  repo: 'repository',
+  workflowName: 'workflow.yml',
   inputJson: [],
-  description: "설명",
+  description: '설명',
 };
 ```
 

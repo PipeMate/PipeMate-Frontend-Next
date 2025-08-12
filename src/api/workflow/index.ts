@@ -1,4 +1,5 @@
-import githubClient from '@/api/githubClient';
+import { githubClient } from '@/api';
+import { API_ENDPOINTS } from '@/config/apiConfig';
 import { WorkflowItem, GithubJobDetailResponse } from '@/api/types';
 
 /**
@@ -8,21 +9,19 @@ import { WorkflowItem, GithubJobDetailResponse } from '@/api/types';
 export const workflowAPI = {
   // * 3.1 Workflow 목록 조회
   getList: (owner: string, repo: string) =>
-    githubClient.get<{ workflows: WorkflowItem[] }>('/api/github/workflows', {
-      params: { owner, repo },
-    }),
+    githubClient.get<{ workflows: WorkflowItem[] }>(
+      API_ENDPOINTS.GITHUB.WORKFLOWS(owner, repo),
+    ),
 
   // * 3.2 Workflow 상세 정보 조회
   getDetail: (workflowId: string, owner: string, repo: string) =>
-    githubClient.get<WorkflowItem>(`/api/github/workflows/${workflowId}`, {
-      params: { owner, repo },
-    }),
+    githubClient.get<WorkflowItem>(
+      API_ENDPOINTS.GITHUB.WORKFLOW_DETAIL(workflowId, owner, repo),
+    ),
 
   // * 3.3 Workflow 실행 목록 조회
   getRuns: (owner: string, repo: string) =>
-    githubClient.get('/api/github/workflow-runs', {
-      params: { owner, repo },
-    }),
+    githubClient.get(API_ENDPOINTS.GITHUB.WORKFLOW_RUNS(owner, repo)),
 
   // * 3.4 Workflow 실행 상세 정보 조회
   getRunDetail: (owner: string, repo: string, runId: string) =>
@@ -32,7 +31,7 @@ export const workflowAPI = {
 
   // * 3.5 Workflow 실행 로그 조회
   getRunLogs: (owner: string, repo: string, runId: string) =>
-    githubClient.get<string>('/api/github/workflow-run/logs/raw', {
+    githubClient.get<string>(`/api/github/workflow-run/logs/raw`, {
       params: { owner, repo, runId },
     }),
 

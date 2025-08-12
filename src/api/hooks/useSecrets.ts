@@ -2,7 +2,7 @@
  * GitHub Secrets 관련 React Query 훅 모음
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { secretsAPI } from '@/api/githubClient';
+import { secretsAPI } from '@/api';
 import { GithubSecretRequest } from '@/api/types';
 
 // * Secrets 목록 조회
