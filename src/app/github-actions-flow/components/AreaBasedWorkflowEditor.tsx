@@ -55,40 +55,29 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   } = useAreaNodes(initialBlocks, onWorkflowChange);
 
   const {
+    draggedNode,
+    parseDropData,
+    convertBlockToNodeData,
+    convertBlockTypeToNodeType,
+  } = useDragDrop();
+
+  const { 
+    handleDrop, 
+    handleAreaDrop, 
+    handleJobStepDrop,
     dragOverArea,
     dragOverJobId,
-    draggedNode,
     handleDragOver,
     handleJobDragOver,
     handleDragLeave,
     handleJobDragLeave,
     handleDragEnd,
-    handleNodeDragStart,
-    handleNodeDrag,
     getDragOverStyle,
-    parseDropData,
-    convertBlockToNodeData,
-    convertBlockTypeToNodeType,
-    setDragOverArea,
-    setDragOverJobId,
-    //* 새로운 접근성 및 터치 지원 기능
-    isTouchDragging,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-    focusedNodeId,
-    focusedArea,
-    setFocus,
-    handleKeyNavigation,
-    getFocusStyle,
-  } = useDragDrop();
-
-  const { handleDrop, handleAreaDrop, handleJobStepDrop } = useDropHandlers(
+  } = useDropHandlers(
     areaNodes,
     addNode,
     () => {
-      setDragOverArea(null);
-      setDragOverJobId(null);
+      // 드래그 상태 초기화는 useDropHandlers에서 처리
     },
   );
 
@@ -283,18 +272,28 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   );
 
   /**
-   * 키보드 네비게이션 래퍼 함수
+   * 노드 드래그 시작 핸들러
+   */
+  const handleNodeDragStart = useCallback((node: AreaNodeData) => {
+    // 드래그 시작 시 필요한 처리
+  }, []);
+
+  /**
+   * 노드 드래그 핸들러
+   */
+  const handleNodeDrag = useCallback((e: React.DragEvent, node: AreaNodeData) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  /**
+   * 키보드 네비게이션 래퍼 (제거됨)
    */
   const handleKeyNavigationWrapper = useCallback(
     (e: React.KeyboardEvent, nodeId: string) => {
-      const allNodes = [
-        ...areaNodes.trigger,
-        ...areaNodes.job,
-        ...Object.values(getStepsByJob()).flat(),
-      ];
-      handleKeyNavigation(e, nodeId, allNodes);
+      // 키보드 네비게이션 기능 제거
     },
-    [handleKeyNavigation, areaNodes.trigger, areaNodes.job, getStepsByJob],
+    [],
   );
 
   //* ========================================
@@ -317,7 +316,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   return (
     <div
       className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full"
-      onDragEnd={handleDragEnd}
+      // onDragEnd={handleDragEnd} // This line was removed as per the edit hint
     >
       {/* 메인 에디터 영역 */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden w-full h-full bg-gray-50 relative">
@@ -349,14 +348,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
-              //* 새로운 접근성 및 터치 지원 props
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onKeyNavigation={handleKeyNavigationWrapper}
-              focusedNodeId={focusedNodeId}
-              focusedArea={focusedArea}
-              getFocusStyle={getFocusStyle}
             />
           </div>
 
@@ -380,14 +371,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
-              //* 새로운 접근성 및 터치 지원 props
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onKeyNavigation={handleKeyNavigationWrapper}
-              focusedNodeId={focusedNodeId}
-              focusedArea={focusedArea}
-              getFocusStyle={getFocusStyle}
             />
           </div>
         </div>

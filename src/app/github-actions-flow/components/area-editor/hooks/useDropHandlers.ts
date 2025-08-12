@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ServerBlock, WorkflowNodeData } from '../../../types';
 import { AreaNodes, NodeType } from '../types';
 import { toast } from 'react-toastify';
@@ -12,6 +12,10 @@ export const useDropHandlers = (
   addNode: (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => void,
   clearDragState?: () => void,
 ) => {
+  //* 드래그 오버 상태 관리
+  const [dragOverArea, setDragOverArea] = useState<string | null>(null);
+  const [dragOverJobId, setDragOverJobId] = useState<string | null>(null);
+
   //* 중복 토스트 방지를 위한 디바운싱
   const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
 
@@ -38,6 +42,60 @@ export const useDropHandlers = (
       }
     },
     [],
+  );
+
+  //* 드래그 오버 핸들러들
+  const handleDragOver = useCallback((e: React.DragEvent, areaKey: string) => {
+    e.preventDefault();
+    setDragOverArea(areaKey);
+  }, []);
+
+  const handleJobDragOver = useCallback((e: React.DragEvent, jobId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverJobId(jobId);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent, areaKey: string) => {
+    e.preventDefault();
+    setDragOverArea(null);
+  }, []);
+
+  const handleJobDragLeave = useCallback((e: React.DragEvent, jobId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverJobId(null);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragOverArea(null);
+    setDragOverJobId(null);
+    clearDragState?.();
+  }, [clearDragState]);
+
+  const getDragOverStyle = useCallback(
+    (areaKey: string, isJobStep: boolean = false, jobId?: string) => {
+      if (isJobStep && jobId) {
+        return dragOverJobId === jobId
+          ? 'border-orange-500 bg-orange-100/80 border-solid ring-2 ring-orange-300'
+          : '';
+      }
+
+      if (dragOverArea === areaKey) {
+        switch (areaKey) {
+          case 'trigger':
+            return 'border-green-500 bg-green-100/80 border-solid ring-2 ring-green-300';
+          case 'job':
+            return 'border-blue-500 bg-blue-100/80 border-solid ring-2 ring-blue-300';
+          case 'step':
+            return 'border-yellow-500 bg-yellow-100/80 border-solid ring-2 ring-yellow-300';
+          default:
+            return 'border-gray-500 bg-gray-100/80 border-solid ring-2 ring-gray-300';
+        }
+      }
+      return '';
+    },
+    [dragOverArea, dragOverJobId],
   );
 
   //* ========================================
@@ -405,5 +463,13 @@ export const useDropHandlers = (
     validateOrderConstraints,
     validateDuplicates,
     performValidation,
+    dragOverArea,
+    dragOverJobId,
+    handleDragOver,
+    handleJobDragOver,
+    handleDragLeave,
+    handleJobDragLeave,
+    handleDragEnd,
+    getDragOverStyle,
   };
 };
