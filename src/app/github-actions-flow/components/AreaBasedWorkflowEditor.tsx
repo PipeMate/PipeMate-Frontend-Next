@@ -214,7 +214,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           type: n.type,
           position: { x: 0, y: 0 },
           data: n.data as unknown as Record<string, unknown>,
-        }))
+        })),
       );
       onWorkflowChange(blocks);
     }

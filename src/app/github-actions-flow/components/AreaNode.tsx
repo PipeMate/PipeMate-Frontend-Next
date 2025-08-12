@@ -112,7 +112,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       e.stopPropagation();
-      
+
       switch (e.key) {
         case 'Enter':
         case ' ':
