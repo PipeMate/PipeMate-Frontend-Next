@@ -85,9 +85,15 @@ export interface GroupedGithubSecretListResponse {
 export interface BlockResponse {
   id: number;
   name: string;
-  type: string;
+  type: 'trigger' | 'job' | 'step';
   description?: string;
-  content: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
+  // 백엔드 BlockResponse 표준 필드
+  config: Record<string, unknown>;
+  jobName?: string; // job/step에서만
+  domain?: string; // step에서만
+  task?: string[]; // step에서만
+  // 과거/목 데이터 호환 필드 (있을 수도 있음)
+  content?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
 }

@@ -6,12 +6,19 @@
 import axios from 'axios';
 import { STORAGES } from '@/config/appConstants';
 import { getCookie } from '@/lib/cookieUtils';
+import { API_CONFIG } from '@/config/apiConfig';
 
 // * GitHub 전용 클라이언트 (GitHub Personal Access Token 포함)
-// - NEXT_PUBLIC_API_URL이 없으면 동일 오리진 상대 경로(리라이트 적용)
+// - 개발(default): 동일 오리진 상대 경로(Next.js rewrite 적용)
+// - 운영/실서비스(또는 강제 플래그): 백엔드 절대 경로 사용
+// - 레거시 호환: NEXT_PUBLIC_API_URL이 있으면 우선 사용
+const githubBaseUrl = API_CONFIG.USE_REAL_API
+  ? process.env.NEXT_PUBLIC_API_URL ?? API_CONFIG.BASE_URL
+  : '';
+
 const githubClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? '',
-  timeout: 10000,
+  baseURL: githubBaseUrl,
+  timeout: API_CONFIG.TIMEOUT,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -28,17 +35,5 @@ githubClient.interceptors.request.use(
   },
   (error) => Promise.reject(error),
 );
-
-// * API 모듈들 import
-export { pipelineAPI } from './pipeline';
-export { workflowAPI } from './workflow';
-export { secretsAPI } from './secrets';
-export { blockAPI } from './blocks';
-
-// * API Hooks export
-export * from './hooks';
-
-// * 타입들 export
-export * from './types';
 
 export default githubClient;

@@ -76,7 +76,11 @@ export default function PresetsPage() {
         name: block.name,
         description: block.description,
         type: block.type,
-        content: block.content,
+        // 백엔드 표준인 config 필드 우선 사용, 없으면 content로 폴백
+        config: block.config ?? block.content,
+        jobName: block.jobName,
+        domain: block.domain,
+        task: block.task,
       };
 
       await navigator.clipboard.writeText(JSON.stringify(blockData, null, 2));

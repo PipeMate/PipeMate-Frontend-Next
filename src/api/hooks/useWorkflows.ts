@@ -3,7 +3,7 @@
  * - 목록/실행/로그/잡/실행/취소를 제공합니다.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workflowAPI } from '@/api/githubClient';
+import { workflowAPI } from '@/api';
 
 // * 워크플로우 목록 조회
 export const useWorkflows = (owner: string, repo: string) => {

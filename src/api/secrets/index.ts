@@ -1,4 +1,5 @@
-import githubClient from '@/api/githubClient';
+import { githubClient } from '@/api';
+import { API_ENDPOINTS } from '@/config/apiConfig';
 import {
   GithubSecretListResponse,
   GroupedGithubSecretListResponse,
@@ -13,15 +14,13 @@ import {
 export const secretsAPI = {
   // * 2.1 Secrets 목록 조회 (기본)
   getList: (owner: string, repo: string) =>
-    githubClient.get<GithubSecretListResponse>('/api/github/repos/secrets', {
-      params: { owner, repo },
-    }),
+    githubClient.get<GithubSecretListResponse>(API_ENDPOINTS.GITHUB.SECRETS(owner, repo)),
 
   // * 2.2 Secrets 그룹화된 목록 조회 (새로 추가)
   getGroupedList: (owner: string, repo: string) =>
-    githubClient.get<GroupedGithubSecretListResponse>('/api/github/repos/secrets', {
-      params: { owner, repo },
-    }),
+    githubClient.get<GroupedGithubSecretListResponse>(
+      API_ENDPOINTS.GITHUB.SECRETS(owner, repo),
+    ),
 
   // * 2.3 Secret 생성/수정
   createOrUpdate: (
