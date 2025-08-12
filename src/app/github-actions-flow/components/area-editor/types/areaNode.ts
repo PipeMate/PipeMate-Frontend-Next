@@ -1,31 +1,5 @@
-import { NodeType } from "../types";
-
-export interface AreaNodeProps {
-  node: AreaNodeData;
-  onSelect: (node: AreaNodeData) => void;
-  onDragStart: (node: AreaNodeData) => void;
-  onDrag: (e: React.DragEvent, node: AreaNodeData) => void;
-}
-
-export interface AreaNodeData {
-  id: string;
-  type: NodeType;
-  data: WorkflowNodeData;
-  order: number;
-  parentId?: string;
-  isSelected: boolean;
-  isEditing: boolean;
-}
-
-export interface WorkflowNodeData {
-  label: string;
-  type: "workflow_trigger" | "job" | "step";
-  description: string;
-  jobName: string;
-  domain: string;
-  task: string[];
-  config: Record<string, unknown>;
-}
+// 이 파일은 상세 설정 타입(Trigger/Job/Step)만 정의합니다.
+// 노드와 워크플로우 노드 데이터 타입은 `../types` 및 `../../types`를 사용하세요.
 
 export interface TriggerConfig {
   triggers: string[];

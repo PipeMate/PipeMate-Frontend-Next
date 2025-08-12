@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Play,
   GitBranch,
@@ -16,15 +16,15 @@ import {
   EyeOff,
   Workflow,
   Server,
-} from "lucide-react";
-import { NodeType } from "../types";
-import { AreaNodeData } from "../types/areaNode";
+} from 'lucide-react';
+import { NodeType } from '../types';
+import { AreaNodeData } from '../types';
 import {
   parseTriggerConfig,
   parseJobConfig,
   parseStepConfig,
   parseStepConfigDetail,
-} from "../utils/configParser";
+} from '../utils/configParser';
 
 interface BlockSummaryProps {
   node: AreaNodeData;
@@ -33,14 +33,14 @@ interface BlockSummaryProps {
 //* 긴 문자열을 적절히 줄이는 함수
 const truncateString = (str: string, maxLength: number = 100): string => {
   if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength) + "...";
+  return str.substring(0, maxLength) + '...';
 };
 
 //* config 객체를 계층적으로 렌더링하는 함수
 const renderConfigObject = (
   obj: Record<string, unknown>,
   level: number = 0,
-  maxDepth: number = 3
+  maxDepth: number = 3,
 ): React.ReactNode => {
   if (level >= maxDepth) {
     return <span className="text-xs opacity-70 font-medium">...</span>;
@@ -57,14 +57,10 @@ const renderConfigObject = (
             {key}:
           </span>
           <span className="truncate max-w-[150px] text-gray-700 font-medium">
-            {typeof value === "string"
+            {typeof value === 'string'
               ? truncateString(value)
-              : typeof value === "object" && value !== null
-              ? renderConfigObject(
-                  value as Record<string, unknown>,
-                  level + 1,
-                  maxDepth
-                )
+              : typeof value === 'object' && value !== null
+              ? renderConfigObject(value as Record<string, unknown>, level + 1, maxDepth)
               : JSON.stringify(value)}
           </span>
         </div>
@@ -77,7 +73,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
   if (!node.data.config) return null;
 
   switch (node.type) {
-    case "workflowTrigger":
+    case 'workflowTrigger':
       const triggerInfo = parseTriggerConfig(node.data.config);
       return (
         <div className="space-y-2">
@@ -94,7 +90,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-90">
               <Play size={12} />
               <span className="text-gray-700 font-medium">
-                {triggerInfo.triggers.join(", ")}
+                {triggerInfo.triggers.join(', ')}
               </span>
             </div>
           )}
@@ -104,7 +100,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-85">
               <GitBranch size={12} />
               <span className="text-gray-700 font-medium">
-                {triggerInfo.branches.join(", ")}
+                {triggerInfo.branches.join(', ')}
               </span>
             </div>
           )}
@@ -114,7 +110,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-85">
               <Code size={12} />
               <span className="text-gray-700 font-medium">
-                {triggerInfo.paths.join(", ")}
+                {triggerInfo.paths.join(', ')}
               </span>
             </div>
           )}
@@ -124,18 +120,13 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="space-y-1">
               {Object.entries(node.data.config).map(([key, value]) => {
                 // 이미 표시된 정보들은 제외
-                if (["name", "on"].includes(key)) return null;
+                if (['name', 'on'].includes(key)) return null;
 
                 return (
-                  <div
-                    key={key}
-                    className="flex items-start gap-1 text-xs opacity-80"
-                  >
+                  <div key={key} className="flex items-start gap-1 text-xs opacity-80">
                     <span className="font-bold text-gray-800">{key}:</span>
                     <span className="truncate max-w-[150px] text-gray-700 font-medium">
-                      {typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)}
+                      {typeof value === 'string' ? value : JSON.stringify(value)}
                     </span>
                   </div>
                 );
@@ -145,7 +136,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
         </div>
       );
 
-    case "job":
+    case 'job':
       const jobInfo = parseJobConfig(node.data.config);
       return (
         <div className="space-y-2">
@@ -154,7 +145,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-90">
               <Settings size={12} />
               <span className="text-gray-700 font-medium">
-                {jobInfo.runsOn.join(", ")}
+                {jobInfo.runsOn.join(', ')}
               </span>
             </div>
           )}
@@ -164,7 +155,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-85">
               <ArrowRight size={12} />
               <span className="text-gray-700 font-medium">
-                의존: {jobInfo.needs.join(", ")}
+                의존: {jobInfo.needs.join(', ')}
               </span>
             </div>
           )}
@@ -174,7 +165,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-80">
               <Clock size={12} />
               <span className="text-gray-700 font-medium">
-                {jobInfo.timeout.join(", ")}
+                {jobInfo.timeout.join(', ')}
               </span>
             </div>
           )}
@@ -184,7 +175,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="flex items-center gap-1 text-xs opacity-80">
               <AlertCircle size={12} />
               <span className="truncate max-w-[180px] text-gray-700 font-medium">
-                {jobInfo.conditions.join(", ")}
+                {jobInfo.conditions.join(', ')}
               </span>
             </div>
           )}
@@ -194,19 +185,14 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
             <div className="space-y-1">
               {Object.entries(node.data.config).map(([key, value]) => {
                 // 이미 표시된 정보들은 제외
-                if (["jobs", "runs-on", "needs", "timeout", "if"].includes(key))
+                if (['jobs', 'runs-on', 'needs', 'timeout', 'if'].includes(key))
                   return null;
 
                 return (
-                  <div
-                    key={key}
-                    className="flex items-start gap-1 text-xs opacity-80"
-                  >
+                  <div key={key} className="flex items-start gap-1 text-xs opacity-80">
                     <span className="font-bold text-gray-800">{key}:</span>
                     <span className="truncate max-w-[150px] text-gray-700 font-medium">
-                      {typeof value === "string"
-                        ? value
-                        : JSON.stringify(value)}
+                      {typeof value === 'string' ? value : JSON.stringify(value)}
                     </span>
                   </div>
                 );
@@ -216,7 +202,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
         </div>
       );
 
-    case "step":
+    case 'step':
       const stepInfo = parseStepConfig(node.data.config);
       const stepDetail = parseStepConfigDetail(node.data.config);
 
@@ -268,14 +254,9 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           <div className="space-y-1">
             {stepDetail.continueOnError !== undefined && (
               <div className="flex items-center gap-1 text-xs opacity-80">
-                {stepDetail.continueOnError ? (
-                  <Eye size={12} />
-                ) : (
-                  <EyeOff size={12} />
-                )}
+                {stepDetail.continueOnError ? <Eye size={12} /> : <EyeOff size={12} />}
                 <span className="text-gray-700 font-medium">
-                  continue-on-error:{" "}
-                  {stepDetail.continueOnError ? "true" : "false"}
+                  continue-on-error: {stepDetail.continueOnError ? 'true' : 'false'}
                 </span>
               </div>
             )}
