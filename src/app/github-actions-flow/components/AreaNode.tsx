@@ -1,9 +1,16 @@
-import React, { useCallback } from "react";
-import { AreaNodeProps, AreaNodeData } from "./area-editor/types/areaNode";
-import { getNodeStyle } from "./area-editor/utils/nodeStyles";
-import { NodeIcon } from "./area-editor/components/NodeIcon";
-import { BlockSummary } from "./area-editor/components/BlockSummary";
-import { Info } from "lucide-react";
+import React, { useCallback } from 'react';
+import { AreaNodeData } from './area-editor/types';
+import { getNodeStyle } from './area-editor/utils/nodeStyles';
+import { NodeIcon } from './area-editor/components/NodeIcon';
+import { BlockSummary } from './area-editor/components/BlockSummary';
+import { Info } from 'lucide-react';
+
+interface AreaNodeProps {
+  node: AreaNodeData;
+  onSelect: (node: AreaNodeData) => void;
+  onDragStart: (node: AreaNodeData) => void;
+  onDrag: (e: React.DragEvent, node: AreaNodeData) => void;
+}
 
 export const AreaNode: React.FC<AreaNodeProps> = ({
   node,
@@ -16,7 +23,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       e.stopPropagation();
       onSelect(node);
     },
-    [node, onSelect]
+    [node, onSelect],
   );
 
   const handleDragStart = useCallback(
@@ -24,7 +31,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       e.stopPropagation();
       onDragStart(node);
     },
-    [node, onDragStart]
+    [node, onDragStart],
   );
 
   const handleDrag = useCallback(
@@ -32,7 +39,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       e.stopPropagation();
       onDrag(e, node);
     },
-    [node, onDrag]
+    [node, onDrag],
   );
 
   const isChild = node.parentId !== undefined;
@@ -42,15 +49,15 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
 
   return (
     <div
-      className={`area-node ${isSelected ? "ring-2 ring-blue-500" : ""} ${
-        isEditing ? "ring-2 ring-yellow-500" : ""
+      className={`area-node ${isSelected ? 'ring-2 ring-blue-500' : ''} ${
+        isEditing ? 'ring-2 ring-yellow-500' : ''
       } hover:scale-[1.02] transition-all duration-200`}
       style={{
         ...style,
         boxShadow:
           isSelected || isEditing
-            ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
-            : "0 2px 8px rgba(0, 0, 0, 0.1)",
+            ? '0 0 0 2px rgba(59, 130, 246, 0.5)'
+            : '0 2px 8px rgba(0, 0, 0, 0.1)',
       }}
       draggable
       onDragStart={handleDragStart}
@@ -62,28 +69,25 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
         <NodeIcon nodeType={node.type} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span
-              className="text-sm font-bold truncate"
-              style={{ color: style.color }}
-            >
+            <span className="text-sm font-bold truncate" style={{ color: style.color }}>
               {node.data.label}
             </span>
           </div>
         </div>
 
         {/* Job 이름 또는 도메인/태스크 배지 - 우측 상단 */}
-        {node.data.jobName && (node.type === "job" || node.type === "step") && (
+        {node.data.jobName && (node.type === 'job' || node.type === 'step') && (
           <span className="text-xs bg-white/80 px-2 py-1 rounded-full font-medium shadow-sm border border-gray-200">
             {node.data.jobName}
           </span>
         )}
-        {node.type === "step" &&
+        {node.type === 'step' &&
           (node.data.domain || node.data.task) &&
           !node.data.jobName && (
             <span className="text-xs bg-white/80 px-2 py-1 rounded-full font-medium shadow-sm border border-gray-200">
               {node.data.domain && node.data.task && node.data.task.length > 0
-                ? `${node.data.domain} • ${node.data.task.join(", ")}`
-                : node.data.domain || node.data.task?.join(", ")}
+                ? `${node.data.domain} • ${node.data.task.join(', ')}`
+                : node.data.domain || node.data.task?.join(', ')}
             </span>
           )}
       </div>

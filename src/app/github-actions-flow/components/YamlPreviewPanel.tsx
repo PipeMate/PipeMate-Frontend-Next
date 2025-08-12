@@ -4,19 +4,12 @@
 //* 이 컴포넌트는 선택된 블록의 YAML과 전체 워크플로우 YAML을
 //* 실시간으로 미리보기하고 복사/다운로드 기능을 제공합니다.
 
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { ServerBlock } from "../types";
-import { generateBlockYaml, generateFullYaml } from "../utils/yamlGenerator";
-import {
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  File,
-  Play,
-  Settings,
-} from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { ServerBlock } from '../types';
+import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
+import { ChevronDown, ChevronRight, Folder, File, Play, Settings } from 'lucide-react';
 
 //* ========================================
 //* Props 타입 정의
@@ -60,22 +53,22 @@ const analyzeWorkflowStructure = (blocks: ServerBlock[]): WorkflowStructure => {
   blocks.forEach((block) => {
     if (!block || !block.type) return; // 안전한 체크 추가
 
-    if (block.type === "trigger") {
+    if (block.type === 'trigger') {
       structure.trigger = block;
-    } else if (block.type === "job") {
-      const jobName = block["job-name"] || "unknown";
+    } else if (block.type === 'job') {
+      const jobName = block['job-name'] || 'unknown';
       structure.jobs[jobName] = {
         job: block,
         steps: [],
       };
-    } else if (block.type === "step") {
-      const jobName = block["job-name"] || "unknown";
+    } else if (block.type === 'step') {
+      const jobName = block['job-name'] || 'unknown';
       if (!structure.jobs[jobName]) {
         structure.jobs[jobName] = {
           job: {
             name: jobName,
-            type: "job",
-            "job-name": jobName,
+            type: 'job',
+            'job-name': jobName,
           } as ServerBlock,
           steps: [],
         };
@@ -115,9 +108,7 @@ const TreeView: React.FC<TreeViewProps> = ({
   };
 
   const isSelected = (block: ServerBlock) => {
-    return (
-      selectedBlock?.name === block.name && selectedBlock?.type === block.type
-    );
+    return selectedBlock?.name === block.name && selectedBlock?.type === block.type;
   };
 
   // 안전한 렌더링을 위한 체크
@@ -136,8 +127,8 @@ const TreeView: React.FC<TreeViewProps> = ({
         <div
           className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
             isSelected(structure.trigger)
-              ? "bg-blue-100 border border-blue-300"
-              : "hover:bg-gray-50"
+              ? 'bg-blue-100 border border-blue-300'
+              : 'hover:bg-gray-50'
           }`}
           onClick={() => onBlockSelect?.(structure.trigger!)}
         >
@@ -153,8 +144,8 @@ const TreeView: React.FC<TreeViewProps> = ({
           <div
             className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${
               isSelected(jobData.job)
-                ? "bg-green-100 border-b border-green-300"
-                : "hover:bg-gray-50"
+                ? 'bg-green-100 border-b border-green-300'
+                : 'hover:bg-gray-50'
             }`}
             onClick={() => onBlockSelect?.(jobData.job)}
           >
@@ -187,16 +178,14 @@ const TreeView: React.FC<TreeViewProps> = ({
                   key={`${jobName}-${index}`}
                   className={`flex items-center gap-2 p-2 ml-4 cursor-pointer transition-colors ${
                     isSelected(step)
-                      ? "bg-orange-100 border border-orange-300"
-                      : "hover:bg-gray-100"
+                      ? 'bg-orange-100 border border-orange-300'
+                      : 'hover:bg-gray-100'
                   }`}
                   onClick={() => onBlockSelect?.(step)}
                 >
                   <File size={14} className="text-orange-600" />
                   <span className="text-sm">{step.name}</span>
-                  <span className="text-xs text-gray-500">
-                    (Step {index + 1})
-                  </span>
+                  <span className="text-xs text-gray-500">(Step {index + 1})</span>
                 </div>
               ))}
               {jobData.steps.length === 0 && (
@@ -228,12 +217,12 @@ export const YamlPreviewPanel = ({
   onBlockUpdate,
 }: YamlPreviewPanelProps) => {
   //* 뷰 모드 상태 (블록별 / 전체 / 트리) - 기본값을 "block"으로 변경
-  const [viewMode, setViewMode] = useState<"block" | "full" | "tree">("block");
-  const [editableYaml, setEditableYaml] = useState<string>("");
+  const [viewMode, setViewMode] = useState<'block' | 'full' | 'tree'>('block');
+  const [editableYaml, setEditableYaml] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "success" | "error"
-  >("idle");
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>(
+    'idle',
+  );
 
   //* 워크플로우 구조 분석 - 안전한 처리 추가
   const workflowStructure = useMemo(() => {
@@ -241,7 +230,7 @@ export const YamlPreviewPanel = ({
       const structure = analyzeWorkflowStructure(blocks || []);
       return structure;
     } catch (error) {
-      console.error("워크플로우 구조 분석 오류:", error);
+      console.error('워크플로우 구조 분석 오류:', error);
       return { jobs: {} };
     }
   }, [blocks]);
@@ -264,7 +253,7 @@ export const YamlPreviewPanel = ({
     if (selectedBlock) {
       return generateBlockYaml(selectedBlock);
     }
-    return "# 블록을 선택하여 YAML을 확인하세요";
+    return '# 블록을 선택하여 YAML을 확인하세요';
   }, [selectedBlock]);
 
   //* 전체 YAML 생성
@@ -273,7 +262,7 @@ export const YamlPreviewPanel = ({
     if (blocks && blocks.length > 0) {
       return generateFullYaml(blocks);
     }
-    return "# 워크플로우를 구성하여 YAML을 확인하세요";
+    return '# 워크플로우를 구성하여 YAML을 확인하세요';
   }, [blocks]);
 
   //* ========================================
@@ -286,61 +275,58 @@ export const YamlPreviewPanel = ({
   }, []);
 
   //* YAML 파싱 함수 (간단한 구현)
-  const parseYamlToConfig = useCallback(
-    (yaml: string): Record<string, unknown> => {
-      const lines = yaml.split("\n");
-      const config: Record<string, unknown> = {};
-      let currentKey = "";
-      let currentValue: Record<string, unknown> | unknown[] = {};
+  const parseYamlToConfig = useCallback((yaml: string): Record<string, unknown> => {
+    const lines = yaml.split('\n');
+    const config: Record<string, unknown> = {};
+    let currentKey = '';
+    let currentValue: Record<string, unknown> | unknown[] = {};
 
-      lines.forEach((line) => {
-        const trimmedLine = line.trim();
-        if (!trimmedLine || trimmedLine.startsWith("#")) return;
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.startsWith('#')) return;
 
-        const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
-        if (match) {
-          const [, key, value] = match;
-          if (value) {
-            config[key] = value;
-          } else {
-            currentKey = key;
-            currentValue = {};
-          }
-        } else if (trimmedLine.startsWith("- ")) {
-          // 배열 항목
-          const item = trimmedLine.substring(2);
-          if (!Array.isArray(currentValue)) {
-            currentValue = [];
-          }
-          (currentValue as unknown[]).push(item);
-          config[currentKey] = currentValue;
-        } else if (trimmedLine.includes(":")) {
-          // 중첩된 객체
-          const [key, value] = trimmedLine.split(":").map((s) => s.trim());
-          if (value) {
-            if (!(currentValue as Record<string, unknown>)[key]) {
-              (currentValue as Record<string, unknown>)[key] = {};
-            }
-            (currentValue as Record<string, unknown>)[key] = value;
-          }
-          config[currentKey] = currentValue;
+      const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
+      if (match) {
+        const [, key, value] = match;
+        if (value) {
+          config[key] = value;
+        } else {
+          currentKey = key;
+          currentValue = {};
         }
-      });
+      } else if (trimmedLine.startsWith('- ')) {
+        // 배열 항목
+        const item = trimmedLine.substring(2);
+        if (!Array.isArray(currentValue)) {
+          currentValue = [];
+        }
+        (currentValue as unknown[]).push(item);
+        config[currentKey] = currentValue;
+      } else if (trimmedLine.includes(':')) {
+        // 중첩된 객체
+        const [key, value] = trimmedLine.split(':').map((s) => s.trim());
+        if (value) {
+          if (!(currentValue as Record<string, unknown>)[key]) {
+            (currentValue as Record<string, unknown>)[key] = {};
+          }
+          (currentValue as Record<string, unknown>)[key] = value;
+        }
+        config[currentKey] = currentValue;
+      }
+    });
 
-      return config;
-    },
-    []
-  );
+    return config;
+  }, []);
 
   //* 편집된 YAML 저장 핸들러
   const handleSaveYaml = useCallback(async () => {
     if (!editableYaml.trim()) return;
 
     setIsSaving(true);
-    setSaveStatus("saving");
+    setSaveStatus('saving');
 
     try {
-      if (viewMode === "block" && selectedBlock && onBlockUpdate) {
+      if (viewMode === 'block' && selectedBlock && onBlockUpdate) {
         //* 단일 블록 업데이트
         const parsedConfig = parseYamlToConfig(editableYaml);
         const updatedBlock = {
@@ -348,15 +334,15 @@ export const YamlPreviewPanel = ({
           config: parsedConfig,
         };
         onBlockUpdate(updatedBlock);
-        setSaveStatus("success");
+        setSaveStatus('success');
 
         //* 성공 메시지 표시
-        setTimeout(() => setSaveStatus("idle"), 2000);
+        setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (error) {
-      console.error("YAML 파싱 오류:", error);
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      console.error('YAML 파싱 오류:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -369,9 +355,9 @@ export const YamlPreviewPanel = ({
   //* YAML을 클립보드에 복사
   //! 현재 뷰 모드에 따라 YAML을 클립보드에 복사
   const copyYaml = useCallback(() => {
-    const yaml = viewMode === "block" ? getBlockYaml() : getFullYaml();
+    const yaml = viewMode === 'block' ? getBlockYaml() : getFullYaml();
     navigator.clipboard.writeText(yaml).then(() => {
-      console.log("YAML이 클립보드에 복사되었습니다.");
+      console.log('YAML이 클립보드에 복사되었습니다.');
     });
   }, [viewMode, getBlockYaml, getFullYaml]);
 
@@ -382,16 +368,13 @@ export const YamlPreviewPanel = ({
         onBlockUpdate(block);
       }
     },
-    [onBlockUpdate]
+    [onBlockUpdate],
   );
 
   //* 뷰 모드 변경 핸들러
-  const handleViewModeChange = useCallback(
-    (mode: "block" | "full" | "tree") => {
-      setViewMode(mode);
-    },
-    []
-  );
+  const handleViewModeChange = useCallback((mode: 'block' | 'full' | 'tree') => {
+    setViewMode(mode);
+  }, []);
 
   //* ========================================
   //* 렌더링
@@ -403,38 +386,32 @@ export const YamlPreviewPanel = ({
           헤더 영역
           ======================================== */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-gray-900 m-0">
-          📄 YAML 미리보기
-        </h3>
+        <h3 className="text-base font-semibold text-gray-900 m-0">📄 YAML 미리보기</h3>
 
         {/* 뷰 모드 토글 버튼들 */}
         <div className="flex gap-1">
           <button
-            onClick={() => handleViewModeChange("block")}
+            onClick={() => handleViewModeChange('block')}
             className={`px-2 py-1 text-xs rounded cursor-pointer border-none ${
-              viewMode === "block"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-500"
+              viewMode === 'block'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-500'
             }`}
           >
             블록
           </button>
           <button
-            onClick={() => handleViewModeChange("full")}
+            onClick={() => handleViewModeChange('full')}
             className={`px-2 py-1 text-xs rounded cursor-pointer border-none ${
-              viewMode === "full"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-500"
+              viewMode === 'full' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
             }`}
           >
             전체
           </button>
           <button
-            onClick={() => handleViewModeChange("tree")}
+            onClick={() => handleViewModeChange('tree')}
             className={`px-2 py-1 text-xs rounded cursor-pointer border-none ${
-              viewMode === "tree"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-500"
+              viewMode === 'tree' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
             }`}
           >
             트리
@@ -445,17 +422,13 @@ export const YamlPreviewPanel = ({
       {/* ========================================
           선택된 블록 정보 (블록 모드일 때만)
           ======================================== */}
-      {viewMode === "block" && selectedBlock && (
+      {viewMode === 'block' && selectedBlock && (
         <div className="px-4 py-3 bg-slate-50 border-b border-gray-200">
           <div className="text-sm font-semibold text-gray-900 mb-1">
             {selectedBlock.name}
           </div>
-          <div className="text-xs text-gray-500">
-            {selectedBlock.description}
-          </div>
-          <div className="text-[11px] text-gray-400 mt-1">
-            타입: {selectedBlock.type}
-          </div>
+          <div className="text-xs text-gray-500">{selectedBlock.description}</div>
+          <div className="text-[11px] text-gray-400 mt-1">타입: {selectedBlock.type}</div>
         </div>
       )}
 
@@ -463,7 +436,7 @@ export const YamlPreviewPanel = ({
           YAML 내용 표시 영역
           ======================================== */}
       <div className="flex-1 min-h-0 p-4 overflow-auto bg-gray-800 text-slate-50 font-mono text-xs leading-[1.5] h-full">
-        {viewMode === "tree" ? (
+        {viewMode === 'tree' ? (
           <div className="bg-white text-gray-900 rounded border h-full overflow-auto">
             {(() => {
               try {
@@ -475,12 +448,12 @@ export const YamlPreviewPanel = ({
                   />
                 );
               } catch (error) {
-                console.error("TreeView 렌더링 오류:", error);
+                console.error('TreeView 렌더링 오류:', error);
                 return (
                   <div className="p-4 text-center text-gray-500">
                     <div className="mb-2">트리 뷰를 불러올 수 없습니다.</div>
                     <button
-                      onClick={() => handleViewModeChange("block")}
+                      onClick={() => handleViewModeChange('block')}
                       className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                       블록 뷰로 전환
@@ -490,7 +463,7 @@ export const YamlPreviewPanel = ({
               }
             })()}
           </div>
-        ) : isEditing && viewMode === "block" && selectedBlock ? (
+        ) : isEditing && viewMode === 'block' && selectedBlock ? (
           <textarea
             value={editableYaml}
             onChange={(e) => handleYamlChange(e.target.value)}
@@ -499,7 +472,7 @@ export const YamlPreviewPanel = ({
           />
         ) : (
           <pre className="m-0 whitespace-pre-wrap break-words">
-            {viewMode === "block" ? getBlockYaml() : getFullYaml()}
+            {viewMode === 'block' ? getBlockYaml() : getFullYaml()}
           </pre>
         )}
       </div>
@@ -507,11 +480,9 @@ export const YamlPreviewPanel = ({
       {/* ========================================
           블록 편집 영역 (블록 모드일 때만)
           ======================================== */}
-      {viewMode === "block" && selectedBlock && (
+      {viewMode === 'block' && selectedBlock && (
         <div className="px-4 py-3 border-t border-gray-200">
-          <div className="text-sm font-semibold text-gray-900 mb-3">
-            블록 편집
-          </div>
+          <div className="text-sm font-semibold text-gray-900 mb-3">블록 편집</div>
 
           {/* 블록 기본 정보 편집 */}
           <div className="space-y-3 mb-4">
@@ -535,11 +506,9 @@ export const YamlPreviewPanel = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                설명
-              </label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">설명</label>
               <textarea
-                value={selectedBlock.description || ""}
+                value={selectedBlock.description || ''}
                 onChange={(e) => {
                   if (onBlockUpdate) {
                     onBlockUpdate({
@@ -553,19 +522,19 @@ export const YamlPreviewPanel = ({
               />
             </div>
 
-            {selectedBlock.type === "step" && (
+            {selectedBlock.type === 'step' && (
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Job 이름
                 </label>
                 <input
                   type="text"
-                  value={selectedBlock["job-name"] || ""}
+                  value={selectedBlock['job-name'] || ''}
                   onChange={(e) => {
                     if (onBlockUpdate) {
                       onBlockUpdate({
                         ...selectedBlock,
-                        "job-name": e.target.value,
+                        'job-name': e.target.value,
                       });
                     }
                   }}
@@ -579,13 +548,13 @@ export const YamlPreviewPanel = ({
           {/* 블록 타입별 상세 편집 */}
           <div className="space-y-3">
             <div className="text-xs font-medium text-gray-700">
-              {selectedBlock.type === "trigger" && "트리거 설정"}
-              {selectedBlock.type === "job" && "Job 설정"}
-              {selectedBlock.type === "step" && "Step 설정"}
+              {selectedBlock.type === 'trigger' && '트리거 설정'}
+              {selectedBlock.type === 'job' && 'Job 설정'}
+              {selectedBlock.type === 'step' && 'Step 설정'}
             </div>
 
             {/* 트리거 설정 */}
-            {selectedBlock.type === "trigger" && (
+            {selectedBlock.type === 'trigger' && (
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -593,7 +562,7 @@ export const YamlPreviewPanel = ({
                   </label>
                   <input
                     type="text"
-                    value={(selectedBlock.config as any)?.name || ""}
+                    value={(selectedBlock.config as any)?.name || ''}
                     onChange={(e) => {
                       if (onBlockUpdate) {
                         onBlockUpdate({
@@ -612,7 +581,7 @@ export const YamlPreviewPanel = ({
             )}
 
             {/* Job 설정 */}
-            {selectedBlock.type === "job" && (
+            {selectedBlock.type === 'job' && (
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -620,26 +589,34 @@ export const YamlPreviewPanel = ({
                   </label>
                   <select
                     value={
-                      (selectedBlock.config as any)?.jobs?.[
-                        Object.keys(selectedBlock.config.jobs || {})[0]
-                      ]?.["runs-on"] || "ubuntu-latest"
+                      typeof selectedBlock.config === 'object' &&
+                      selectedBlock.config !== null &&
+                      (selectedBlock.config as Record<string, any>).jobs
+                        ? (selectedBlock.config as any)?.jobs?.[
+                            Object.keys((selectedBlock.config as any).jobs || {})[0]
+                          ]?.['runs-on'] || 'ubuntu-latest'
+                        : 'ubuntu-latest'
                     }
                     onChange={(e) => {
                       if (onBlockUpdate) {
-                        const jobName = Object.keys(
-                          selectedBlock.config.jobs || {}
-                        )[0];
+                        const currentJobs =
+                          typeof selectedBlock.config === 'object' &&
+                          selectedBlock.config !== null
+                            ? (selectedBlock.config as any).jobs || {}
+                            : {};
+                        const jobName = Object.keys(currentJobs)[0] || 'default';
                         onBlockUpdate({
                           ...selectedBlock,
                           config: {
-                            ...selectedBlock.config,
+                            ...(typeof selectedBlock.config === 'object' &&
+                            selectedBlock.config !== null
+                              ? (selectedBlock.config as Record<string, any>)
+                              : {}),
                             jobs: {
-                              ...selectedBlock.config.jobs,
+                              ...(currentJobs as Record<string, any>),
                               [jobName]: {
-                                ...(selectedBlock.config.jobs as any)?.[
-                                  jobName
-                                ],
-                                "runs-on": e.target.value,
+                                ...((currentJobs as Record<string, any>)[jobName] || {}),
+                                'runs-on': e.target.value,
                               },
                             },
                           },
@@ -659,7 +636,7 @@ export const YamlPreviewPanel = ({
             )}
 
             {/* Step 설정 */}
-            {selectedBlock.type === "step" && (
+            {selectedBlock.type === 'step' && (
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -667,7 +644,7 @@ export const YamlPreviewPanel = ({
                   </label>
                   <input
                     type="text"
-                    value={(selectedBlock.config as any)?.name || ""}
+                    value={(selectedBlock.config as any)?.name || ''}
                     onChange={(e) => {
                       if (onBlockUpdate) {
                         onBlockUpdate({
@@ -689,7 +666,7 @@ export const YamlPreviewPanel = ({
                   </label>
                   <input
                     type="text"
-                    value={(selectedBlock.config as any)?.uses || ""}
+                    value={(selectedBlock.config as any)?.uses || ''}
                     onChange={(e) => {
                       if (onBlockUpdate) {
                         onBlockUpdate({
@@ -711,7 +688,7 @@ export const YamlPreviewPanel = ({
                     실행 명령
                   </label>
                   <textarea
-                    value={(selectedBlock.config as any)?.run || ""}
+                    value={(selectedBlock.config as any)?.run || ''}
                     onChange={(e) => {
                       if (onBlockUpdate) {
                         onBlockUpdate({
@@ -739,27 +716,27 @@ export const YamlPreviewPanel = ({
           ======================================== */}
       <div className="px-4 py-3 border-t border-gray-200 flex gap-2">
         {/* 편집 모드일 때 저장 버튼 */}
-        {isEditing && viewMode === "block" && selectedBlock && (
+        {isEditing && viewMode === 'block' && selectedBlock && (
           <button
             onClick={handleSaveYaml}
             disabled={isSaving}
             className={`flex-1 px-3 py-2 text-xs border-none rounded cursor-pointer transition-all duration-200 ${
-              saveStatus === "success"
-                ? "bg-green-500 text-white"
-                : saveStatus === "error"
-                ? "bg-red-500 text-white"
+              saveStatus === 'success'
+                ? 'bg-green-500 text-white'
+                : saveStatus === 'error'
+                ? 'bg-red-500 text-white'
                 : isSaving
-                ? "bg-gray-400 text-white cursor-not-allowed"
-                : "bg-emerald-500 text-white hover:bg-emerald-600"
+                ? 'bg-gray-400 text-white cursor-not-allowed'
+                : 'bg-emerald-500 text-white hover:bg-emerald-600'
             }`}
           >
-            {saveStatus === "success"
-              ? "✅ 저장됨"
-              : saveStatus === "error"
-              ? "❌ 오류"
+            {saveStatus === 'success'
+              ? '✅ 저장됨'
+              : saveStatus === 'error'
+              ? '❌ 오류'
               : isSaving
-              ? "⏳ 저장 중..."
-              : "💾 저장"}
+              ? '⏳ 저장 중...'
+              : '💾 저장'}
           </button>
         )}
 
@@ -774,12 +751,12 @@ export const YamlPreviewPanel = ({
         {/* 다운로드 버튼 */}
         <button
           onClick={() => {
-            const yaml = viewMode === "block" ? getBlockYaml() : getFullYaml();
-            const blob = new Blob([yaml], { type: "text/yaml" });
+            const yaml = viewMode === 'block' ? getBlockYaml() : getFullYaml();
+            const blob = new Blob([yaml], { type: 'text/yaml' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
+            const a = document.createElement('a');
             a.href = url;
-            a.download = viewMode === "block" ? "block.yaml" : "workflow.yaml";
+            a.download = viewMode === 'block' ? 'block.yaml' : 'workflow.yaml';
             a.click();
             URL.revokeObjectURL(url);
           }}

@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { WorkflowNodeData } from "../types";
-import { NodeType } from "./area-editor/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSecrets } from "@/api/hooks";
-import { useRepository } from "@/contexts/RepositoryContext";
+import React, { useState, useEffect } from 'react';
+import { WorkflowNodeData } from '../types';
+import { NodeType } from './area-editor/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSecrets } from '@/api/hooks';
+import { useRepository } from '@/contexts/RepositoryContext';
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,
   findMissingSecrets,
-} from "../utils/secretsDetector";
-import { toast } from "react-toastify";
-import { GithubTokenDialog } from "@/components/features/GithubTokenDialog";
+} from '../utils/secretsDetector';
+import { toast } from 'react-toastify';
+import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
 import {
   Save,
   X,
@@ -27,7 +27,7 @@ import {
   Minus,
   AlertCircle,
   Lock,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface NodeEditorProps {
   nodeData: WorkflowNodeData;
@@ -39,7 +39,7 @@ interface NodeEditorProps {
 interface ConfigField {
   key: string;
   value: string | object | string[];
-  type: "string" | "object" | "array";
+  type: 'string' | 'object' | 'array';
   isExpanded?: boolean;
   children?: ConfigField[];
 }
@@ -52,21 +52,21 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
 }) => {
   const { owner, repo } = useRepository();
   const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
-  const [configText, setConfigText] = useState<string>("");
-  const [configError, setConfigError] = useState<string>("");
+  const [configText, setConfigText] = useState<string>('');
+  const [configError, setConfigError] = useState<string>('');
   const [showConfigPreview, setShowConfigPreview] = useState(false);
   const [configFields, setConfigFields] = useState<ConfigField[]>([]);
-  const [activeTab] = useState("fields");
+  const [activeTab] = useState('fields');
   const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
 
   // Secrets API 훅
-  const { data: secretsData } = useSecrets(owner || "", repo || "");
+  const { data: secretsData } = useSecrets(owner || '', repo || '');
 
   // 초기 데이터 설정
   useEffect(() => {
     setEditedData(nodeData);
     setConfigText(JSON.stringify(nodeData.config, null, 2));
-    setConfigError("");
+    setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
   }, [nodeData]);
@@ -75,8 +75,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets =
-        secretsData?.data?.secrets?.map((s: any) => s.name) || [];
+      const userSecrets = secretsData?.data?.secrets?.map((s: any) => s.name) || [];
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
       setMissingSecrets(missing);
 
@@ -85,13 +84,13 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         toast.warning(
           `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
           {
-            position: "top-right",
+            position: 'top-right',
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-          }
+          },
         );
       }
     }
@@ -100,18 +99,18 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = (
     config: Record<string, unknown>,
-    parentKey = ""
+    parentKey = '',
   ): ConfigField[] => {
     const fields: ConfigField[] = [];
 
     Object.entries(config).forEach(([key, value]) => {
-      let type: "string" | "object" | "array" = "string";
+      let type: 'string' | 'object' | 'array' = 'string';
       let children: ConfigField[] | undefined;
 
       if (Array.isArray(value)) {
-        type = "array";
-      } else if (value && typeof value === "object") {
-        type = "object";
+        type = 'array';
+      } else if (value && typeof value === 'object') {
+        type = 'object';
         // 중첩된 객체의 경우 재귀적으로 파싱
         children = parseConfigFields(value as Record<string, unknown>, key);
       }
@@ -131,26 +130,26 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   // 타입별 고정 라벨 정의
   const getFixedLabels = (type: NodeType) => {
     switch (type) {
-      case "workflowTrigger":
+      case 'workflowTrigger':
         return {
-          name: "워크플로우 기본 설정",
+          name: '워크플로우 기본 설정',
           description:
-            "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
+            'GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.',
         };
-      case "job":
+      case 'job':
         return {
-          name: "Job 설정",
-          description: "GitHub Actions Job의 기본 설정을 구성합니다.",
+          name: 'Job 설정',
+          description: 'GitHub Actions Job의 기본 설정을 구성합니다.',
         };
-      case "step":
+      case 'step':
         return {
-          name: "Step 설정",
-          description: "GitHub Actions Step의 실행 명령어와 설정을 구성합니다.",
+          name: 'Step 설정',
+          description: 'GitHub Actions Step의 실행 명령어와 설정을 구성합니다.',
         };
       default:
         return {
-          name: "노드 설정",
-          description: "노드의 설정을 구성합니다.",
+          name: '노드 설정',
+          description: '노드의 설정을 구성합니다.',
         };
     }
   };
@@ -158,12 +157,12 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   // 타입별 편집 가능한 필드 정의
   const getEditableFields = (type: NodeType) => {
     switch (type) {
-      case "workflowTrigger":
-        return ["name", "on"];
-      case "job":
-        return ["runs-on", "needs", "if"];
-      case "step":
-        return ["name", "run", "uses", "with", "env"];
+      case 'workflowTrigger':
+        return ['name', 'on'];
+      case 'job':
+        return ['runs-on', 'needs', 'if'];
+      case 'step':
+        return ['name', 'run', 'uses', 'with', 'env'];
       default:
         return [];
     }
@@ -183,7 +182,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   const handleConfigFieldChange = (
     index: number,
     value: string | object | string[],
-    parentIndex?: number
+    parentIndex?: number,
   ) => {
     const updatedFields = [...configFields];
     if (parentIndex !== undefined) {
@@ -217,7 +216,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     const config: Record<string, any> = {};
 
     fields.forEach((field) => {
-      if (field.type === "object" && field.children) {
+      if (field.type === 'object' && field.children) {
         config[field.key] = updateConfigFromFields(field.children);
       } else {
         config[field.key] = field.value;
@@ -233,9 +232,9 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     const parentField = updatedFields[parentIndex];
     if (parentField.children) {
       parentField.children.push({
-        key: "new_field",
-        value: "",
-        type: "string",
+        key: 'new_field',
+        value: '',
+        type: 'string',
       });
       setConfigFields(updatedFields);
     }
@@ -263,9 +262,9 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     setConfigFields([
       ...configFields,
       {
-        key: "new_field",
-        value: "",
-        type: "string",
+        key: 'new_field',
+        value: '',
+        type: 'string',
       },
     ]);
   };
@@ -279,7 +278,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   // 저장 핸들러
   const handleSave = () => {
     if (!validateConfig(configText)) {
-      setConfigError("잘못된 JSON 형식입니다.");
+      setConfigError('잘못된 JSON 형식입니다.');
       return;
     }
 
@@ -291,7 +290,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       };
       onSave(updatedData);
     } catch (error) {
-      setConfigError("Config 저장 중 오류가 발생했습니다.");
+      setConfigError('Config 저장 중 오류가 발생했습니다.');
     }
   };
 
@@ -301,37 +300,31 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   };
 
   // 필드 값 렌더링
-  const renderFieldValue = (
-    field: ConfigField,
-    index: number,
-    parentIndex?: number
-  ) => {
+  const renderFieldValue = (field: ConfigField, index: number, parentIndex?: number) => {
     switch (field.type) {
-      case "string":
+      case 'string':
         return (
           <Input
             value={field.value as string}
-            onChange={(e) =>
-              handleConfigFieldChange(index, e.target.value, parentIndex)
-            }
+            onChange={(e) => handleConfigFieldChange(index, e.target.value, parentIndex)}
             placeholder="값을 입력하세요"
           />
         );
-      case "array":
+      case 'array':
         return (
           <Input
-            value={Array.isArray(field.value) ? field.value.join(", ") : ""}
+            value={Array.isArray(field.value) ? field.value.join(', ') : ''}
             onChange={(e) =>
               handleConfigFieldChange(
                 index,
-                e.target.value.split(",").map((s) => s.trim()),
-                parentIndex
+                e.target.value.split(',').map((s) => s.trim()),
+                parentIndex,
               )
             }
             placeholder="쉼표로 구분된 값들을 입력하세요"
           />
         );
-      case "object":
+      case 'object':
         return (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -348,7 +341,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 )}
               </Button>
               <span className="text-sm text-gray-600">
-                {field.isExpanded ? "축소" : "확장"}
+                {field.isExpanded ? '축소' : '확장'}
               </span>
             </div>
             {field.isExpanded && field.children && (
@@ -367,7 +360,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                           handleConfigFieldChange(
                             index,
                             { ...field, children: updatedChildren },
-                            parentIndex
+                            parentIndex,
                           );
                         }}
                         className="w-32"
@@ -379,9 +372,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          handleRemoveNestedField(index, childIndex)
-                        }
+                        onClick={() => handleRemoveNestedField(index, childIndex)}
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
@@ -461,7 +452,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         </div>
       )}
 
-      <Tabs value={activeTab} className="w-full">
+      <Tabs defaultValue={activeTab} className="w-full">
         <TabsList>
           <TabsTrigger value="fields">필드 편집</TabsTrigger>
           <TabsTrigger value="config">Config 편집</TabsTrigger>
@@ -528,9 +519,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm"
                 placeholder="JSON 형식으로 config를 입력하세요"
               />
-              {configError && (
-                <p className="text-red-600 text-sm mt-2">{configError}</p>
-              )}
+              {configError && <p className="text-red-600 text-sm mt-2">{configError}</p>}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -549,7 +538,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
                 </CardHeader>
                 <CardContent>
                   <pre className="bg-gray-50 p-4 rounded-md text-sm overflow-auto">
-                    {JSON.stringify(JSON.parse(configText || "{}"), null, 2)}
+                    {JSON.stringify(JSON.parse(configText || '{}'), null, 2)}
                   </pre>
                 </CardContent>
               </Card>
