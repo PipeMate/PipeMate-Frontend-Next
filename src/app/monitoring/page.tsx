@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +47,9 @@ export default function MonitoringPage() {
   const { owner, repo, isConfigured } = useRepository();
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'logs'>('overview');
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
+  const [focusedStepName, setFocusedStepName] = useState<string | null>(null);
 
   // 훅 사용
   const {
@@ -76,6 +79,76 @@ export default function MonitoringPage() {
     repo || '',
     runId,
   );
+
+  // 상세 선택 시 스크롤 이동으로 반응성 강화
+  useEffect(() => {
+    if (selectedRun && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedRun]);
+
+  const handleShowDetails = (run: WorkflowRun) => {
+    setSelectedRun(run);
+    setActiveTab('jobs');
+    setFocusedJobId(null);
+    setFocusedStepName(null);
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // noop
+    }
+  };
+
+  const downloadText = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const openInNewWindow = (title: string, content: string) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const escaped = content
+      .replaceAll(/&/g, '&amp;')
+      .replaceAll(/</g, '&lt;')
+      .replaceAll(/>/g, '&gt;');
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8" />
+      <title>${title}</title>
+      <style>
+        body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0f172a; color:#f1f5f9; padding:20px; }
+        pre { white-space: pre-wrap; word-break: break-word; border:1px solid #1e293b; border-radius:8px; padding:16px; box-shadow: inset 0 2px 4px rgba(0,0,0,.06); line-height:1.5; }
+        .toolbar { display:flex; gap:8px; margin-bottom:12px; }
+        .btn { background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:6px 10px; border-radius:6px; cursor:pointer; }
+        .btn:hover { background:#0b1220; }
+      </style></head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="navigator.clipboard.writeText(document.querySelector('pre').innerText)">복사</button>
+      </div>
+      <pre>${escaped}</pre>
+    </body></html>`);
+    win.document.close();
+  };
+
+  const extractSnippetByKeyword = (text: string, keyword: string, contextLines = 40) => {
+    const lines = text.split(/\r?\n/);
+    const matches: number[] = [];
+    lines.forEach((line, idx) => {
+      if (line.toLowerCase().includes(keyword.toLowerCase())) matches.push(idx);
+    });
+    if (matches.length === 0) return '';
+    const start = Math.max(0, matches[0] - contextLines);
+    const end = Math.min(lines.length, matches[0] + contextLines);
+    return lines.slice(start, end).join('\n');
+  };
 
   // 헤더 설정
   useEffect(() => {
@@ -353,10 +426,7 @@ export default function MonitoringPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  setActiveTab('jobs');
-                                }}
+                                onClick={() => handleShowDetails(run)}
                               >
                                 <Info className="w-4 h-4 mr-2" />
                                 상세보기
@@ -473,7 +543,7 @@ export default function MonitoringPage() {
 
         {/* 상세 패널 */}
         {selectedRun && (
-          <Card>
+          <Card ref={detailRef as any}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>
@@ -481,6 +551,9 @@ export default function MonitoringPage() {
                 </span>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   상태: {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedRun(null)}>
+                    닫기
+                  </Button>
                 </div>
               </CardTitle>
             </CardHeader>
@@ -501,7 +574,9 @@ export default function MonitoringPage() {
 
                 <TabsContent value="jobs" className="space-y-3">
                   {jobsLoading ? (
-                    <div className="text-center py-6 text-gray-500">잡/스텝 불러오는 중...</div>
+                    <div className="text-center py-6 text-gray-500">
+                      잡/스텝 불러오는 중...
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {(runJobsData?.data || []).map((job: any) => (
@@ -512,12 +587,24 @@ export default function MonitoringPage() {
                           </div>
                           <div className="mt-2 grid gap-2">
                             {(job.steps || []).map((st: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between text-sm">
+                              <button
+                                key={idx}
+                                className={`flex items-center justify-between text-sm text-left w-full px-2 py-1 rounded hover:bg-gray-50 border ${
+                                  focusedJobId === job.id && focusedStepName === st.name
+                                    ? 'border-blue-300 bg-blue-50'
+                                    : 'border-transparent'
+                                }`}
+                                onClick={() => {
+                                  setFocusedJobId(job.id);
+                                  setFocusedStepName(st.name);
+                                  setActiveTab('logs');
+                                }}
+                              >
                                 <div className="text-gray-700">{st.name}</div>
                                 <div className="text-gray-500">
                                   {st.status} {st.conclusion ? `• ${st.conclusion}` : ''}
                                 </div>
-                              </div>
+                              </button>
                             ))}
                           </div>
                         </div>
@@ -528,13 +615,43 @@ export default function MonitoringPage() {
 
                 <TabsContent value="logs">
                   {logsLoading ? (
-                    <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
-                  ) : (
-                    <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
-                      <pre className="whitespace-pre-wrap break-words">
-                        {runLogsData?.data || '로그가 없습니다.'}
-                      </pre>
+                    <div className="text-center py-6 text-gray-500">
+                      로그 불러오는 중...
                     </div>
+                  ) : (
+                    (() => {
+                      const rawLog: string = runLogsData?.data || '';
+                      const snippet =
+                        focusedStepName && rawLog
+                          ? extractSnippetByKeyword(rawLog, focusedStepName)
+                          : rawLog || '로그가 없습니다.';
+                      return (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => copyText(snippet)}>
+                              복사
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => downloadText(`run-${selectedRun?.id}.log`, snippet)}
+                            >
+                              다운로드
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
+                            >
+                              새 창
+                            </Button>
+                          </div>
+                          <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
+                            <pre className="whitespace-pre-wrap break-words">{snippet}</pre>
+                          </div>
+                        </div>
+                      );
+                    })()
                   )}
                 </TabsContent>
               </Tabs>
