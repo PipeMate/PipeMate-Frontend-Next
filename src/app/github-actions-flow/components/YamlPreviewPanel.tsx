@@ -10,6 +10,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ServerBlock } from '../types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
 import { ChevronDown, ChevronRight, Folder, File, Play } from 'lucide-react';
+import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
 
 //* ========================================
 //* Props 타입 정의
@@ -274,48 +275,13 @@ export const YamlPreviewPanel = ({
     setEditableYaml(value);
   }, []);
 
-  //* YAML 파싱 함수 (간단한 구현)
+  //* YAML 파싱 함수 (엄격 구현)
   const parseYamlToConfig = useCallback((yaml: string): Record<string, unknown> => {
-    const lines = yaml.split('\n');
-    const config: Record<string, unknown> = {};
-    let currentKey = '';
-    let currentValue: Record<string, unknown> | unknown[] = {};
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || trimmedLine.startsWith('#')) return;
-
-      const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
-      if (match) {
-        const [, key, value] = match;
-        if (value) {
-          config[key] = value;
-        } else {
-          currentKey = key;
-          currentValue = {};
-        }
-      } else if (trimmedLine.startsWith('- ')) {
-        // 배열 항목
-        const item = trimmedLine.substring(2);
-        if (!Array.isArray(currentValue)) {
-          currentValue = [];
-        }
-        (currentValue as unknown[]).push(item);
-        config[currentKey] = currentValue;
-      } else if (trimmedLine.includes(':')) {
-        // 중첩된 객체
-        const [key, value] = trimmedLine.split(':').map((s) => s.trim());
-        if (value) {
-          if (!(currentValue as Record<string, unknown>)[key]) {
-            (currentValue as Record<string, unknown>)[key] = {};
-          }
-          (currentValue as Record<string, unknown>)[key] = value;
-        }
-        config[currentKey] = currentValue;
-      }
-    });
-
-    return config;
+    const result = parseYamlToConfigStrict(yaml);
+    if (!result.success) {
+      throw new Error(result.error || 'YAML 파싱 실패');
+    }
+    return result.data || {};
   }, []);
 
   //* 편집된 YAML 저장 핸들러
@@ -374,6 +340,11 @@ export const YamlPreviewPanel = ({
   //* 뷰 모드 변경 핸들러
   const handleViewModeChange = useCallback((mode: 'block' | 'full' | 'tree') => {
     setViewMode(mode);
+  }, []);
+
+  // 포맷 버튼 지원: 현재 편집중 YAML 포맷팅
+  const handleFormatYaml = useCallback(() => {
+    setEditableYaml((prev) => formatYaml(prev));
   }, []);
 
   //* ========================================

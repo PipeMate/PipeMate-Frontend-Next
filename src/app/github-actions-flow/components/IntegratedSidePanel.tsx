@@ -1,25 +1,20 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AreaNodeData } from './area-editor/types';
 import { ServerBlock } from '../types';
 import { WorkflowNodeData } from '../types';
 import { NodeType } from './area-editor/types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
+import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
 import { useCreatePipeline } from '@/api/hooks/usePipeline';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
 import {
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  File,
-  Play,
   Settings,
   Save,
   Eye,
-  Edit,
   Trash2,
   Copy,
   Download,
@@ -30,6 +25,7 @@ import {
   Layers,
   Palette,
   Lock,
+  Edit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,15 +63,7 @@ interface IntegratedSidePanelProps {
 //* 워크플로우 구조 타입 정의
 //* ========================================
 
-interface WorkflowStructure {
-  trigger?: ServerBlock;
-  jobs: {
-    [jobName: string]: {
-      job: ServerBlock;
-      steps: ServerBlock[];
-    };
-  };
-}
+// 트리 탭 제거됨: 관련 타입 제거
 
 //* ========================================
 //* Config 필드 타입 정의
@@ -93,169 +81,13 @@ interface ConfigField {
 //* 워크플로우 구조 분석 함수
 //* ========================================
 
-const analyzeWorkflowStructure = (blocks: ServerBlock[]): WorkflowStructure => {
-  const structure: WorkflowStructure = {
-    jobs: {},
-  };
-
-  if (!blocks || blocks.length === 0) {
-    return structure;
-  }
-
-  blocks.forEach((block) => {
-    if (!block || !block.type) return;
-
-    if (block.type === 'trigger') {
-      structure.trigger = block;
-    } else if (block.type === 'job') {
-      const jobName = block['job-name'] || 'unknown';
-      structure.jobs[jobName] = {
-        job: block,
-        steps: [],
-      };
-    } else if (block.type === 'step') {
-      const jobName = block['job-name'] || 'unknown';
-      if (!structure.jobs[jobName]) {
-        structure.jobs[jobName] = {
-          job: {
-            name: jobName,
-            type: 'job',
-            'job-name': jobName,
-          } as ServerBlock,
-          steps: [],
-        };
-      }
-      structure.jobs[jobName].steps.push(block);
-    }
-  });
-
-  return structure;
-};
+// 트리 탭 제거됨: 분석 함수 제거
 
 //* ========================================
 //* 트리 뷰 컴포넌트
 //* ========================================
 
-interface TreeViewProps {
-  structure: WorkflowStructure;
-  onBlockSelect?: (block: ServerBlock) => void;
-  selectedBlock?: ServerBlock;
-}
-
-const TreeView: React.FC<TreeViewProps> = ({
-  structure,
-  onBlockSelect,
-  selectedBlock,
-}) => {
-  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
-
-  const toggleJob = (jobName: string) => {
-    const newExpanded = new Set(expandedJobs);
-    if (newExpanded.has(jobName)) {
-      newExpanded.delete(jobName);
-    } else {
-      newExpanded.add(jobName);
-    }
-    setExpandedJobs(newExpanded);
-  };
-
-  const isSelected = (block: ServerBlock) => {
-    return selectedBlock?.name === block.name && selectedBlock?.type === block.type;
-  };
-
-  if (!structure || !structure.jobs) {
-    return (
-      <div className="text-center text-gray-500 py-4">
-        워크플로우 구조를 불러올 수 없습니다.
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {/* Trigger */}
-      {structure.trigger && (
-        <div
-          className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-            isSelected(structure.trigger)
-              ? 'bg-blue-100 border border-blue-300'
-              : 'hover:bg-gray-50'
-          }`}
-          onClick={() => onBlockSelect?.(structure.trigger!)}
-        >
-          <Play size={16} className="text-blue-600" />
-          <span className="text-sm font-medium">{structure.trigger.name}</span>
-          <span className="text-xs text-gray-500">(Trigger)</span>
-        </div>
-      )}
-
-      {/* Jobs */}
-      {Object.entries(structure.jobs).map(([jobName, jobData]) => (
-        <div key={jobName} className="border border-gray-200 rounded">
-          <div
-            className={`flex items-center gap-2 p-2 cursor-pointer transition-colors ${
-              isSelected(jobData.job)
-                ? 'bg-green-100 border-b border-green-300'
-                : 'hover:bg-gray-50'
-            }`}
-            onClick={() => onBlockSelect?.(jobData.job)}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleJob(jobName);
-              }}
-              className="p-1 hover:bg-gray-200 rounded"
-            >
-              {expandedJobs.has(jobName) ? (
-                <ChevronDown size={14} />
-              ) : (
-                <ChevronRight size={14} />
-              )}
-            </button>
-            <Folder size={16} className="text-green-600" />
-            <span className="text-sm font-medium">{jobData.job.name}</span>
-            <span className="text-xs text-gray-500">({jobName})</span>
-            <span className="text-xs text-gray-400 ml-auto">
-              {jobData.steps.length} steps
-            </span>
-          </div>
-
-          {/* Steps */}
-          {expandedJobs.has(jobName) && (
-            <div className="bg-gray-50 border-t border-gray-200">
-              {jobData.steps.map((step, index) => (
-                <div
-                  key={`${jobName}-${index}`}
-                  className={`flex items-center gap-2 p-2 ml-4 cursor-pointer transition-colors ${
-                    isSelected(step)
-                      ? 'bg-orange-100 border border-orange-300'
-                      : 'hover:bg-gray-100'
-                  }`}
-                  onClick={() => onBlockSelect?.(step)}
-                >
-                  <File size={14} className="text-orange-600" />
-                  <span className="text-sm">{step.name}</span>
-                  <span className="text-xs text-gray-500">(Step {index + 1})</span>
-                </div>
-              ))}
-              {jobData.steps.length === 0 && (
-                <div className="flex items-center gap-2 p-2 ml-4 text-gray-400">
-                  <File size={14} />
-                  <span className="text-sm">No steps</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {Object.keys(structure.jobs).length === 0 && (
-        <div className="text-center text-gray-500 py-4">No jobs configured</div>
-      )}
-    </div>
-  );
-};
+// 트리 탭 제거됨: 트리 컴포넌트 제거
 
 //* ========================================
 //* 노드 에디터 컴포넌트
@@ -272,16 +104,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   nodeData,
   nodeType,
   onSave,
-  onCancel,
+  onCancel: _onCancel,
 }) => {
   const { owner, repo } = useRepository();
   const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
   const [configText, setConfigText] = useState<string>('');
   const [configError, setConfigError] = useState<string>('');
-  const [showConfigPreview, setShowConfigPreview] = useState(false);
+  // preview is not used in compact panel
   const [configFields, setConfigFields] = useState<ConfigField[]>([]);
-  const [activeTab] = useState('fields');
-  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+  // secrets 경고 배지/다이얼로그에서만 사용
+  // duplicate removed; use the state in the panel scope
 
   // Secrets API 훅
   const { data: secretsData } = useSecrets(owner || '', repo || '');
@@ -293,15 +125,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeData]);
 
   // Config 변경 시 secrets 감지
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets = secretsData?.data?.secrets?.map((s: any) => s.name) || [];
+      const userSecrets =
+        secretsData?.data?.secrets?.map((s: { name: string }) => s.name) || [];
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
-      setMissingSecrets(missing);
+      // will update panel-level state when panel mounts
 
       // 누락된 secrets가 있으면 토스트 표시
       if (missing.length > 0) {
@@ -321,35 +155,35 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }, [editedData.config, nodeType, secretsData]);
 
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
-  const parseConfigFields = (
-    config: Record<string, unknown>,
-    parentKey = '',
-  ): ConfigField[] => {
-    const fields: ConfigField[] = [];
+  const parseConfigFields = React.useCallback(
+    (config: Record<string, unknown>): ConfigField[] => {
+      const fields: ConfigField[] = [];
 
-    Object.entries(config).forEach(([key, value]) => {
-      let type: 'string' | 'object' | 'array' = 'string';
-      let children: ConfigField[] | undefined;
+      Object.entries(config).forEach(([key, value]) => {
+        let type: 'string' | 'object' | 'array' = 'string';
+        let children: ConfigField[] | undefined;
 
-      if (Array.isArray(value)) {
-        type = 'array';
-      } else if (value && typeof value === 'object') {
-        type = 'object';
-        // 중첩된 객체의 경우 재귀적으로 파싱
-        children = parseConfigFields(value as Record<string, unknown>, key);
-      }
+        if (Array.isArray(value)) {
+          type = 'array';
+        } else if (value && typeof value === 'object') {
+          type = 'object';
+          // 중첩된 객체의 경우 재귀적으로 파싱
+          children = parseConfigFields(value as Record<string, unknown>);
+        }
 
-      fields.push({
-        key,
-        value: value as string | object | string[],
-        type,
-        isExpanded: false,
-        children,
+        fields.push({
+          key,
+          value: value as string | object | string[],
+          type,
+          isExpanded: false,
+          children,
+        });
       });
-    });
 
-    return fields;
-  };
+      return fields;
+    },
+    [],
+  );
 
   // 타입별 고정 라벨 정의
   const getFixedLabels = (type: NodeType) => {
@@ -395,7 +229,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       JSON.parse(configStr);
       setConfigError('');
       return true;
-    } catch (error) {
+    } catch {
       setConfigError('유효하지 않은 JSON 형식입니다.');
       return false;
     }
@@ -490,7 +324,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         config,
       };
       onSave(updatedData);
-    } catch (error) {
+    } catch {
       setConfigError('설정 저장 중 오류가 발생했습니다.');
     }
   };
@@ -518,9 +352,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 className="p-1"
               >
                 {field.isExpanded ? (
-                  <ChevronDown size={16} />
+                  <span className="text-xs text-gray-500">접기</span>
                 ) : (
-                  <ChevronRight size={16} />
+                  <span className="text-xs text-gray-500">펼치기</span>
                 )}
               </Button>
               <span className="text-xs text-gray-500">객체 (클릭하여 확장)</span>
@@ -776,8 +610,8 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   onClose,
   onSaveWorkflow,
   onClearWorkspace,
-  onNodeSelect,
-  onNodeEdit,
+  onNodeSelect: _onNodeSelect,
+  onNodeEdit: _onNodeEdit,
   onNodeDelete,
   onBlockUpdate,
   hasNodes,
@@ -786,28 +620,20 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
   const [workflowName, setWorkflowName] = useState<string>('');
-  const [viewMode, setViewMode] = useState<
-    'control' | 'yaml' | 'tree' | 'edit' | 'settings'
-  >('control');
+  const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
   const [editableYaml, setEditableYaml] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>(
-    'idle',
-  );
+  // local save status only used for YAML editing button states
+  const [, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [isYamlEditing, setIsYamlEditing] = useState<boolean>(false);
+  const [yamlError, setYamlError] = useState<string>('');
 
   // Secrets 관리 상태
-  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+  const [missingSecrets] = useState<string[]>([]);
 
   // 워크플로우 구조 분석
-  const workflowStructure = useMemo(() => {
-    try {
-      return analyzeWorkflowStructure(blocks || []);
-    } catch (error) {
-      console.error('워크플로우 구조 분석 오류:', error);
-      return { jobs: {} };
-    }
-  }, [blocks]);
+  // 트리 분석 제거됨
 
   // AreaNodeData를 ServerBlock로 변환하는 함수
   const convertAreaNodeToServerBlock = useCallback((node: AreaNodeData): ServerBlock => {
@@ -823,19 +649,17 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     };
   }, []);
 
-  // Secrets 관리자 열기 핸들러
-  const handleOpenSecretsManager = useCallback((secrets: string[]) => {
-    setMissingSecrets(secrets);
-  }, []);
+  // Secrets 관리자 열기 핸들러 (미사용 제거)
 
   // 편집 모드가 활성화되면 YAML을 편집 가능한 상태로 설정
   useEffect(() => {
-    if (viewMode === 'edit' && selectedNode) {
+    if (isYamlEditing && yamlViewMode === 'block' && selectedNode) {
       const serverBlock = convertAreaNodeToServerBlock(selectedNode);
       const yaml = generateBlockYaml(serverBlock);
       setEditableYaml(yaml);
+      setYamlError('');
     }
-  }, [viewMode, selectedNode, convertAreaNodeToServerBlock]);
+  }, [isYamlEditing, yamlViewMode, selectedNode, convertAreaNodeToServerBlock]);
 
   // YAML 생성 함수들
   const getBlockYaml = useCallback(() => {
@@ -865,48 +689,17 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   // YAML 편집 핸들러
   const handleYamlChange = useCallback((value: string) => {
     setEditableYaml(value);
+    const result = parseYamlToConfigStrict(value);
+    setYamlError(result.success ? '' : result.error || '');
   }, []);
 
-  // YAML 파싱 함수
+  // YAML 파싱 함수 (엄격)
   const parseYamlToConfig = useCallback((yaml: string): Record<string, unknown> => {
-    const lines = yaml.split('\n');
-    const config: Record<string, unknown> = {};
-    let currentKey = '';
-    let currentValue: Record<string, unknown> | unknown[] = {};
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || trimmedLine.startsWith('#')) return;
-
-      const match = trimmedLine.match(/^(\w+):\s*(.*)$/);
-      if (match) {
-        const [, key, value] = match;
-        if (value) {
-          config[key] = value;
-        } else {
-          currentKey = key;
-          currentValue = {};
-        }
-      } else if (trimmedLine.startsWith('- ')) {
-        const item = trimmedLine.substring(2);
-        if (!Array.isArray(currentValue)) {
-          currentValue = [];
-        }
-        (currentValue as unknown[]).push(item);
-        config[currentKey] = currentValue;
-      } else if (trimmedLine.includes(':')) {
-        const [key, value] = trimmedLine.split(':').map((s) => s.trim());
-        if (value) {
-          if (!(currentValue as Record<string, unknown>)[key]) {
-            (currentValue as Record<string, unknown>)[key] = {};
-          }
-          (currentValue as Record<string, unknown>)[key] = value;
-        }
-        config[currentKey] = currentValue;
-      }
-    });
-
-    return config;
+    const result = parseYamlToConfigStrict(yaml);
+    if (!result.success) {
+      throw new Error(result.error || 'YAML 파싱 실패');
+    }
+    return result.data || {};
   }, []);
 
   // 편집된 YAML 저장 핸들러
@@ -924,15 +717,26 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         onBlockUpdate(updatedBlock);
         setSaveStatus('success');
         setTimeout(() => setSaveStatus('idle'), 2000);
+        setIsYamlEditing(false);
       }
-    } catch (error) {
-      console.error('YAML 파싱 오류:', error);
+    } catch (e) {
+      console.error('YAML 파싱 오류:', e);
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } finally {
       setIsSaving(false);
     }
-  }, [editableYaml, selectedNode, onBlockUpdate, parseYamlToConfig]);
+  }, [
+    editableYaml,
+    selectedNode,
+    onBlockUpdate,
+    parseYamlToConfig,
+    convertAreaNodeToServerBlock,
+  ]);
+
+  const handleFormatYaml = useCallback(() => {
+    setEditableYaml((prev) => formatYaml(prev));
+  }, []);
 
   // YAML 복사
   const copyYaml = useCallback(() => {
@@ -943,40 +747,10 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   }, [getCurrentYaml]);
 
   // 트리 뷰에서 블록 선택 핸들러
-  const handleBlockSelect = useCallback(
-    (block: ServerBlock) => {
-      if (onBlockUpdate) {
-        onBlockUpdate(block);
-      }
-    },
-    [onBlockUpdate],
-  );
+  // 트리 선택 제거됨
 
   // 노드 저장 핸들러 (로컬 편집용)
-  const handleNodeSave = useCallback(
-    (updatedData: WorkflowNodeData) => {
-      if (selectedNode && updateNodeData) {
-        // 노드 데이터 직접 업데이트
-        updateNodeData(selectedNode.id, updatedData);
-      }
-
-      if (selectedNode && onBlockUpdate) {
-        // ServerBlock로도 업데이트 (YAML 미리보기용)
-        const updatedBlock: ServerBlock = {
-          name: updatedData.label,
-          type:
-            selectedNode.type === 'workflowTrigger'
-              ? 'trigger'
-              : (selectedNode.type as 'trigger' | 'job' | 'step'),
-          description: updatedData.description,
-          'job-name': updatedData.jobName,
-          config: updatedData.config,
-        };
-        onBlockUpdate(updatedBlock);
-      }
-    },
-    [selectedNode, updateNodeData, onBlockUpdate],
-  );
+  // handleNodeSave 통합: settings → node 섹션에서 직접 updateNodeData 사용
 
   // 서버에 워크플로우 저장 핸들러
   const handleSaveWorkflowToServer = useCallback(async () => {
@@ -1004,8 +778,8 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 
       toast.success('워크플로우가 성공적으로 저장되었습니다!');
       setWorkflowName(''); // 저장 후 입력 필드 초기화
-    } catch (error) {
-      console.error('워크플로우 저장 실패:', error);
+    } catch (e) {
+      console.error('워크플로우 저장 실패:', e);
       toast.error('워크플로우 저장에 실패했습니다. 다시 시도해주세요.');
     }
   }, [owner, repo, isConfigured, hasNodes, blocks, workflowName, createPipelineMutation]);
@@ -1032,19 +806,8 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         </Button>
       </div>
 
-      {/* 뷰 모드 탭 */}
+      {/* 뷰 모드 탭: 설정 / YAML */}
       <div className="flex border-b border-gray-200 bg-gray-50">
-        <button
-          onClick={() => setViewMode('control')}
-          className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === 'control'
-              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <Settings size={14} className="mr-1" />
-          컨트롤
-        </button>
         <button
           onClick={() => setViewMode('yaml')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
@@ -1056,28 +819,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           <Code size={14} className="mr-1" />
           YAML
         </button>
-        <button
-          onClick={() => setViewMode('tree')}
-          className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === 'tree'
-              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <Folder size={14} className="mr-1" />
-          트리
-        </button>
-        <button
-          onClick={() => setViewMode('edit')}
-          className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === 'edit'
-              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <Edit size={14} className="mr-1" />
-          편집
-        </button>
+
         <button
           onClick={() => setViewMode('settings')}
           className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
@@ -1093,106 +835,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 
       {/* 컨텐츠 영역 */}
       <div className="flex-1 overflow-auto">
-        {viewMode === 'control' && (
-          <div className="p-4 space-y-6">
-            {/* 저장소 상태 */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Settings size={16} className="text-blue-600" />
-                <div className="text-sm font-medium text-gray-700">저장소 설정</div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">상태:</span>
-                  <span
-                    className={`font-medium ${
-                      isConfigured ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {isConfigured ? '설정됨' : '미설정'}
-                  </span>
-                </div>
-                {isConfigured && (
-                  <>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">소유자:</span>
-                      <span className="font-medium">{owner}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">저장소:</span>
-                      <span className="font-medium">{repo}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* 워크플로우 전체 액션 */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Settings size={16} className="text-blue-600" />
-                <div className="text-sm font-medium text-gray-700">워크플로우 액션</div>
-              </div>
-
-              {/* 워크플로우 이름 입력 */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">
-                  워크플로우 이름
-                </label>
-                <Input
-                  value={workflowName}
-                  onChange={(e) => setWorkflowName(e.target.value)}
-                  placeholder="워크플로우 이름을 입력하세요"
-                  className="text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={handleSaveWorkflowToServer}
-                  disabled={
-                    createPipelineMutation.isPending || !isConfigured || !hasNodes
-                  }
-                  size="sm"
-                  className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm disabled:opacity-50"
-                >
-                  <Save size={16} />
-                  {createPipelineMutation.isPending ? '저장 중...' : '서버 저장'}
-                </Button>
-                <Button
-                  onClick={onClearWorkspace}
-                  size="sm"
-                  variant="destructive"
-                  className="flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <Trash2 size={16} />
-                  초기화
-                </Button>
-              </div>
-            </div>
-
-            {/* 선택된 노드 삭제 */}
-            {selectedNode && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Edit size={16} className="text-red-600" />
-                  <div className="text-sm font-medium text-gray-700">
-                    선택된 노드: {selectedNode.data.label}
-                  </div>
-                </div>
-                <Button
-                  onClick={() => onNodeDelete(selectedNode.id)}
-                  size="sm"
-                  variant="destructive"
-                  className="w-full flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <Trash2 size={16} />
-                  노드 삭제
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+        {/* control 탭 제거됨: settings에 통합 */}
 
         {viewMode === 'yaml' && (
           <div className="p-4 space-y-4">
@@ -1226,10 +869,53 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
               </div>
             </div>
 
-            {/* YAML 내용 */}
-            <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
-              <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
-            </div>
+            {/* YAML 내용/편집 */}
+            {yamlViewMode === 'block' ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={isYamlEditing ? 'outline' : 'default'}
+                    onClick={() => setIsYamlEditing((v) => !v)}
+                  >
+                    {isYamlEditing ? '미리보기' : '편집'}
+                  </Button>
+                  {isYamlEditing && (
+                    <>
+                      <Button size="sm" variant="secondary" onClick={handleFormatYaml}>
+                        포맷
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveYaml}
+                        disabled={!!yamlError || isSaving}
+                      >
+                        {isSaving ? '저장 중...' : '저장'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {yamlError && <div className="text-xs text-red-500">{yamlError}</div>}
+                {isYamlEditing ? (
+                  <textarea
+                    value={editableYaml}
+                    onChange={(e) => handleYamlChange(e.target.value)}
+                    className="w-full h-64 p-3 border rounded font-mono text-xs"
+                    placeholder="블록 YAML을 편집하세요"
+                  />
+                ) : (
+                  <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+                    <pre className="whitespace-pre-wrap break-words">
+                      {getCurrentYaml()}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+                <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
+              </div>
+            )}
 
             {/* 액션 버튼들 */}
             <div className="flex flex-wrap gap-2">
@@ -1290,41 +976,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           </div>
         )}
 
-        {viewMode === 'tree' && (
-          <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Folder size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">워크플로우 구조</span>
-            </div>
-            <div className="bg-white text-gray-900 rounded-lg border border-gray-200 h-80 overflow-auto shadow-sm">
-              <TreeView
-                structure={workflowStructure}
-                onBlockSelect={handleBlockSelect}
-                selectedBlock={selectedNode as any}
-              />
-            </div>
-          </div>
-        )}
-
-        {viewMode === 'edit' && selectedNode && (
-          <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Edit size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">노드 편집</span>
-            </div>
-            <NodeEditor
-              nodeData={selectedNode.data}
-              nodeType={selectedNode.type}
-              onSave={(updatedData) => {
-                if (updateNodeData) {
-                  updateNodeData(selectedNode.id, updatedData);
-                }
-                setViewMode('control');
-              }}
-              onCancel={() => setViewMode('control')}
-            />
-          </div>
-        )}
+        {/* tree/edit 탭 제거됨: 노드 편집은 settings 탭의 노드 섹션에서 수행 */}
 
         {/* 설정 탭 */}
         {viewMode === 'settings' && (
@@ -1335,8 +987,9 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
             </div>
 
             <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="general">일반</TabsTrigger>
+                <TabsTrigger value="node">노드</TabsTrigger>
                 <TabsTrigger value="secrets">
                   Secrets
                   {missingSecrets.length > 0 && (
@@ -1353,6 +1006,31 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                     <CardTitle className="text-sm">워크플로우 설정</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    {/* 저장소 상태 */}
+                    <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">상태:</span>
+                        <span
+                          className={`font-medium ${
+                            isConfigured ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
+                          {isConfigured ? '설정됨' : '미설정'}
+                        </span>
+                      </div>
+                      {isConfigured && (
+                        <>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">소유자:</span>
+                            <span className="font-medium">{owner}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">저장소:</span>
+                            <span className="font-medium">{repo}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600">
                         워크플로우 이름
@@ -1382,9 +1060,62 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         <Trash2 size={14} />
                         워크스페이스 초기화
                       </Button>
+                      <Button
+                        onClick={handleSaveWorkflowToServer}
+                        disabled={
+                          createPipelineMutation.isPending || !isConfigured || !hasNodes
+                        }
+                        size="sm"
+                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                      >
+                        <Save size={14} />
+                        {createPipelineMutation.isPending
+                          ? '서버 저장 중...'
+                          : '서버 저장'}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="node" className="space-y-4">
+                {!selectedNode ? (
+                  <Card>
+                    <CardContent className="p-4 text-sm text-gray-600">
+                      편집할 노드를 좌측에서 선택하세요.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">노드 편집</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <NodeEditor
+                        nodeData={selectedNode.data}
+                        nodeType={selectedNode.type}
+                        onSave={(updatedData) => {
+                          if (updateNodeData) {
+                            updateNodeData(selectedNode.id, updatedData);
+                          }
+                          toast.success('노드가 저장되었습니다.');
+                        }}
+                        onCancel={() => {}}
+                      />
+                      <div className="mt-3">
+                        <Button
+                          onClick={() => onNodeDelete(selectedNode.id)}
+                          size="sm"
+                          variant="destructive"
+                          className="w-full flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          <Trash2 size={16} />
+                          노드 삭제
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="secrets" className="space-y-4">
