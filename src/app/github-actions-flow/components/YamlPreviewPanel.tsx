@@ -9,7 +9,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ServerBlock } from '../types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
-import { ChevronDown, ChevronRight, Folder, File, Play, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, File, Play } from 'lucide-react';
 
 //* ========================================
 //* Props 타입 정의

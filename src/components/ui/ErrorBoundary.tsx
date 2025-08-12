@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -25,9 +25,9 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // 에러 로깅 등 추가 가능
-    // console.error(error, errorInfo);
+  componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
+    // 에러 로깅 로직
+    console.error('Error caught by boundary:', _error, _errorInfo);
   }
 
   render() {

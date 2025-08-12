@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useRouter, usePathname } from "next/navigation";
+import React from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
-import { ROUTE_LIST, BRAND } from "@/config";
-import { cn } from "@/lib/utils";
-import { useLayout } from "./LayoutContext";
-import { GithubTokenDialog } from "@/components/features/GithubTokenDialog";
-import { useRepository } from "@/contexts/RepositoryContext";
-import { getCookie } from "@/lib/cookieUtils";
-import { STORAGES } from "@/config/appConstants";
+} from '@/components/ui/sidebar';
+import { ROUTE_LIST, BRAND } from '@/config';
+import { cn } from '@/lib/utils';
+import { useLayout } from './LayoutContext';
+import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { getCookie } from '@/lib/cookieUtils';
+import { STORAGES } from '@/config/appConstants';
 import {
   Github,
   GitBranch,
@@ -29,7 +28,7 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
+} from 'lucide-react';
 
 // * 설정 상태 컴포넌트 (접을 수 있음)
 function SettingsStatus() {
@@ -122,12 +121,10 @@ function SidebarHeaderContent() {
     <SidebarHeader className="border-b border-border h-16 px-2">
       <div className="flex items-center space-x-3">
         <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-          <BRAND.logo.icon className={cn("w-5 h-5", BRAND.logo.color)} />
+          <BRAND.logo.icon className={cn('w-5 h-5', BRAND.logo.color)} />
         </div>
         <div className="min-w-0">
-          <h1 className="font-semibold text-lg text-gray-900 truncate">
-            {BRAND.name}
-          </h1>
+          <h1 className="font-semibold text-lg text-gray-900 truncate">{BRAND.name}</h1>
           <p className="text-xs text-gray-500 truncate">{BRAND.description}</p>
         </div>
       </div>
@@ -172,8 +169,8 @@ function MenuSection() {
                       onClick={() => handleRouteClick(route.url)}
                       className={
                         pathname === route.url
-                          ? "bg-blue-100 text-blue-700 font-bold hover:text-blue-700 hover:bg-blue-100"
-                          : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-50 active:text-blue-700"
+                          ? 'bg-blue-100 text-blue-700 font-bold hover:text-blue-700 hover:bg-blue-100'
+                          : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-50 active:text-blue-700'
                       }
                     >
                       <route.icon />
@@ -199,12 +196,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeaderContent />
       <SidebarContent
         style={{
-          display: "flex",
-          flexDirection: "column",
+          display: 'flex',
+          flexDirection: 'column',
           flex: 1,
           minHeight: 0,
-          height: "100%",
-          overflow: "hidden",
+          height: '100%',
+          overflow: 'hidden',
         }}
       >
         {/* 메뉴 섹션 */}
@@ -216,8 +213,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             style={{
               flex: 1,
               minHeight: 0,
-              height: "100%",
-              overflow: "auto",
+              height: '100%',
+              overflow: 'auto',
             }}
           >
             {sidebarExtra}
