@@ -48,7 +48,7 @@ export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'execution' | 'details'>('execution');
   const [isMobile, setIsMobile] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
@@ -97,7 +97,7 @@ export default function MonitoringPage() {
 
   const handleShowDetails = (run: WorkflowRun) => {
     setSelectedRun(run);
-    setActiveTab('jobs');
+    setActiveTab('execution');
     setFocusedJobId(null);
     setFocusedStepName(null);
     if (isMobile) setIsDetailOpen(true);
@@ -198,30 +198,27 @@ export default function MonitoringPage() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            {metaRows.map((row) => (
+              <div
+                key={row.k}
+                className="flex items-center justify-between p-2 rounded border bg-white"
+              >
+                <span className="text-slate-500">{row.k}</span>
+                <span className="text-slate-900 font-medium truncate max-w-[60%] text-right">
+                  {String(row.v)}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3 bg-slate-50">
-              <TabsTrigger value="overview">개요</TabsTrigger>
-              <TabsTrigger value="jobs">Jobs/Steps</TabsTrigger>
-              <TabsTrigger value="logs">원시 로그</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-slate-50">
+              <TabsTrigger value="execution">실행 로그</TabsTrigger>
+              <TabsTrigger value="details">상세 로그</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                {metaRows.map((row) => (
-                  <div
-                    key={row.k}
-                    className="flex items-center justify-between p-2 rounded border bg-white"
-                  >
-                    <span className="text-slate-500">{row.k}</span>
-                    <span className="text-slate-900 font-medium truncate max-w-[60%] text-right">
-                      {String(row.v)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="jobs" className="space-y-3">
+            <TabsContent value="execution" className="space-y-3">
               {jobsLoading ? (
                 <div className="text-center py-6 text-gray-500">
                   잡/스텝 불러오는 중...
@@ -246,7 +243,7 @@ export default function MonitoringPage() {
                             onClick={() => {
                               setFocusedJobId(job.id);
                               setFocusedStepName(st.name);
-                              setActiveTab('logs');
+                              setActiveTab('details');
                             }}
                           >
                             <div className="text-slate-700 flex items-center gap-2">
@@ -267,7 +264,7 @@ export default function MonitoringPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="logs">
+            <TabsContent value="details">
               {logsLoading ? (
                 <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
               ) : (
