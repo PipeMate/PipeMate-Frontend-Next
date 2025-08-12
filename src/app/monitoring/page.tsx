@@ -48,6 +48,8 @@ export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
+  const [selectedRunSnapshot, setSelectedRunSnapshot] = useState<WorkflowRun | null>(null);
   const [activeTab, setActiveTab] = useState<'execution' | 'details'>('execution');
   const [isMobile, setIsMobile] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -97,11 +99,33 @@ export default function MonitoringPage() {
 
   const handleShowDetails = (run: WorkflowRun) => {
     setSelectedRun(run);
+    setSelectedRunId(run.id);
+    setSelectedRunSnapshot(run);
     setActiveTab('execution');
     setFocusedJobId(null);
     setFocusedStepName(null);
     if (isMobile) setIsDetailOpen(true);
+    // 데스크톱에서 데이터 리페치로 인한 잠깐의 selectedRun undefined 방지
+    // 선택되었을 때는 모달/우측 패널이 유지되도록 상세 오픈 상태는 건드리지 않음
   };
+
+  // 리페치 시에도 선택된 실행을 유지
+  useEffect(() => {
+    if (!selectedRunId) return;
+    const list: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
+    const found = list.find((r) => r.id === selectedRunId);
+    if (found) {
+      setSelectedRun(found);
+    } else if (!selectedRun) {
+      // 리스트에 없더라도 스냅샷으로 유지
+      if (selectedRunSnapshot) setSelectedRun(selectedRunSnapshot);
+    }
+  }, [workflowRunsData, selectedRunId]);
+
+  // 반응형 전환 시 모바일에서는 선택되어 있으면 모달 자동 오픈
+  useEffect(() => {
+    if (isMobile && selectedRunId) setIsDetailOpen(true);
+  }, [isMobile, selectedRunId]);
 
   const copyText = async (text: string) => {
     try {
@@ -200,7 +224,10 @@ export default function MonitoringPage() {
         <CardContent>
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
             {metaRows.map((row) => (
-              <div key={row.k} className="flex items-center justify-between px-2.5 py-1.5 rounded bg-white">
+              <div
+                key={row.k}
+                className="flex items-center justify-between px-2.5 py-1.5 rounded bg-white"
+              >
                 <span className="text-slate-500">{row.k}</span>
                 <span className="text-slate-900 font-medium truncate max-w-[65%] text-right">
                   {String(row.v)}
@@ -400,14 +427,46 @@ export default function MonitoringPage() {
   const getStepBadge = (status?: string, conclusion?: string) => {
     const base = 'border px-2 py-0.5 rounded text-[11px] font-medium';
     if (conclusion) {
-      if (conclusion === 'success') return <span className={`${base} bg-green-100 text-green-800 border-green-200`}>성공</span>;
-      if (conclusion === 'failure' || conclusion === 'failed') return <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>;
-      if (conclusion === 'cancelled') return <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>취소</span>;
-      if (conclusion === 'skipped') return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>건너뜀</span>;
+      if (conclusion === 'success')
+        return (
+          <span className={`${base} bg-green-100 text-green-800 border-green-200`}>
+            성공
+          </span>
+        );
+      if (conclusion === 'failure' || conclusion === 'failed')
+        return (
+          <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>
+        );
+      if (conclusion === 'cancelled')
+        return (
+          <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>
+            취소
+          </span>
+        );
+      if (conclusion === 'skipped')
+        return (
+          <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>
+            건너뜀
+          </span>
+        );
     }
-    if (status === 'in_progress') return <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>실행 중</span>;
-    if (status === 'queued' || status === 'waiting') return <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>대기 중</span>;
-    return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>{status || '기타'}</span>;
+    if (status === 'in_progress')
+      return (
+        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>
+          실행 중
+        </span>
+      );
+    if (status === 'queued' || status === 'waiting')
+      return (
+        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>
+          대기 중
+        </span>
+      );
+    return (
+      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>
+        {status || '기타'}
+      </span>
+    );
   };
 
   const _getStatusText = (status: string, conclusion?: string) => {
@@ -746,7 +805,7 @@ export default function MonitoringPage() {
             </Tabs>
           </div>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:block sticky top-4 self-start">
             {selectedRun ? (
               <RunDetail />
             ) : (
@@ -763,7 +822,14 @@ export default function MonitoringPage() {
         </div>
 
         {/* 모바일 상세: 모달 */}
-        <Dialog open={isDetailOpen && !!selectedRun} onOpenChange={setIsDetailOpen}>
+        <Dialog open={isDetailOpen} onOpenChange={(open) => {
+          // 모바일에서만 모달 사용
+          if (!isMobile) {
+            setIsDetailOpen(false);
+            return;
+          }
+          setIsDetailOpen(open);
+        }}>
           <DialogContent className="sm:max-w-3xl w-[95vw] p-0" showCloseButton>
             <DialogHeader className="px-6 pt-6">
               <DialogTitle>실행 상세</DialogTitle>
