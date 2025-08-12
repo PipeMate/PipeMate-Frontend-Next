@@ -1,82 +1,98 @@
-# 프론트 프로젝트 협업 가이드 및 컨벤션
+# PipeMate Frontend Next.js
 
-이 문서는 Next.js 기반 프로젝트의 **협업 규칙**과 개발 컨벤션을 정리한 가이드입니다. 새로운 팀원이 빠르게 프로젝트에 적응하고, 일관된 코드와 효율적인 협업이 이루어질 수 있도록 작성되었습니다.
+GitHub Actions 워크플로우를 시각적으로 구성할 수 있는 프론트엔드 애플리케이션입니다.
 
-## 1. 프로젝트 개요
+## 환경 설정
 
-- **프레임워크**: Next.js (React 기반)
-- **초기화 도구**: [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) 사용
-- **주요 특징**:
-  - App Router 구조
-  - TypeScript 기반
-  - Tailwind CSS, ESLint 등 추가 도구는 설정에 따라 다를 수 있음
+### 환경변수 설정
 
-## 2. 개발 환경 세팅
-
-### 2.1. 의존성 설치
-
-아래 명령어 중 하나를 사용하여 패키지를 설치하세요.
+프로젝트 루트에 `.env.local` 파일을 생성하고 다음 환경변수들을 설정하세요:
 
 ```bash
+# API 설정
+NEXT_PUBLIC_USE_REAL_API=false
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+
+# GitHub 설정
+NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+
+# 기타 설정
+NODE_ENV=development
+PORT=3000
+```
+
+### 환경변수 설명
+
+- `NEXT_PUBLIC_USE_REAL_API`: 실제 백엔드 API 사용 여부
+  - `false`: 목 데이터 사용 (개발용)
+  - `true`: 실제 백엔드 API 사용 (프로덕션용)
+- `NEXT_PUBLIC_API_BASE_URL`: 백엔드 API 기본 URL
+- `NEXT_PUBLIC_GITHUB_CLIENT_ID`: GitHub OAuth App Client ID
+- `GITHUB_CLIENT_SECRET`: GitHub OAuth App Client Secret
+
+## 설치 및 실행
+
+```bash
+# 의존성 설치
 npm install
-# 또는
-yarn install
-# 또는
-pnpm install
-# 또는
-bun install
-```
 
-### 2.2. 개발 서버 실행
-
-```bash
+# 개발 서버 실행
 npm run dev
-# 또는
-yarn dev
-# 또는
-pnpm dev
-# 또는
-bun dev
+
+# 프로덕션 빌드
+npm run build
+
+# 프로덕션 서버 실행
+npm start
 ```
 
-- 개발 서버 기본 주소: [http://localhost:3000](http://localhost:3000)
+## API 사용 방법
 
-## 3. 프로젝트 구조 및 파일 관리
+### 목 데이터 사용 (개발용)
 
-- **메인 페이지**: `app/page.tsx`
-- **컴포넌트/모듈**: 기능별로 `app/components`, `app/modules` 등으로 분리하여 관리합니다.
-- **스타일**: Tailwind CSS 또는 글로벌 스타일 시트(`globals.css`)를 사용합니다.
-- **폰트**: [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts)로 폰트 최적화, 기본 폰트는 [Geist](https://vercel.com/font) 사용
+```typescript
+import { createPipeline, getPipeline } from '@/app/github-actions-flow/constants/mockData';
 
-## 4. 코드 컨벤션
+// 목 데이터로 파이프라인 생성
+const result = await createPipeline({
+  owner: 'donghyuun',
+  repo: 'pipemate',
+  workflowName: 'test-workflow',
+  inputJson: [...],
+  description: '테스트 워크플로우'
+});
+```
 
-- **언어**: TypeScript 권장
-- **코딩 스타일**: Prettier, ESLint 적용 (`.prettierrc`, `eslint.config.mjs` 확인)
-- **폴더/파일명**: camelCase 사용
-- **컴포넌트 명명**: PascalCase 사용
-- **주석**: 함수/컴포넌트 상단에 JSDoc 스타일로 작성(예: API/훅/컨텍스트에 적용)
-- **커밋 메시지**: [Conventional Commits](https://www.conventionalcommits.org/) 규칙 준수
+### 실제 API 사용 (프로덕션용)
 
-## 5. 협업 규칙
+환경변수 `NEXT_PUBLIC_USE_REAL_API=true`로 설정하면 자동으로 실제 백엔드 API를 사용합니다.
 
-- **브랜치 전략**:
-  - `main`: 배포용
-  - `feat/브랜치명`: 기능 개발
-  - Pull Request(PR)로 코드 리뷰 필수
-- **이슈 관리**: GitHub Issues 사용, 작업 시작 전 할당
-- **코드 리뷰**: 최소 1명 이상의 승인 필요
-- **문서화**: 주요 변경사항은 README 또는 별도 문서에 기록
+```typescript
+// 실제 백엔드 API 호출
+const result = await createPipeline({
+  owner: 'donghyuun',
+  repo: 'pipemate',
+  workflowName: 'test-workflow',
+  inputJson: [...],
+  description: '테스트 워크플로우'
+});
+```
 
-## 6. 배포
+## 주요 기능
 
-- **플랫폼**: [Vercel](https://vercel.com/) 권장
-- **배포 방법**: Vercel 연동 또는 수동 배포
-- **참고 문서**: [Next.js 배포 가이드](https://nextjs.org/docs/app/building-your-application/deploying)
+- GitHub Actions 워크플로우 시각적 구성
+- 블록 기반 워크플로우 에디터
+- 프리셋 블록 및 파이프라인 제공
+- YAML 변환 및 GitHub 업로드
+- 실시간 워크플로우 실행 모니터링
 
-## 7. 참고 자료
+## 기술 스택
 
-- [Next.js 공식 문서](https://nextjs.org/docs)
-- [Next.js 튜토리얼](https://nextjs.org/learn)
-- [Next.js GitHub](https://github.com/vercel/next.js)
-
-이 가이드는 프로젝트의 일관성과 효율적인 협업을 위해 지속적으로 업데이트될 수 있습니다. 궁금한 점이나 개선 사항이 있다면 언제든지 팀에 공유해주세요.
+- **Framework**: Next.js 14
+- **Language**: TypeScript
+- **UI Library**: React
+- **Styling**: Tailwind CSS
+- **State Management**: React Context
+- **Flow Editor**: React Flow
+- **HTTP Client**: Fetch API
