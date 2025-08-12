@@ -4,7 +4,9 @@ export interface PipelineRequest {
   owner: string;
   repo: string;
   workflowName: string;
-  inputJson: Record<string, unknown>[];
+  // 워크플로우를 구성하는 블록들의 원본 JSON 배열
+  // 송신 전용으로 엄격한 구조를 강제하지 않습니다
+  inputJson: unknown[];
   description?: string;
 }
 
