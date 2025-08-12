@@ -161,9 +161,9 @@ export const useDragDrop = () => {
         e.preventDefault();
         const focusedNode = nodes.find(node => node.id === currentNodeId);
         if (focusedNode) {
-          //* 노드 선택 이벤트 발생
-          const event = new CustomEvent('nodeSelect', { detail: focusedNode });
-          window.dispatchEvent(event);
+          //* CustomEvent 대신 직접 노드 선택 처리
+          //* 이벤트는 상위 컴포넌트에서 처리하도록 함
+          console.log('노드 선택:', focusedNode.data.label);
         }
         break;
       case 'Delete':
@@ -171,9 +171,9 @@ export const useDragDrop = () => {
         e.preventDefault();
         const nodeToDelete = nodes.find(node => node.id === currentNodeId);
         if (nodeToDelete) {
-          //* 노드 삭제 이벤트 발생
-          const event = new CustomEvent('nodeDelete', { detail: nodeToDelete });
-          window.dispatchEvent(event);
+          //* CustomEvent 대신 직접 노드 삭제 처리
+          //* 이벤트는 상위 컴포넌트에서 처리하도록 함
+          console.log('노드 삭제:', nodeToDelete.data.label);
         }
         break;
     }
@@ -260,13 +260,13 @@ export const useDragDrop = () => {
     (blockType: string): NodeType => {
       switch (blockType) {
         case "trigger":
-          return "TRIGGER";
+          return "workflowTrigger";
         case "job":
-          return "JOB";
+          return "job";
         case "step":
-          return "STEP";
+          return "step";
         default:
-          return "STEP";
+          return "step";
       }
     },
     []

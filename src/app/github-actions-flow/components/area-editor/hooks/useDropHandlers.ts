@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { ServerBlock, WorkflowNodeData } from "../../../types";
 import { AreaNodes, NodeType } from "../types";
 import { toast } from "react-toastify";
@@ -16,6 +16,27 @@ export const useDropHandlers = (
   ) => void,
   clearDragState?: () => void
 ) => {
+  //* 중복 토스트 방지를 위한 디바운싱
+  const lastToastRef = useRef<{ message: string; timestamp: number } | null>(null);
+  
+  const showToast = useCallback((message: string, type: 'error' | 'success' = 'error') => {
+    const now = Date.now();
+    const lastToast = lastToastRef.current;
+    
+    //* 같은 메시지가 1초 내에 다시 호출되면 무시
+    if (lastToast && lastToast.message === message && now - lastToast.timestamp < 1000) {
+      return;
+    }
+    
+    lastToastRef.current = { message, timestamp: now };
+    
+    if (type === 'error') {
+      toast.error(message);
+    } else {
+      toast.success(message);
+    }
+  }, []);
+
   //* ========================================
   //* 유효성 검사 함수들
   //* ========================================
@@ -29,33 +50,33 @@ export const useDropHandlers = (
     switch (targetArea) {
       case 'trigger':
         if (blockType !== 'trigger') {
-          toast.error('Trigger 영역에는 Trigger 블록만 드롭할 수 있습니다.');
+          showToast('Trigger 영역에는 Trigger 블록만 드롭할 수 있습니다.');
           return false;
         }
         //* Trigger는 하나만 허용
         if (areaNodes.trigger.length >= 1) {
-          toast.error('Trigger는 하나만 설정할 수 있습니다.');
+          showToast('Trigger는 하나만 설정할 수 있습니다.');
           return false;
         }
         break;
         
       case 'job':
         if (blockType === 'trigger') {
-          toast.error('Job 영역에는 Trigger 블록을 드롭할 수 없습니다.');
+          showToast('Job 영역에는 Trigger 블록을 드롭할 수 없습니다.');
           return false;
         }
         break;
         
       case 'step':
         if (blockType !== 'step') {
-          toast.error('Step 영역에는 Step 블록만 드롭할 수 있습니다.');
+          showToast('Step 영역에는 Step 블록만 드롭할 수 있습니다.');
           return false;
         }
         break;
     }
     
     return true;
-  }, [areaNodes.trigger.length]);
+  }, [areaNodes.trigger.length, showToast]);
 
   /**
    * 순서 제약 검사
@@ -65,18 +86,18 @@ export const useDropHandlers = (
     
     //* Trigger가 없으면 다른 블록들을 드롭할 수 없음
     if (blockType !== 'trigger' && areaNodes.trigger.length === 0) {
-      toast.error('먼저 Trigger 블록을 추가해주세요.');
+      showToast('먼저 Trigger 블록을 추가해주세요.');
       return false;
     }
     
     //* Job이 없으면 Step을 드롭할 수 없음
     if (blockType === 'step' && areaNodes.job.length === 0) {
-      toast.error('먼저 Job 블록을 추가해주세요.');
+      showToast('먼저 Job 블록을 추가해주세요.');
       return false;
     }
     
     return true;
-  }, [areaNodes.trigger.length, areaNodes.job.length]);
+  }, [areaNodes.trigger.length, areaNodes.job.length, showToast]);
 
   /**
    * 중복 검사
@@ -90,12 +111,12 @@ export const useDropHandlers = (
     const isDuplicate = existingNodes.some(node => node.data.label === blockName);
     
     if (isDuplicate) {
-      toast.error(`'${blockName}' 블록이 이미 존재합니다.`);
+      showToast(`'${blockName}' 블록이 이미 존재합니다.`);
       return false;
     }
     
     return true;
-  }, [areaNodes]);
+  }, [areaNodes, showToast]);
 
   /**
    * 종합 유효성 검사
@@ -136,13 +157,13 @@ export const useDropHandlers = (
 
           //* 파이프라인 유효성 검사
           if (!blocks || !Array.isArray(blocks)) {
-            toast.error("잘못된 파이프라인 데이터입니다.");
+            showToast('잘못된 파이프라인 데이터입니다.');
             return;
           }
 
           //* 파이프라인 블록들을 순서대로 추가
           blocks.forEach((block: ServerBlock) => {
-            const nodeType = block.type === "trigger" ? "TRIGGER" : block.type === "job" ? "JOB" : "STEP";
+            const nodeType = block.type === "trigger" ? "workflowTrigger" : block.type === "job" ? "job" : "step";
             
             //* 각 블록에 대해 유효성 검사 수행
             if (!performValidation(block, targetArea)) {
@@ -176,7 +197,7 @@ export const useDropHandlers = (
             addNode(nodeType as NodeType, nodeData, parentId);
           });
 
-          toast.success("파이프라인이 성공적으로 추가되었습니다.");
+          showToast('파이프라인이 성공적으로 추가되었습니다.');
           return;
         }
 
@@ -188,7 +209,7 @@ export const useDropHandlers = (
           return;
         }
 
-        const nodeType = block.type === "trigger" ? "TRIGGER" : block.type === "job" ? "JOB" : "STEP";
+        const nodeType = block.type === "trigger" ? "workflowTrigger" : block.type === "job" ? "job" : "step";
 
         const nodeData: WorkflowNodeData = {
           label: block.name,
@@ -215,13 +236,13 @@ export const useDropHandlers = (
         }
 
         addNode(nodeType as NodeType, nodeData, parentId);
-        toast.success(`'${block.name}' 블록이 추가되었습니다.`);
+        showToast(`'${block.name}' 블록이 추가되었습니다.`);
       } catch (error) {
         console.error("드롭 처리 오류:", error);
-        toast.error("드롭 처리 중 오류가 발생했습니다.");
+        showToast('드롭 처리 중 오류가 발생했습니다.');
       }
     },
-    [addNode, areaNodes.job, performValidation, clearDragState]
+    [addNode, areaNodes.job, performValidation, clearDragState, showToast]
   );
 
   /**
@@ -255,7 +276,7 @@ export const useDropHandlers = (
           return;
         }
 
-        const nodeType = block.type === "trigger" ? "TRIGGER" : block.type === "job" ? "JOB" : "STEP";
+        const nodeType = block.type === "trigger" ? "workflowTrigger" : block.type === "job" ? "job" : "step";
 
         const nodeData: WorkflowNodeData = {
           label: block.name,
@@ -276,17 +297,17 @@ export const useDropHandlers = (
           if (jobNodes.length > 0) {
             const parentJob = jobNodes[jobNodes.length - 1];
             nodeData.jobName = parentJob.data.jobName || ""; // 해당 Job의 이름 사용
-            addNode("STEP", nodeData, parentJob.id);
-            toast.success(`'${block.name}' Step이 Job에 추가되었습니다.`);
+            addNode("step", nodeData, parentJob.id);
+            showToast(`'${block.name}' Step이 Job에 추가되었습니다.`);
             return;
           }
         }
 
         addNode(nodeType as NodeType, nodeData);
-        toast.success(`'${block.name}' 블록이 추가되었습니다.`);
+        showToast(`'${block.name}' 블록이 추가되었습니다.`);
       }
     },
-    [addNode, areaNodes.job, handleDrop, performValidation, clearDragState]
+    [addNode, areaNodes.job, handleDrop, performValidation, clearDragState, showToast]
   );
 
   /**
@@ -324,7 +345,7 @@ export const useDropHandlers = (
           //* 해당 Job의 이름을 찾아서 Step의 jobName으로 설정
           const parentJob = areaNodes.job.find((job) => job.id === jobId);
           if (!parentJob) {
-            toast.error("부모 Job을 찾을 수 없습니다.");
+            showToast('부모 Job을 찾을 수 없습니다.');
             return;
           }
 
@@ -340,14 +361,14 @@ export const useDropHandlers = (
             config: block.config,
           };
 
-          addNode("STEP", nodeData, jobId);
-          toast.success(`'${block.name}' Step이 Job에 추가되었습니다.`);
+          addNode("step", nodeData, jobId);
+          showToast(`'${block.name}' Step이 Job에 추가되었습니다.`);
         } else {
-          toast.error("Step 블록만 Job 내부에 드롭할 수 있습니다.");
+          showToast('Step 블록만 Job 내부에 드롭할 수 있습니다.');
         }
       }
     },
-    [addNode, areaNodes.job, handleDrop, validateBlockDrop, clearDragState]
+    [addNode, areaNodes.job, handleDrop, validateBlockDrop, clearDragState, showToast]
   );
 
   return {

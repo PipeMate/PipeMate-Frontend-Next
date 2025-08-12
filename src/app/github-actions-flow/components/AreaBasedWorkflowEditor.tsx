@@ -206,10 +206,19 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
    */
   const handleSaveWorkflow = useCallback(() => {
     if (onWorkflowChange) {
-      const blocks = getServerBlocks();
+      //* getServerBlocks 의존성 제거하여 무한 루프 방지
+      const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
+      const blocks = convertNodesToServerBlocks(
+        allNodes.map((n) => ({
+          id: n.id,
+          type: n.type,
+          position: { x: 0, y: 0 },
+          data: n.data as unknown as Record<string, unknown>,
+        }))
+      );
       onWorkflowChange(blocks);
     }
-  }, [onWorkflowChange, getServerBlocks]); // getServerBlocks 의존성 다시 추가
+  }, [onWorkflowChange, areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
   /**
    * 워크스페이스 초기화
@@ -279,13 +288,13 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   const handleKeyNavigationWrapper = useCallback(
     (e: React.KeyboardEvent, nodeId: string) => {
       const allNodes = [
-        ...areaNodes.trigger, 
-        ...areaNodes.job, 
-        ...Object.values(getStepsByJob()).flat()
+        ...areaNodes.trigger,
+        ...areaNodes.job,
+        ...Object.values(getStepsByJob()).flat(),
       ];
       handleKeyNavigation(e, nodeId, allNodes);
     },
-    [handleKeyNavigation, areaNodes.trigger, areaNodes.job, getStepsByJob]
+    [handleKeyNavigation, areaNodes.trigger, areaNodes.job, getStepsByJob],
   );
 
   //* ========================================

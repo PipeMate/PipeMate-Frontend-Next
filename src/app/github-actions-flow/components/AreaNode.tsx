@@ -122,9 +122,9 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
         case 'Delete':
         case 'Backspace':
           e.preventDefault();
-          //* 노드 삭제 이벤트 발생
-          const deleteEvent = new CustomEvent('nodeDelete', { detail: node });
-          window.dispatchEvent(deleteEvent);
+          //* CustomEvent 대신 직접 노드 삭제 처리
+          //* 이벤트는 상위 컴포넌트에서 처리하도록 함
+          console.log('노드 삭제:', node.data.label);
           break;
         default:
           //* 네비게이션 이벤트는 상위 컴포넌트에서 처리
@@ -161,9 +161,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       ref={nodeRef}
       className={`area-node relative p-4 rounded-lg border-2 cursor-pointer select-none ${
         isSelected ? 'ring-2 ring-blue-500' : ''
-      } ${
-        isEditing ? 'ring-2 ring-yellow-500' : ''
-      } ${
+      } ${isEditing ? 'ring-2 ring-yellow-500' : ''} ${
         isFocused ? 'ring-2 ring-blue-500 ring-offset-2' : ''
       } hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
       style={{
@@ -176,7 +174,9 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       draggable
       tabIndex={tabIndex}
       role="button"
-      aria-label={`${node.data.label} 블록${node.data.description ? ` - ${node.data.description}` : ''}`}
+      aria-label={`${node.data.label} 블록${
+        node.data.description ? ` - ${node.data.description}` : ''
+      }`}
       aria-pressed={isSelected}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
@@ -236,7 +236,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
 
       {/* 드래그 핸들 - 접근성 개선 */}
       <div className="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity">
-        <div 
+        <div
           className="w-6 h-6 bg-white/80 rounded-full cursor-grab border border-gray-300 flex items-center justify-center"
           role="button"
           tabIndex={-1}
