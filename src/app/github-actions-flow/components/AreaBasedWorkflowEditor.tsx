@@ -1,28 +1,25 @@
-"use client";
+'use client';
 
-import React, { useState, useCallback, useEffect } from "react";
-import { ServerBlock, WorkflowNodeData } from "../types";
-import { convertNodesToServerBlocks } from "../utils/dataConverter";
-import { useLayout } from "@/components/layout/LayoutContext";
-import { DragDropSidebar } from "./DragDropSidebar";
-import { AreaNode } from "./AreaNode";
-import { NodeEditor } from "./NodeEditor";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { Save, X } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import React, { useState, useCallback, useEffect } from 'react';
+import { ServerBlock, WorkflowNodeData } from '../types';
+import { convertNodesToServerBlocks } from '../utils/dataConverter';
+import { useLayout } from '@/components/layout/LayoutContext';
+import { DragDropSidebar } from './DragDropSidebar';
+import { AreaNode } from './AreaNode';
+import { NodeEditor } from './NodeEditor';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { Save, X } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 //* 새로운 구조의 컴포넌트들과 훅들 import
-import {
-  AreaBasedWorkflowEditorProps,
-  AreaNodeData,
-} from "./area-editor/types";
-import { useAreaNodes } from "./area-editor/hooks/useAreaNodes";
-import { useDragDrop } from "./area-editor/hooks/useDragDrop";
-import { useDropHandlers } from "./area-editor/hooks/useDropHandlers";
-import { IntegratedSidePanel } from "./IntegratedSidePanel";
-import { DropArea } from "./area-editor/components/DropArea";
-import { EmptyState } from "./area-editor/components/EmptyState";
+import { AreaBasedWorkflowEditorProps, AreaNodeData } from './area-editor/types';
+import { useAreaNodes } from './area-editor/hooks/useAreaNodes';
+import { useDragDrop } from './area-editor/hooks/useDragDrop';
+import { useDropHandlers } from './area-editor/hooks/useDropHandlers';
+import { IntegratedSidePanel } from './IntegratedSidePanel';
+import { DropArea } from './area-editor/components/DropArea';
+import { EmptyState } from './area-editor/components/EmptyState';
 
 /**
  * ========================================
@@ -32,9 +29,7 @@ import { EmptyState } from "./area-editor/components/EmptyState";
  * 드래그 앤 드롭으로 블록을 추가하고, 영역별로 워크플로우를 구성하는 에디터입니다.
  * Trigger, Job, Step 영역으로 나누어져 있으며, 각 영역에 맞는 블록을 배치할 수 있습니다.
  */
-export const AreaBasedWorkflowEditor: React.FC<
-  AreaBasedWorkflowEditorProps
-> = ({
+export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = ({
   onWorkflowChange,
   initialBlocks,
   onNodeSelect,
@@ -84,7 +79,7 @@ export const AreaBasedWorkflowEditor: React.FC<
     () => {
       setDragOverArea(null);
       setDragOverJobId(null);
-    }
+    },
   );
 
   //* ========================================
@@ -131,17 +126,17 @@ export const AreaBasedWorkflowEditor: React.FC<
         const selectedBlock: ServerBlock = {
           name: node.data.label,
           type:
-            node.data.type === "workflow_trigger"
-              ? "trigger"
-              : (node.data.type as "trigger" | "job" | "step"),
+            node.data.type === 'workflow_trigger'
+              ? 'trigger'
+              : (node.data.type as 'trigger' | 'job' | 'step'),
           description: node.data.description,
-          "job-name": node.data.jobName,
+          'job-name': node.data.jobName,
           config: node.data.config,
         };
         onNodeSelect(selectedBlock);
       }
     },
-    [onNodeSelect]
+    [onNodeSelect],
   );
 
   /**
@@ -161,7 +156,7 @@ export const AreaBasedWorkflowEditor: React.FC<
 
         //* Job의 job-name이 변경된 경우 하위 Step들도 업데이트
         if (
-          editingNode.type === "job" &&
+          editingNode.type === 'job' &&
           updatedData.jobName !== editingNode.data.jobName &&
           updatedData.jobName
         ) {
@@ -171,7 +166,7 @@ export const AreaBasedWorkflowEditor: React.FC<
         setEditingNode(null);
       }
     },
-    [editingNode, updateNodeData, updateStepJobNames]
+    [editingNode, updateNodeData, updateStepJobNames],
   );
 
   /**
@@ -188,8 +183,8 @@ export const AreaBasedWorkflowEditor: React.FC<
   const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
     // 노드나 컨트롤 패널이 아닌 영역 클릭 시
     if (
-      !(e.target as Element).closest(".area-node") &&
-      !(e.target as Element).closest("[data-radix-popover-content]")
+      !(e.target as Element).closest('.area-node') &&
+      !(e.target as Element).closest('[data-radix-popover-content]')
     ) {
       setSelectedNode(null);
       setIsControlPanelOpen(false);
@@ -224,7 +219,7 @@ export const AreaBasedWorkflowEditor: React.FC<
         setSelectedNode(null);
       }
     },
-    [deleteNode, selectedNode]
+    [deleteNode, selectedNode],
   );
 
   //* ========================================
@@ -238,9 +233,7 @@ export const AreaBasedWorkflowEditor: React.FC<
     const jobSteps: Record<string, AreaNodeData[]> = {};
 
     areaNodes.job.forEach((job) => {
-      jobSteps[job.id] = areaNodes.step.filter(
-        (step) => step.parentId === job.id
-      );
+      jobSteps[job.id] = areaNodes.step.filter((step) => step.parentId === job.id);
     });
 
     return jobSteps;
@@ -255,7 +248,7 @@ export const AreaBasedWorkflowEditor: React.FC<
       title: string,
       isDragOver: boolean,
       isJobStep: boolean = false,
-      jobId?: string
+      jobId?: string,
     ) => {
       return (
         <EmptyState
@@ -267,7 +260,7 @@ export const AreaBasedWorkflowEditor: React.FC<
         />
       );
     },
-    []
+    [],
   );
 
   //* ========================================
@@ -297,9 +290,7 @@ export const AreaBasedWorkflowEditor: React.FC<
         {/* 영역별 배치 */}
         <div
           className={`flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300 ${
-            isControlPanelOpen
-              ? "mr-0 sm:mr-96 lg:mr-[450px] xl:mr-[500px]"
-              : ""
+            isControlPanelOpen ? 'mr-0 sm:mr-96 lg:mr-[450px] xl:mr-[500px]' : ''
           }`}
           onClick={handleWorkspaceClick}
         >
