@@ -4,7 +4,7 @@
 //* 이 파일은 React Flow 기반 GitHub Actions 워크플로우 에디터의
 //* 모든 타입 정의를 포함합니다.
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 
 //* ========================================
 //* 서버 통신 타입
@@ -16,10 +16,25 @@ export interface ServerBlock {
   id?: string; // 고유 식별자(최초 생성 시 uuid 등으로 할당, 이후 불변)
   name: string; //* 블록 이름
   type: "trigger" | "job" | "step"; //* 블록 타입
-  category: string; //* 블록 카테고리
+  domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
+  task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   description: string; //* 블록 설명
-  "job-name"?: string; //* Job/Step 타입일 때 - Job 이름
+  "job-name"?: string; //* Job과 Step에서만 사용, 블록 라이브러리에서는 빈 값
   config: Record<string, unknown>; //* 블록 설정 데이터
+}
+
+//* 서버와 통신하는 파이프라인 데이터 형식
+//? 완성된 워크플로우를 파이프라인으로 제공
+export interface Pipeline {
+  id: string; //* 파이프라인 고유 식별자
+  name: string; //* 파이프라인 이름
+  description: string; //* 파이프라인 설명
+  type: "ci" | "cd" | "cicd" | "test" | "deploy"; //* 파이프라인 타입
+  domain?: string; //* 주요 도메인 (github, java, python, docker, aws 등)
+  task?: string[]; //* 포함된 태스크들
+  blocks: ServerBlock[]; //* 완성된 워크플로우의 블록들
+  config: Record<string, unknown>; //* 전체 워크플로우 설정
+  isActive: boolean; //* 활성화 상태
 }
 
 //* ========================================
@@ -63,11 +78,13 @@ export interface StepConfig {
 export interface WorkflowNodeData {
   label: string; //* 노드 표시 이름
   type: "workflow_trigger" | "job" | "step"; //* 노드 타입
-  category: string; //* 노드 카테고리
+  domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
+  task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   description: string; //* 노드 설명
   config: Record<string, unknown>; //* 노드 설정 데이터
   parentId?: string; //* 부모 노드 ID (Step용)
   jobName?: string; //* Job 이름 (Step용)
+  jobIndex?: number; //* Job 순서 추적 (여러 Job 지원)
 }
 
 //* ========================================
@@ -79,6 +96,8 @@ export interface ReactFlowWorkspaceProps {
   onWorkflowChange: (blocks: ServerBlock[]) => void; //* 워크플로우 변경 콜백
   initialBlocks?: ServerBlock[]; //* 초기 블록 데이터
   onNodeSelect?: (selectedBlock?: ServerBlock) => void; //* 노드 선택 콜백
+  onEditModeToggle?: () => void; //* 편집 모드 토글 콜백
+  isEditing?: boolean; //* 편집 모드 상태
 }
 
 //* ========================================

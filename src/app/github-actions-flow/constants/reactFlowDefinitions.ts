@@ -4,7 +4,7 @@
 //* 이 파일은 React Flow 기반 GitHub Actions 워크플로우 에디터의
 //* 노드 타입, 템플릿, 초기 설정을 정의합니다.
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 
 //* ========================================
 //* 노드 타입 상수
@@ -28,7 +28,8 @@ export const NODE_TEMPLATES = {
   workflow_trigger: {
     label: "워크플로우 기본 설정",
     type: NODE_TYPES.WORKFLOW_TRIGGER,
-    category: "workflow",
+    domain: "github",
+    task: ["trigger"],
     description:
       "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
     config: {
@@ -46,7 +47,8 @@ export const NODE_TEMPLATES = {
   job: {
     label: "Job 설정",
     type: NODE_TYPES.JOB,
-    category: "workflow",
+    domain: "github",
+    task: ["job"],
     description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
     config: {
       jobs: {
@@ -65,7 +67,8 @@ export const NODE_TEMPLATES = {
   checkout_step: {
     label: "Checkout repository",
     type: NODE_TYPES.STEP,
-    category: "workflow",
+    domain: "github",
+    task: ["checkout"],
     description: "GitHub 저장소를 체크아웃하는 단계입니다.",
     config: {
       name: "Checkout repository",
@@ -77,7 +80,8 @@ export const NODE_TEMPLATES = {
   java_setup_step: {
     label: "Set up JDK 21",
     type: NODE_TYPES.STEP,
-    category: "setup",
+    domain: "java",
+    task: ["setup"],
     description:
       "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
     config: {
@@ -94,7 +98,8 @@ export const NODE_TEMPLATES = {
   gradle_build_step: {
     label: "Gradle 빌드 블록",
     type: NODE_TYPES.STEP,
-    category: "build",
+    domain: "gradle",
+    task: ["build"],
     description:
       "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
     config: {
@@ -107,7 +112,8 @@ export const NODE_TEMPLATES = {
   gradle_test_step: {
     label: "Gradle 테스트 실행 블록",
     type: NODE_TYPES.STEP,
-    category: "test",
+    domain: "gradle",
+    task: ["test"],
     description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
     config: {
       name: "Test with Gradle",
@@ -119,7 +125,8 @@ export const NODE_TEMPLATES = {
   docker_login_step: {
     label: "Docker 로그인",
     type: NODE_TYPES.STEP,
-    category: "docker",
+    domain: "docker",
+    task: ["login"],
     description:
       "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
     config: {
@@ -127,7 +134,7 @@ export const NODE_TEMPLATES = {
       uses: "docker/login-action@v2.2.0",
       with: {
         username: "${{ secrets.DOCKER_USERNAME }}",
-        password: "${{ secrets.DOCKER_PASSWORD }}",
+        password: "${{ secrets.DOCKER_USERNAME }}",
       },
     },
   },
@@ -136,7 +143,8 @@ export const NODE_TEMPLATES = {
   docker_build_step: {
     label: "Docker 이미지 빌드 및 푸시 블록",
     type: NODE_TYPES.STEP,
-    category: "deploy",
+    domain: "docker",
+    task: ["build", "push"],
     description: "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
     config: {
       name: "image build and push docker images",
@@ -154,7 +162,8 @@ export const NODE_TEMPLATES = {
   ssh_deploy_step: {
     label: "Deploy to AWS EC2",
     type: NODE_TYPES.STEP,
-    category: "deploy",
+    domain: "aws",
+    task: ["deploy"],
     description: "AWS EC2 서버에 SSH를 통해 배포하는 단계입니다.",
     config: {
       name: "Deploy to AWS EC2",
@@ -185,7 +194,7 @@ export const INITIAL_EDGES: Edge[] = [
     id: "trigger-to-job",
     source: "trigger-1",
     target: "job-1",
-    type: "smoothstep",
+    type: "straight", // 'smoothstep'에서 'straight'로 변경
     data: {
       label: "워크플로우 → Job",
     },
@@ -214,11 +223,12 @@ export const createNode = (
     id,
     type: template.type,
     position,
-    parentNode: parentId,
+    parentId: parentId,
     data: {
       label: template.label,
       type: template.type as "workflow_trigger" | "job" | "step",
-      category: template.category,
+      domain: "domain" in template ? template.domain : undefined,
+      task: "task" in template ? template.task : undefined,
       description: template.description,
       config: template.config,
       parentId,

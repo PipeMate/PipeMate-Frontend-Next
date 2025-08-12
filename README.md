@@ -5,7 +5,7 @@
 ## 1. 프로젝트 개요
 
 - **프레임워크**: Next.js (React 기반)
-- **초기화 도구**: [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) 사용 
+- **초기화 도구**: [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) 사용
 - **주요 특징**:
   - App Router 구조
   - TypeScript 기반
@@ -51,15 +51,15 @@ bun dev
 ## 4. 코드 컨벤션
 
 - **언어**: TypeScript 권장
-- **코딩 스타일**: Prettier, ESLint 적용
+- **코딩 스타일**: Prettier, ESLint 적용 (`.prettierrc`, `eslint.config.mjs` 확인)
 - **폴더/파일명**: camelCase 사용
 - **컴포넌트 명명**: PascalCase 사용
-- **주석**: 함수/컴포넌트 상단에 JSDoc 스타일로 작성
+- **주석**: 함수/컴포넌트 상단에 JSDoc 스타일로 작성(예: API/훅/컨텍스트에 적용)
 - **커밋 메시지**: [Conventional Commits](https://www.conventionalcommits.org/) 규칙 준수
 
 ## 5. 협업 규칙
 
-- **브랜치 전략**: 
+- **브랜치 전략**:
   - `main`: 배포용
   - `feat/브랜치명`: 기능 개발
   - Pull Request(PR)로 코드 리뷰 필수
