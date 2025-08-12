@@ -7,7 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useWorkflows, useWorkflowRuns, useCancelWorkflowRun } from '@/api/hooks';
+import {
+  useWorkflows,
+  useWorkflowRuns,
+  useCancelWorkflowRun,
+  useWorkflowRunJobs,
+  useWorkflowRunLogs,
+} from '@/api/hooks';
 import {
   Monitor,
   Play,
@@ -39,7 +45,8 @@ interface WorkflowRun {
 export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
-  const [_selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'logs'>('overview');
 
   // 훅 사용
   const {
@@ -56,6 +63,19 @@ export default function MonitoringPage() {
 
   const workflows = workflowsData?.data?.workflows || [];
   const workflowRuns: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
+
+  // 상세: jobs / logs 로드 (선택 시)
+  const runId = selectedRun?.id ? String(selectedRun.id) : '';
+  const { data: runJobsData, isLoading: jobsLoading } = useWorkflowRunJobs(
+    owner || '',
+    repo || '',
+    runId,
+  );
+  const { data: runLogsData, isLoading: logsLoading } = useWorkflowRunLogs(
+    owner || '',
+    repo || '',
+    runId,
+  );
 
   // 헤더 설정
   useEffect(() => {
@@ -333,7 +353,10 @@ export default function MonitoringPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setSelectedRun(run)}
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  setActiveTab('jobs');
+                                }}
                               >
                                 <Info className="w-4 h-4 mr-2" />
                                 상세보기
@@ -447,6 +470,77 @@ export default function MonitoringPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* 상세 패널 */}
+        {selectedRun && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>
+                  실행 상세: {selectedRun.name} (#{selectedRun.run_number})
+                </span>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  상태: {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview">개요</TabsTrigger>
+                  <TabsTrigger value="jobs">Jobs/Steps</TabsTrigger>
+                  <TabsTrigger value="logs">원시 로그</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-2 text-sm text-gray-700">
+                  <div>run id: {selectedRun.id}</div>
+                  <div>workflow: {selectedRun.name}</div>
+                  <div>created: {new Date(selectedRun.created_at).toLocaleString()}</div>
+                  <div>updated: {new Date(selectedRun.updated_at).toLocaleString()}</div>
+                </TabsContent>
+
+                <TabsContent value="jobs" className="space-y-3">
+                  {jobsLoading ? (
+                    <div className="text-center py-6 text-gray-500">잡/스텝 불러오는 중...</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(runJobsData?.data || []).map((job: any) => (
+                        <div key={job.id} className="border rounded p-3 bg-white">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-gray-900">{job.name}</div>
+                            {getStatusBadge(job.status, job.conclusion)}
+                          </div>
+                          <div className="mt-2 grid gap-2">
+                            {(job.steps || []).map((st: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between text-sm">
+                                <div className="text-gray-700">{st.name}</div>
+                                <div className="text-gray-500">
+                                  {st.status} {st.conclusion ? `• ${st.conclusion}` : ''}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="logs">
+                  {logsLoading ? (
+                    <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
+                  ) : (
+                    <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
+                      <pre className="whitespace-pre-wrap break-words">
+                        {runLogsData?.data || '로그가 없습니다.'}
+                      </pre>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
