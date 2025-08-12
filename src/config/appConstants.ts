@@ -6,6 +6,8 @@ import {
   FileText,
   Play,
   Eye,
+  Monitor,
+  Settings,
 } from "lucide-react";
 
 // * 브랜드 정보
@@ -24,6 +26,21 @@ export const ROUTES = {
     url: "/",
     label: "Home",
     icon: Home,
+  },
+  WORKFLOWS: {
+    url: "/workflows",
+    label: "워크플로우 관리",
+    icon: Workflow,
+  },
+  MONITORING: {
+    url: "/monitoring",
+    label: "로그 모니터링",
+    icon: Monitor,
+  },
+  PRESETS: {
+    url: "/presets",
+    label: "프리셋 관리",
+    icon: Settings,
   },
   ACTION_FLOW: {
     url: "/github-actions-flow",
@@ -128,6 +145,13 @@ export const FILES = {
     "README.md",
   ],
 } as const;
+
+// * 쿠키 저장소 명
+export const STORAGES = {
+  GITHUB_TOKEN: "github token",
+  REPOSITORY_OWNER: "repository owner",
+  REPOSITORY_NAME: "repository name",
+};
 
 // * 맵핑을 통한 편리한 export들
 export const ROUTE_URLS = Object.values(ROUTES).map((route) => route.url);
