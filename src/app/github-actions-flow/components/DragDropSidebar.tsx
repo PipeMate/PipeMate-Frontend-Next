@@ -1,26 +1,26 @@
 //* 드래그 앤 드롭 사이드바 컴포넌트
 //* 블록 라이브러리와 파이프라인 라이브러리 역할 - 사용자가 워크스페이스에 추가할 수 있는 블록들과 파이프라인들을 제공
-"use client";
+'use client';
 
-import { useCallback, useState, useEffect, useMemo } from "react";
-import { ServerBlock, Pipeline } from "../types";
-import { Lightbulb, Filter, Blocks, GitBranch } from "lucide-react";
-import React from "react";
-import { getDomainColor, getNodeIcon } from "../constants/nodeConstants";
-import { NODE_COLORS } from "../constants/nodeConstants";
-import { fetchPresetBlocks, fetchPresetPipelines } from "../constants/mockData";
+import { useCallback, useState, useEffect, useMemo } from 'react';
+import { ServerBlock, Pipeline } from '../types';
+import { Lightbulb, Filter, Blocks, GitBranch } from 'lucide-react';
+import React from 'react';
+import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
+import { NODE_COLORS } from '../constants/nodeConstants';
+import { usePresetBlocks, usePresetPipelines } from '@/api/hooks/usePresets';
 
 //* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
-type TabType = "trigger" | "job" | "step";
+type TabType = 'trigger' | 'job' | 'step';
 
 //* 파이프라인 탭 타입 정의
-type PipelineTabType = "cicd" | "ci" | "cd" | "test" | "deploy";
+type PipelineTabType = 'cicd' | 'ci' | 'cd' | 'test' | 'deploy';
 
 //* 필터 타입 정의
-type FilterType = "all" | string;
+type FilterType = 'all' | string;
 
 //* 라이브러리 모드 타입 정의
-type LibraryMode = "blocks" | "pipelines";
+type LibraryMode = 'blocks' | 'pipelines';
 
 //* 프리셋 블록 데이터 타입
 interface PresetBlock extends ServerBlock {
@@ -35,21 +35,18 @@ interface PresetPipeline extends Pipeline {
 //* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
 export const DragDropSidebar = () => {
   //* 라이브러리 모드 상태 관리 (블록 또는 파이프라인)
-  const [libraryMode, setLibraryMode] = useState<LibraryMode>("blocks");
+  const [libraryMode, setLibraryMode] = useState<LibraryMode>('blocks');
 
   //* 현재 활성화된 탭 상태 관리
-  const [activeTab, setActiveTab] = useState<TabType>("trigger");
-  const [activePipelineTab, setActivePipelineTab] =
-    useState<PipelineTabType>("cicd");
+  const [activeTab, setActiveTab] = useState<TabType>('trigger');
+  const [activePipelineTab, setActivePipelineTab] = useState<PipelineTabType>('cicd');
 
   //* Step 탭 필터 상태 관리
-  const [selectedDomain, setSelectedDomain] = useState<FilterType>("all");
-  const [selectedTask, setSelectedTask] = useState<FilterType>("all");
+  const [selectedDomain, setSelectedDomain] = useState<FilterType>('all');
+  const [selectedTask, setSelectedTask] = useState<FilterType>('all');
 
   //* 프리셋 블록 데이터 상태 관리
-  const [presetBlocks, setPresetBlocks] = useState<
-    Record<string, PresetBlock[]>
-  >({});
+  const [presetBlocks, setPresetBlocks] = useState<Record<string, PresetBlock[]>>({});
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(true);
 
   //* 프리셋 파이프라인 데이터 상태 관리
@@ -59,91 +56,98 @@ export const DragDropSidebar = () => {
   const [isLoadingPipelines, setIsLoadingPipelines] = useState(true);
 
   //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
-  const onDragStart = useCallback(
-    (event: React.DragEvent, block: ServerBlock) => {
-      //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
-      event.dataTransfer.setData(
-        "application/reactflow",
-        JSON.stringify(block)
-      );
-      event.dataTransfer.effectAllowed = "move";
-    },
-    []
-  );
+  const onDragStart = useCallback((event: React.DragEvent, block: ServerBlock) => {
+    //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
+    event.dataTransfer.setData('application/reactflow', JSON.stringify(block));
+    event.dataTransfer.effectAllowed = 'move';
+  }, []);
 
   //* 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
   const onPipelineDragStart = useCallback(
     (event: React.DragEvent, pipeline: Pipeline) => {
       //* 파이프라인의 모든 블록들을 드래그 데이터로 설정
       event.dataTransfer.setData(
-        "application/reactflow",
+        'application/reactflow',
         JSON.stringify({
-          type: "pipeline",
+          type: 'pipeline',
           pipeline: pipeline,
           blocks: pipeline.blocks,
-        })
+        }),
       );
-      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.effectAllowed = 'move';
     },
-    []
+    [],
   );
 
-  //* 프리셋 블록 데이터 로드 (컴포넌트 마운트 시)
+  // 프리셋 블록/파이프라인 실제 API 연동
+  const { data: presetBlocksData, isLoading: blocksLoading } = usePresetBlocks();
+  const { data: presetPipelinesData, isLoading: pipelinesLoading } = usePresetPipelines();
+
+  // API 결과를 기존 상태 구조로 매핑 (탭별 그룹화)
   useEffect(() => {
-    const loadPresetBlocks = async () => {
-      try {
-        setIsLoadingBlocks(true);
-        //* mock data에서 블록 데이터 로드 (나중에 API 호출로 대체 가능)
-        const blocksData = await fetchPresetBlocks();
-        setPresetBlocks(blocksData);
-      } catch (error) {
-        console.error("프리셋 블록 로드 실패:", error);
-      } finally {
-        setIsLoadingBlocks(false);
-      }
-    };
+    setIsLoadingBlocks(blocksLoading);
+    if (presetBlocksData) {
+      const grouped = {
+        trigger: presetBlocksData.filter((b) => b.type === 'trigger') as any,
+        job: presetBlocksData.filter((b) => b.type === 'job') as any,
+        step: presetBlocksData.filter((b) => b.type === 'step') as any,
+      };
+      setPresetBlocks(grouped as any);
+    }
+  }, [presetBlocksData, blocksLoading]);
 
-    loadPresetBlocks();
-  }, []);
-
-  //* 프리셋 파이프라인 데이터 로드 (컴포넌트 마운트 시)
   useEffect(() => {
-    const loadPresetPipelines = async () => {
-      try {
-        setIsLoadingPipelines(true);
-        //* mock data에서 파이프라인 데이터 로드 (나중에 API 호출로 대체 가능)
-        const pipelinesData = await fetchPresetPipelines();
-        setPresetPipelines(pipelinesData);
-      } catch (error) {
-        console.error("프리셋 파이프라인 로드 실패:", error);
-      } finally {
-        setIsLoadingPipelines(false);
+    setIsLoadingPipelines(pipelinesLoading);
+    if (presetPipelinesData) {
+      // PipelineResponse[] → 탭별 그룹 (Pipeline 타입 필요)
+      const grouped: Record<string, any[]> = {
+        cicd: [],
+        ci: [],
+        cd: [],
+        test: [],
+        deploy: [],
+      };
+      for (const p of presetPipelinesData) {
+        // 백엔드 PipelineResponse.originalJson에 blocks 정보가 들어 있음
+        const blocks = (p.originalJson || []) as any[];
+        const inferType = ((): string => {
+          // 간단 추론: block/task/domain 기반으로 타입 결정 불가 시 cicd로 폴백
+          return 'cicd';
+        })();
+        grouped[inferType].push({
+          id: p.workflowId,
+          name: p.workflowName,
+          description: '',
+          type: inferType,
+          blocks: blocks as any,
+          config: {},
+          isActive: true,
+        });
       }
-    };
-
-    loadPresetPipelines();
-  }, []);
+      setPresetPipelines(grouped as any);
+    }
+  }, [presetPipelinesData, pipelinesLoading]);
 
   //* 탭 변경 시 필터 초기화
   useEffect(() => {
-    if (activeTab !== "step") {
-      setSelectedDomain("all");
-      setSelectedTask("all");
+    if (activeTab !== 'step') {
+      setSelectedDomain('all');
+      setSelectedTask('all');
     }
   }, [activeTab]);
 
   //* 라이브러리 모드 변경 시 탭 초기화
   useEffect(() => {
-    if (libraryMode === "blocks") {
-      setActiveTab("trigger");
+    if (libraryMode === 'blocks') {
+      setActiveTab('trigger');
     } else {
-      setActivePipelineTab("cicd");
+      setActivePipelineTab('cicd');
     }
   }, [libraryMode]);
 
   //* 도메인과 태스크를 동적으로 추출하는 함수
   const { domains, tasks } = useMemo(() => {
-    if (activeTab !== "step") {
+    if (activeTab !== 'step') {
       return { domains: [], tasks: [] };
     }
 
@@ -151,24 +155,22 @@ export const DragDropSidebar = () => {
 
     //* 모든 도메인 추출 (중복 제거)
     const allDomains = Array.from(
-      new Set(stepBlocks.map((block) => block.domain).filter(Boolean))
+      new Set(stepBlocks.map((block) => block.domain).filter(Boolean)),
     ).sort();
 
     //* 선택된 도메인의 모든 태스크 추출 (중복 제거)
     const allTasks =
-      selectedDomain === "all"
+      selectedDomain === 'all'
         ? Array.from(
-            new Set(
-              stepBlocks.flatMap((block) => block.task || []).filter(Boolean)
-            )
+            new Set(stepBlocks.flatMap((block) => block.task || []).filter(Boolean)),
           ).sort()
         : Array.from(
             new Set(
               stepBlocks
                 .filter((block) => block.domain === selectedDomain)
                 .flatMap((block) => block.task || [])
-                .filter(Boolean)
-            )
+                .filter(Boolean),
+            ),
           ).sort();
 
     return { domains: allDomains, tasks: allTasks };
@@ -178,18 +180,18 @@ export const DragDropSidebar = () => {
   const filteredBlocks = useMemo(() => {
     const currentBlocks = presetBlocks[activeTab] || [];
 
-    if (activeTab !== "step") {
+    if (activeTab !== 'step') {
       return currentBlocks;
     }
 
     return currentBlocks.filter((block) => {
       //* 도메인 필터링
-      if (selectedDomain !== "all" && block.domain !== selectedDomain) {
+      if (selectedDomain !== 'all' && block.domain !== selectedDomain) {
         return false;
       }
 
       //* 태스크 필터링
-      if (selectedTask !== "all") {
+      if (selectedTask !== 'all') {
         const blockTasks = block.task || [];
         if (!blockTasks.includes(selectedTask)) {
           return false;
@@ -209,29 +211,29 @@ export const DragDropSidebar = () => {
   //* 블록 타입별 아이콘 - 각 블록 타입을 아이콘으로 구분
   const getBlockIcon = (type: string) => {
     switch (type) {
-      case "trigger":
-        return getNodeIcon("TRIGGER");
-      case "job":
-        return getNodeIcon("JOB");
-      case "step":
-        return getNodeIcon("STEP");
+      case 'trigger':
+        return getNodeIcon('TRIGGER');
+      case 'job':
+        return getNodeIcon('JOB');
+      case 'step':
+        return getNodeIcon('STEP');
       default:
-        return getNodeIcon("STEPS");
+        return getNodeIcon('STEPS');
     }
   };
 
   //* 파이프라인 타입별 아이콘
   const getPipelineIcon = (type: string) => {
     switch (type) {
-      case "cicd":
+      case 'cicd':
         return <GitBranch size={16} className="text-purple-500" />;
-      case "ci":
+      case 'ci':
         return <GitBranch size={16} className="text-blue-500" />;
-      case "cd":
+      case 'cd':
         return <GitBranch size={16} className="text-green-500" />;
-      case "test":
+      case 'test':
         return <GitBranch size={16} className="text-yellow-500" />;
-      case "deploy":
+      case 'deploy':
         return <GitBranch size={16} className="text-red-500" />;
       default:
         return <GitBranch size={16} className="text-gray-500" />;
@@ -240,9 +242,9 @@ export const DragDropSidebar = () => {
 
   //* 블록 탭 정보 - 탭별 라벨과 아이콘 정의
   const blockTabs: { type: TabType; label: string; icon: React.ReactNode }[] = [
-    { type: "trigger", label: "Trigger", icon: getNodeIcon("TRIGGER") },
-    { type: "job", label: "Job", icon: getNodeIcon("JOB") },
-    { type: "step", label: "Step", icon: getNodeIcon("STEP") },
+    { type: 'trigger', label: 'Trigger', icon: getNodeIcon('TRIGGER') },
+    { type: 'job', label: 'Job', icon: getNodeIcon('JOB') },
+    { type: 'step', label: 'Step', icon: getNodeIcon('STEP') },
   ];
 
   //* 파이프라인 탭 정보 - 탭별 라벨과 아이콘 정의
@@ -251,57 +253,57 @@ export const DragDropSidebar = () => {
     label: string;
     icon: React.ReactNode;
   }[] = [
-    { type: "cicd", label: "CI/CD", icon: getPipelineIcon("cicd") },
-    { type: "ci", label: "CI", icon: getPipelineIcon("ci") },
-    { type: "cd", label: "CD", icon: getPipelineIcon("cd") },
-    { type: "test", label: "Test", icon: getPipelineIcon("test") },
-    { type: "deploy", label: "Deploy", icon: getPipelineIcon("deploy") },
+    { type: 'cicd', label: 'CI/CD', icon: getPipelineIcon('cicd') },
+    { type: 'ci', label: 'CI', icon: getPipelineIcon('ci') },
+    { type: 'cd', label: 'CD', icon: getPipelineIcon('cd') },
+    { type: 'test', label: 'Test', icon: getPipelineIcon('test') },
+    { type: 'deploy', label: 'Deploy', icon: getPipelineIcon('deploy') },
   ];
 
   //* 파이프라인 타입별 색상
   const getPipelineColors = (type: string) => {
     switch (type) {
-      case "cicd":
+      case 'cicd':
         return {
-          bg: "#faf5ff",
-          border: "#8b5cf6",
-          text: "#581c87",
-          hover: "#f3e8ff",
+          bg: '#faf5ff',
+          border: '#8b5cf6',
+          text: '#581c87',
+          hover: '#f3e8ff',
         };
-      case "ci":
+      case 'ci':
         return {
-          bg: "#eff6ff",
-          border: "#3b82f6",
-          text: "#1e40af",
-          hover: "#dbeafe",
+          bg: '#eff6ff',
+          border: '#3b82f6',
+          text: '#1e40af',
+          hover: '#dbeafe',
         };
-      case "cd":
+      case 'cd':
         return {
-          bg: "#f0fdf4",
-          border: "#22c55e",
-          text: "#15803d",
-          hover: "#dcfce7",
+          bg: '#f0fdf4',
+          border: '#22c55e',
+          text: '#15803d',
+          hover: '#dcfce7',
         };
-      case "test":
+      case 'test':
         return {
-          bg: "#fefce8",
-          border: "#eab308",
-          text: "#a16207",
-          hover: "#fef3c7",
+          bg: '#fefce8',
+          border: '#eab308',
+          text: '#a16207',
+          hover: '#fef3c7',
         };
-      case "deploy":
+      case 'deploy':
         return {
-          bg: "#fef2f2",
-          border: "#ef4444",
-          text: "#b91c1c",
-          hover: "#fee2e2",
+          bg: '#fef2f2',
+          border: '#ef4444',
+          text: '#b91c1c',
+          hover: '#fee2e2',
         };
       default:
         return {
-          bg: "#f3f4f6",
-          border: "#6b7280",
-          text: "#374151",
-          hover: "#e5e7eb",
+          bg: '#f3f4f6',
+          border: '#6b7280',
+          text: '#374151',
+          hover: '#e5e7eb',
         };
     }
   };
@@ -311,39 +313,33 @@ export const DragDropSidebar = () => {
       {/* 헤더 - 라이브러리 모드 선택 */}
       <div className="p-4 border-b border-gray-200 w-full bg-gradient-to-r from-blue-50 to-indigo-50">
         <h3 className="text-base font-bold text-gray-800 mb-3 text-center w-full flex items-center justify-center gap-2">
-          {libraryMode === "blocks" ? (
-            <Blocks size={16} />
-          ) : (
-            <GitBranch size={16} />
-          )}
+          {libraryMode === 'blocks' ? <Blocks size={16} /> : <GitBranch size={16} />}
           <span className="truncate">
-            {libraryMode === "blocks"
-              ? "블록 라이브러리"
-              : "파이프라인 라이브러리"}
+            {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}
           </span>
         </h3>
 
         {/* 라이브러리 모드 토글 버튼 */}
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           <button
-            onClick={() => setLibraryMode("blocks")}
+            onClick={() => setLibraryMode('blocks')}
             className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1
               ${
-                libraryMode === "blocks"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
+                libraryMode === 'blocks'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
               }`}
           >
             <Blocks size={12} />
             블록
           </button>
           <button
-            onClick={() => setLibraryMode("pipelines")}
+            onClick={() => setLibraryMode('pipelines')}
             className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1
               ${
-                libraryMode === "pipelines"
-                  ? "bg-white text-purple-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
+                libraryMode === 'pipelines'
+                  ? 'bg-white text-purple-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
               }`}
           >
             <GitBranch size={12} />
@@ -352,14 +348,14 @@ export const DragDropSidebar = () => {
         </div>
 
         <div className="text-xs text-gray-600 text-center leading-relaxed w-full mt-2">
-          {libraryMode === "blocks"
-            ? "블록을 드래그하여 워크스페이스에 추가하세요"
-            : "파이프라인을 드래그하여 워크스페이스에 추가하세요"}
+          {libraryMode === 'blocks'
+            ? '블록을 드래그하여 워크스페이스에 추가하세요'
+            : '파이프라인을 드래그하여 워크스페이스에 추가하세요'}
         </div>
       </div>
 
       {/* 블록 라이브러리 모드 */}
-      {libraryMode === "blocks" && (
+      {libraryMode === 'blocks' && (
         <>
           {/* 블록 탭 네비게이션 - 트리거, Job, Step 탭 (컴팩트하게) */}
           <div className="flex border-b border-gray-200 w-full bg-gray-50">
@@ -370,14 +366,14 @@ export const DragDropSidebar = () => {
                 className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-1 w-full
                   ${
                     activeTab === tab.type
-                      ? tab.type === "trigger"
-                        ? "bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500"
-                        : tab.type === "job"
-                        ? "bg-white text-blue-500 shadow-sm border-b-2 border-blue-500"
-                        : tab.type === "step"
-                        ? "bg-white text-amber-500 shadow-sm border-b-2 border-amber-500"
-                        : "bg-white text-gray-600 shadow-sm border-b-2 border-gray-600"
-                      : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      ? tab.type === 'trigger'
+                        ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
+                        : tab.type === 'job'
+                        ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                        : tab.type === 'step'
+                        ? 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                        : 'bg-white text-gray-600 shadow-sm border-b-2 border-gray-600'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }
                 `}
               >
@@ -388,7 +384,7 @@ export const DragDropSidebar = () => {
           </div>
 
           {/* Step 탭 필터 - 도메인과 태스크 필터링 */}
-          {activeTab === "step" && (
+          {activeTab === 'step' && (
             <div className="p-3 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center gap-2 mb-2">
                 <Filter size={14} className="text-gray-500" />
@@ -405,7 +401,7 @@ export const DragDropSidebar = () => {
                     value={selectedDomain}
                     onChange={(e) => {
                       setSelectedDomain(e.target.value as FilterType);
-                      setSelectedTask("all"); //* 도메인 변경 시 태스크 초기화
+                      setSelectedTask('all'); //* 도메인 변경 시 태스크 초기화
                     }}
                     className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
@@ -425,11 +421,9 @@ export const DragDropSidebar = () => {
                   </label>
                   <select
                     value={selectedTask}
-                    onChange={(e) =>
-                      setSelectedTask(e.target.value as FilterType)
-                    }
+                    onChange={(e) => setSelectedTask(e.target.value as FilterType)}
                     className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    disabled={selectedDomain === "all" && tasks.length === 0}
+                    disabled={selectedDomain === 'all' && tasks.length === 0}
                   >
                     <option value="all">전체</option>
                     {tasks.map((task) => (
@@ -457,18 +451,18 @@ export const DragDropSidebar = () => {
                 filteredBlocks.map((block, index) => {
                   //* 블록 타입에 따라 직접 색상 적용
                   const colors = (() => {
-                    if (block.type === "trigger") {
+                    if (block.type === 'trigger') {
                       return NODE_COLORS.TRIGGER;
-                    } else if (block.type === "job") {
+                    } else if (block.type === 'job') {
                       return NODE_COLORS.JOB;
-                    } else if (block.type === "step" && block.domain) {
+                    } else if (block.type === 'step' && block.domain) {
                       return getDomainColor(block.domain);
                     } else {
                       return {
-                        bg: "#f3f4f6",
-                        border: "#6b7280",
-                        text: "#374151",
-                        hover: "#e5e7eb",
+                        bg: '#f3f4f6',
+                        border: '#6b7280',
+                        text: '#374151',
+                        hover: '#e5e7eb',
                       };
                     }
                   })();
@@ -487,13 +481,13 @@ export const DragDropSidebar = () => {
                       }}
                       className="p-3 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing group"
                       onMouseDown={(e) => {
-                        e.currentTarget.style.cursor = "grabbing";
+                        e.currentTarget.style.cursor = 'grabbing';
                       }}
                       onMouseUp={(e) => {
-                        e.currentTarget.style.cursor = "grab";
+                        e.currentTarget.style.cursor = 'grab';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.cursor = "grab";
+                        e.currentTarget.style.cursor = 'grab';
                       }}
                     >
                       {/* 블록 헤더 - 아이콘과 제목 (컴팩트하게) */}
@@ -515,11 +509,11 @@ export const DragDropSidebar = () => {
                           <div className="flex items-center gap-1">
                             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
                               <span className="truncate text-xs">
-                                {block.type === "step" && block.domain
+                                {block.type === 'step' && block.domain
                                   ? `${block.domain}${
                                       block.task && block.task.length > 0
-                                        ? ` • ${block.task.join(", ")}`
-                                        : ""
+                                        ? ` • ${block.task.join(', ')}`
+                                        : ''
                                     }`
                                   : block.type}
                               </span>
@@ -541,7 +535,7 @@ export const DragDropSidebar = () => {
                       <div
                         style={{
                           backgroundColor: colors.border,
-                          color: "#ffffff",
+                          color: '#ffffff',
                         }}
                         className="px-2 py-0.5 text-xs rounded-full font-semibold inline-block w-auto shadow-sm"
                       >
@@ -563,7 +557,7 @@ export const DragDropSidebar = () => {
                 <li>• 블록을 드래그하여 워크스페이스에 드롭</li>
                 <li>• Job 블록 아래에 Step 블록을 드롭하면 자동으로 연결</li>
                 <li>• 트리거 블록은 최상위에 배치됩니다</li>
-                {activeTab === "step" && (
+                {activeTab === 'step' && (
                   <li>• 도메인과 태스크로 Step 블록을 필터링할 수 있습니다</li>
                 )}
               </ul>
@@ -573,7 +567,7 @@ export const DragDropSidebar = () => {
       )}
 
       {/* 파이프라인 라이브러리 모드 */}
-      {libraryMode === "pipelines" && (
+      {libraryMode === 'pipelines' && (
         <>
           {/* 파이프라인 탭 네비게이션 */}
           <div className="flex border-b border-gray-200 w-full bg-gray-50">
@@ -584,8 +578,8 @@ export const DragDropSidebar = () => {
                 className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-1 w-full
                   ${
                     activePipelineTab === tab.type
-                      ? "bg-white text-purple-600 shadow-sm border-b-2 border-purple-500"
-                      : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      ? 'bg-white text-purple-600 shadow-sm border-b-2 border-purple-500'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }
                 `}
               >
@@ -622,13 +616,13 @@ export const DragDropSidebar = () => {
                       }}
                       className="p-3 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing group"
                       onMouseDown={(e) => {
-                        e.currentTarget.style.cursor = "grabbing";
+                        e.currentTarget.style.cursor = 'grabbing';
                       }}
                       onMouseUp={(e) => {
-                        e.currentTarget.style.cursor = "grab";
+                        e.currentTarget.style.cursor = 'grab';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.cursor = "grab";
+                        e.currentTarget.style.cursor = 'grab';
                       }}
                     >
                       {/* 파이프라인 헤더 - 아이콘과 제목 */}
@@ -653,9 +647,7 @@ export const DragDropSidebar = () => {
                                 {pipeline.domain &&
                                 pipeline.task &&
                                 pipeline.task.length > 0
-                                  ? `${pipeline.domain} • ${pipeline.task.join(
-                                      ", "
-                                    )}`
+                                  ? `${pipeline.domain} • ${pipeline.task.join(', ')}`
                                   : pipeline.type}
                               </span>
                             </div>
@@ -677,7 +669,7 @@ export const DragDropSidebar = () => {
                         <div
                           style={{
                             backgroundColor: colors.border,
-                            color: "#ffffff",
+                            color: '#ffffff',
                           }}
                           className="px-2 py-0.5 text-xs rounded-full font-semibold inline-block shadow-sm"
                         >
@@ -692,16 +684,14 @@ export const DragDropSidebar = () => {
                       <div className="text-xs text-gray-600">
                         <div className="font-medium mb-1">포함된 블록:</div>
                         <div className="flex flex-wrap gap-1">
-                          {pipeline.blocks
-                            .slice(0, 3)
-                            .map((block, blockIndex) => (
-                              <span
-                                key={blockIndex}
-                                className="px-1.5 py-0.5 bg-white/50 rounded text-xs"
-                              >
-                                {block.name}
-                              </span>
-                            ))}
+                          {pipeline.blocks.slice(0, 3).map((block, blockIndex) => (
+                            <span
+                              key={blockIndex}
+                              className="px-1.5 py-0.5 bg-white/50 rounded text-xs"
+                            >
+                              {block.name}
+                            </span>
+                          ))}
                           {pipeline.blocks.length > 3 && (
                             <span className="px-1.5 py-0.5 bg-white/50 rounded text-xs">
                               +{pipeline.blocks.length - 3}개 더
@@ -718,13 +708,8 @@ export const DragDropSidebar = () => {
             {/* 사용법 안내 */}
             <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed w-full shadow-sm">
               <div className="flex items-center gap-1 mb-1">
-                <Lightbulb
-                  size={12}
-                  className="text-purple-500 flex-shrink-0"
-                />
-                <strong className="text-gray-800 text-xs">
-                  파이프라인 사용법:
-                </strong>
+                <Lightbulb size={12} className="text-purple-500 flex-shrink-0" />
+                <strong className="text-gray-800 text-xs">파이프라인 사용법:</strong>
               </div>
               <ul className="space-y-0.5 text-xs">
                 <li>• 파이프라인을 드래그하여 워크스페이스에 드롭</li>

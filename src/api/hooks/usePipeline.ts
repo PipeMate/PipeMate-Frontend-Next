@@ -3,7 +3,7 @@
  * - 조회/생성/수정/삭제 뮤테이션을 제공합니다.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pipelineAPI } from '@/api/githubClient';
+import { pipelineAPI } from '@/api';
 
 // * 파이프라인 조회
 export const usePipeline = (ymlFileName: string, owner: string, repo: string) => {

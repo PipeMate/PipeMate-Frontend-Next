@@ -1,4 +1,5 @@
-import githubClient from '@/api/githubClient';
+import { githubClient } from '@/api';
+import { API_ENDPOINTS } from '@/config/apiConfig';
 import { PipelineRequest, PipelineResponse } from '@/api/types';
 import { removeYmlExtension } from '@/lib/utils';
 import { ServerBlock } from '@/app/github-actions-flow/types';
@@ -19,7 +20,7 @@ export const pipelineAPI = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),
     };
-    return githubClient.post<string>('/api/pipelines', processedData);
+    return githubClient.post<string>(API_ENDPOINTS.PIPELINES.CREATE, processedData);
   },
 
   // * 1.2 파이프라인 조회
@@ -31,10 +32,7 @@ export const pipelineAPI = {
    */
   get: (ymlFileName: string, owner: string, repo: string) =>
     githubClient.get<PipelineResponse>(
-      `/api/pipelines/${removeYmlExtension(ymlFileName)}`,
-      {
-        params: { owner, repo },
-      },
+      API_ENDPOINTS.PIPELINES.GET(removeYmlExtension(ymlFileName), owner, repo),
     ),
 
   // * 1.3 파이프라인 업데이트
@@ -48,7 +46,10 @@ export const pipelineAPI = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),
     };
-    return githubClient.put<PipelineResponse>('/api/pipelines', processedData);
+    return githubClient.put<PipelineResponse>(
+      API_ENDPOINTS.PIPELINES.UPDATE,
+      processedData,
+    );
   },
 
   // * 1.4 파이프라인 삭제
@@ -59,9 +60,9 @@ export const pipelineAPI = {
    * @param repo GitHub 리포지토리
    */
   delete: (ymlFileName: string, owner: string, repo: string) =>
-    githubClient.delete(`/api/pipelines/${removeYmlExtension(ymlFileName)}`, {
-      params: { owner, repo },
-    }),
+    githubClient.delete(
+      API_ENDPOINTS.PIPELINES.DELETE(removeYmlExtension(ymlFileName), owner, repo),
+    ),
 
   // * 1.5 워크플로우 저장 (ServerBlock 배열을 받아서 저장)
   /**
@@ -81,6 +82,6 @@ export const pipelineAPI = {
       inputJson: data.blocks,
       description: data.description,
     };
-    return githubClient.post<string>('/api/pipelines', processedData);
+    return githubClient.post<string>(API_ENDPOINTS.PIPELINES.CREATE, processedData);
   },
 };
