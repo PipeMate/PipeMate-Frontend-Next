@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -183,7 +183,8 @@ export default function MonitoringPage() {
             <div>
               <div className="text-sm text-slate-500">실행 상세</div>
               <CardTitle className="text-lg mt-1">
-                {selectedRun.name} <span className="text-slate-400">#{selectedRun.run_number}</span>
+                {selectedRun.name}{' '}
+                <span className="text-slate-400">#{selectedRun.run_number}</span>
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">
@@ -207,9 +208,14 @@ export default function MonitoringPage() {
             <TabsContent value="overview" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {metaRows.map((row) => (
-                  <div key={row.k} className="flex items-center justify-between p-2 rounded border bg-white">
+                  <div
+                    key={row.k}
+                    className="flex items-center justify-between p-2 rounded border bg-white"
+                  >
                     <span className="text-slate-500">{row.k}</span>
-                    <span className="text-slate-900 font-medium truncate max-w-[60%] text-right">{String(row.v)}</span>
+                    <span className="text-slate-900 font-medium truncate max-w-[60%] text-right">
+                      {String(row.v)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -244,7 +250,9 @@ export default function MonitoringPage() {
                             }}
                           >
                             <div className="text-slate-700 flex items-center gap-2">
-                              <span className="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">STEP</span>
+                              <span className="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700">
+                                STEP
+                              </span>
                               {st.name}
                             </div>
                             <div className="text-slate-500">
@@ -276,29 +284,29 @@ export default function MonitoringPage() {
                           {focusedStepName ? `필터: ${focusedStepName}` : '전체 로그'}
                         </div>
                         <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyText(snippet)}
-                        >
-                          복사
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            downloadText(`run-${selectedRun?.id}.log`, snippet)
-                          }
-                        >
-                          다운로드
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
-                        >
-                          새 창
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyText(snippet)}
+                          >
+                            복사
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              downloadText(`run-${selectedRun?.id}.log`, snippet)
+                            }
+                          >
+                            다운로드
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
+                          >
+                            새 창
+                          </Button>
                         </div>
                       </div>
                       <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-[480px] overflow-auto border border-slate-800 shadow-inner">
@@ -724,7 +732,9 @@ export default function MonitoringPage() {
               <Card className="border-dashed">
                 <CardContent className="p-10 text-center text-gray-500">
                   <div className="text-lg font-medium mb-2">실행 상세</div>
-                  <div className="text-sm">좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.</div>
+                  <div className="text-sm">
+                    좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -743,9 +753,9 @@ export default function MonitoringPage() {
           </DialogContent>
         </Dialog>
 
-        {/* 상세 패널 */}
-        {selectedRun && (
-          <Card ref={detailRef as any}>
+        {/* 상세 패널 (하단, 2열 도입 후 제거 대상) */}
+        {false && selectedRun && (
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>
