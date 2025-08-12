@@ -202,39 +202,39 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
       const jobData = (jobBlock.config || {}) as Record<string, unknown>;
 
       if (jobId && jobData) {
-        yamlLines.push(`${jobId}:`);
+        yamlLines.push(`  ${jobId}:`);
 
         //* runs-on 설정
         if (jobData['runs-on']) {
-          yamlLines.push(`  runs-on: ${jobData['runs-on']}`);
+          yamlLines.push(`    runs-on: ${jobData['runs-on']}`);
         }
 
         //* needs 설정
         if (jobData.needs && Array.isArray(jobData.needs) && jobData.needs.length > 0) {
-          yamlLines.push('  needs:');
+          yamlLines.push('    needs:');
           jobData.needs.forEach((need: unknown) => {
             if (typeof need === 'string') {
-              yamlLines.push(`    - ${need}`);
+              yamlLines.push(`      - ${need}`);
             }
           });
         }
 
         //* if 조건 설정
         if (jobData.if && typeof jobData.if === 'string') {
-          yamlLines.push(`  if: ${jobData.if}`);
+          yamlLines.push(`    if: ${jobData.if}`);
         }
 
         //* timeout 설정
         if (jobData.timeout && typeof jobData.timeout === 'number') {
-          yamlLines.push(`  timeout-minutes: ${jobData.timeout}`);
+          yamlLines.push(`    timeout-minutes: ${jobData.timeout}`);
         }
 
         //* 커스텀 메타 필드 (Job)
         if (jobBlock.name) {
-          yamlLines.push(`  x_name: ${jobBlock.name}`);
+          yamlLines.push(`    x_name: ${jobBlock.name}`);
         }
         if (jobBlock.description) {
-          yamlLines.push(`  x_description: ${jobBlock.description}`);
+          yamlLines.push(`    x_description: ${jobBlock.description}`);
         }
 
         //* ========================================
@@ -247,24 +247,24 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
         );
 
         if (stepBlocks.length > 0) {
-          yamlLines.push('  steps:');
+          yamlLines.push('    steps:');
           stepBlocks.forEach((stepBlock) => {
             const stepConfig = (stepBlock.config || {}) as Record<string, unknown>;
             const stepName = (stepConfig.name as string) || stepBlock.name || '';
-            yamlLines.push(`    - name: ${stepName}`);
+            yamlLines.push(`      - name: ${stepName}`);
             // 커스텀 메타 필드 (Step)
             if (stepBlock.name) {
-              yamlLines.push(`      x_name: ${stepBlock.name}`);
+              yamlLines.push(`        x_name: ${stepBlock.name}`);
             }
             if (stepBlock.description) {
-              yamlLines.push(`      x_description: ${stepBlock.description}`);
+              yamlLines.push(`        x_description: ${stepBlock.description}`);
             }
             if (stepBlock.domain) {
-              yamlLines.push(`      x_domain: ${stepBlock.domain}`);
+              yamlLines.push(`        x_domain: ${stepBlock.domain}`);
             }
             if (Array.isArray(stepBlock.task) && stepBlock.task.length > 0) {
-              yamlLines.push('      x_task:');
-              stepBlock.task.forEach((t) => yamlLines.push(`        - ${t}`));
+              yamlLines.push('        x_task:');
+              stepBlock.task.forEach((t) => yamlLines.push(`          - ${t}`));
             }
 
             // 나머지 config를 출력 (name 중복 제외)
@@ -275,27 +275,27 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
                 typeof v === 'number' ||
                 typeof v === 'boolean'
               ) {
-                yamlLines.push(`      ${k}: ${v}`);
+                yamlLines.push(`        ${k}: ${v}`);
               } else if (Array.isArray(v)) {
-                yamlLines.push(`      ${k}:`);
+                yamlLines.push(`        ${k}:`);
                 (v as unknown[]).forEach((item) => {
                   if (typeof item === 'string') {
-                    yamlLines.push(`        - ${item}`);
+                    yamlLines.push(`          - ${item}`);
                   } else {
-                    yamlLines.push(`        - ${JSON.stringify(item)}`);
+                    yamlLines.push(`          - ${JSON.stringify(item)}`);
                   }
                 });
               } else if (v && typeof v === 'object') {
-                yamlLines.push(`      ${k}:`);
+                yamlLines.push(`        ${k}:`);
                 Object.entries(v as Record<string, unknown>).forEach(([sk, sv]) => {
                   if (
                     typeof sv === 'string' ||
                     typeof sv === 'number' ||
                     typeof sv === 'boolean'
                   ) {
-                    yamlLines.push(`        ${sk}: ${sv}`);
+                    yamlLines.push(`          ${sk}: ${sv}`);
                   } else {
-                    yamlLines.push(`        ${sk}: ${JSON.stringify(sv)}`);
+                    yamlLines.push(`          ${sk}: ${JSON.stringify(sv)}`);
                   }
                 });
               }
@@ -307,9 +307,9 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
         Object.entries(jobData).forEach(([key, value]) => {
           if (!['runs-on', 'needs', 'if', 'timeout', 'steps'].includes(key)) {
             if (typeof value === 'string') {
-              yamlLines.push(`  ${key}: ${value}`);
+              yamlLines.push(`    ${key}: ${value}`);
             } else {
-              yamlLines.push(`  ${key}: ${JSON.stringify(value)}`);
+              yamlLines.push(`    ${key}: ${JSON.stringify(value)}`);
             }
           }
         });
