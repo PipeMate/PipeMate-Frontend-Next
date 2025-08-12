@@ -1,14 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { pipelineAPI } from "@/api/githubClient";
+/**
+ * 파이프라인 관련 React Query 훅 모음
+ * - 조회/생성/수정/삭제 뮤테이션을 제공합니다.
+ */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { pipelineAPI } from '@/api/githubClient';
 
 // * 파이프라인 조회
-export const usePipeline = (
-  ymlFileName: string,
-  owner: string,
-  repo: string
-) => {
+export const usePipeline = (ymlFileName: string, owner: string, repo: string) => {
   return useQuery({
-    queryKey: ["pipeline", ymlFileName, owner, repo],
+    queryKey: ['pipeline', ymlFileName, owner, repo],
     queryFn: () => pipelineAPI.get(ymlFileName, owner, repo),
     enabled: !!ymlFileName && !!owner && !!repo,
     staleTime: 5 * 60 * 1000, // 5분
@@ -24,7 +24,7 @@ export const useCreatePipeline = () => {
     onSuccess: (data, variables) => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: ["workflows", variables.owner, variables.repo],
+        queryKey: ['workflows', variables.owner, variables.repo],
       });
     },
   });
@@ -39,15 +39,10 @@ export const useUpdatePipeline = () => {
     onSuccess: (data, variables) => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: [
-          "pipeline",
-          variables.workflowName,
-          variables.owner,
-          variables.repo,
-        ],
+        queryKey: ['pipeline', variables.workflowName, variables.owner, variables.repo],
       });
       queryClient.invalidateQueries({
-        queryKey: ["workflows", variables.owner, variables.repo],
+        queryKey: ['workflows', variables.owner, variables.repo],
       });
     },
   });
@@ -70,7 +65,7 @@ export const useDeletePipeline = () => {
     onSuccess: (data, variables) => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
-        queryKey: ["workflows", variables.owner, variables.repo],
+        queryKey: ['workflows', variables.owner, variables.repo],
       });
     },
   });
