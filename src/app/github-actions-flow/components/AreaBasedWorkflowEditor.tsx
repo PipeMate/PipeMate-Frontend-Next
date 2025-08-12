@@ -71,6 +71,16 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     convertBlockTypeToNodeType,
     setDragOverArea,
     setDragOverJobId,
+    //* 새로운 접근성 및 터치 지원 기능
+    isTouchDragging,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    focusedNodeId,
+    focusedArea,
+    setFocus,
+    handleKeyNavigation,
+    getFocusStyle,
   } = useDragDrop();
 
   const { handleDrop, handleAreaDrop, handleJobStepDrop } = useDropHandlers(
@@ -263,6 +273,21 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [],
   );
 
+  /**
+   * 키보드 네비게이션 래퍼 함수
+   */
+  const handleKeyNavigationWrapper = useCallback(
+    (e: React.KeyboardEvent, nodeId: string) => {
+      const allNodes = [
+        ...areaNodes.trigger, 
+        ...areaNodes.job, 
+        ...Object.values(getStepsByJob()).flat()
+      ];
+      handleKeyNavigation(e, nodeId, allNodes);
+    },
+    [handleKeyNavigation, areaNodes.trigger, areaNodes.job, getStepsByJob]
+  );
+
   //* ========================================
   //* 사이드 이펙트
   //* ========================================
@@ -315,6 +340,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
+              //* 새로운 접근성 및 터치 지원 props
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onKeyNavigation={handleKeyNavigationWrapper}
+              focusedNodeId={focusedNodeId}
+              focusedArea={focusedArea}
+              getFocusStyle={getFocusStyle}
             />
           </div>
 
@@ -338,6 +371,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
+              //* 새로운 접근성 및 터치 지원 props
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onKeyNavigation={handleKeyNavigationWrapper}
+              focusedNodeId={focusedNodeId}
+              focusedArea={focusedArea}
+              getFocusStyle={getFocusStyle}
             />
           </div>
         </div>

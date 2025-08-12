@@ -1,15 +1,24 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { ServerBlock, WorkflowNodeData } from "../../../types";
 import { AreaNodeData, NodeType } from "../types";
 import { toast } from "react-toastify";
 
 /**
  * 드래그 앤 드롭 상태 관리 훅
+ * 키보드 접근성 및 터치 DnD 지원 포함
  */
 export const useDragDrop = () => {
   const [dragOverArea, setDragOverArea] = useState<string | null>(null);
   const [dragOverJobId, setDragOverJobId] = useState<string | null>(null);
   const [draggedNode, setDraggedNode] = useState<AreaNodeData | null>(null);
+  
+  //* 터치 드래그 상태 관리
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
+  
+  //* 키보드 포커스 상태 관리
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [focusedArea, setFocusedArea] = useState<string | null>(null);
 
   /**
    * 드래그 오버 핸들러 - 영역별
@@ -55,6 +64,8 @@ export const useDragDrop = () => {
     setDragOverArea(null);
     setDragOverJobId(null);
     setDraggedNode(null);
+    setIsTouchDragging(false);
+    setTouchStartPos(null);
   }, []);
 
   /**
@@ -74,6 +85,99 @@ export const useDragDrop = () => {
     },
     []
   );
+
+  //* ========================================
+  //* 터치 드래그 앤 드롭 지원
+  //* ========================================
+
+  /**
+   * 터치 시작 핸들러
+   */
+  const handleTouchStart = useCallback((e: React.TouchEvent, node: AreaNodeData) => {
+    const touch = e.touches[0];
+    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+    setDraggedNode(node);
+  }, []);
+
+  /**
+   * 터치 이동 핸들러
+   */
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartPos) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    
+    //* 최소 드래그 거리 확인 (10px)
+    if (deltaX > 10 || deltaY > 10) {
+      setIsTouchDragging(true);
+      e.preventDefault(); //* 스크롤 방지
+    }
+  }, [touchStartPos]);
+
+  /**
+   * 터치 종료 핸들러
+   */
+  const handleTouchEnd = useCallback(() => {
+    setIsTouchDragging(false);
+    setTouchStartPos(null);
+    setDraggedNode(null);
+  }, []);
+
+  //* ========================================
+  //* 키보드 접근성 지원
+  //* ========================================
+
+  /**
+   * 키보드 포커스 설정
+   */
+  const setFocus = useCallback((nodeId: string | null, area: string | null = null) => {
+    setFocusedNodeId(nodeId);
+    setFocusedArea(area);
+  }, []);
+
+  /**
+   * 키보드 네비게이션 핸들러
+   */
+  const handleKeyNavigation = useCallback((e: React.KeyboardEvent, currentNodeId: string, nodes: AreaNodeData[]) => {
+    const currentIndex = nodes.findIndex(node => node.id === currentNodeId);
+    
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        e.preventDefault();
+        const nextIndex = (currentIndex + 1) % nodes.length;
+        setFocus(nodes[nextIndex]?.id || null);
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        e.preventDefault();
+        const prevIndex = currentIndex <= 0 ? nodes.length - 1 : currentIndex - 1;
+        setFocus(nodes[prevIndex]?.id || null);
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        const focusedNode = nodes.find(node => node.id === currentNodeId);
+        if (focusedNode) {
+          //* 노드 선택 이벤트 발생
+          const event = new CustomEvent('nodeSelect', { detail: focusedNode });
+          window.dispatchEvent(event);
+        }
+        break;
+      case 'Delete':
+      case 'Backspace':
+        e.preventDefault();
+        const nodeToDelete = nodes.find(node => node.id === currentNodeId);
+        if (nodeToDelete) {
+          //* 노드 삭제 이벤트 발생
+          const event = new CustomEvent('nodeDelete', { detail: nodeToDelete });
+          window.dispatchEvent(event);
+        }
+        break;
+    }
+  }, [setFocus]);
 
   /**
    * 드래그 오버 시 스타일 결정
@@ -102,6 +206,16 @@ export const useDragDrop = () => {
     },
     [dragOverArea, dragOverJobId]
   );
+
+  /**
+   * 포커스 스타일 결정
+   */
+  const getFocusStyle = useCallback((nodeId: string, areaKey?: string) => {
+    if (focusedNodeId === nodeId || focusedArea === areaKey) {
+      return "ring-2 ring-blue-500 ring-offset-2";
+    }
+    return "";
+  }, [focusedNodeId, focusedArea]);
 
   /**
    * 드롭 데이터 파싱
@@ -144,16 +258,22 @@ export const useDragDrop = () => {
    */
   const convertBlockTypeToNodeType = useCallback(
     (blockType: string): NodeType => {
-      return blockType === "trigger"
-        ? "workflowTrigger"
-        : blockType === "job"
-        ? "job"
-        : "step";
+      switch (blockType) {
+        case "trigger":
+          return "TRIGGER";
+        case "job":
+          return "JOB";
+        case "step":
+          return "STEP";
+        default:
+          return "STEP";
+      }
     },
     []
   );
 
   return {
+    //* 기존 드래그 앤 드롭 기능
     dragOverArea,
     dragOverJobId,
     draggedNode,
@@ -170,5 +290,18 @@ export const useDragDrop = () => {
     convertBlockTypeToNodeType,
     setDragOverArea,
     setDragOverJobId,
+    
+    //* 터치 드래그 앤 드롭 지원
+    isTouchDragging,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    
+    //* 키보드 접근성 지원
+    focusedNodeId,
+    focusedArea,
+    setFocus,
+    handleKeyNavigation,
+    getFocusStyle,
   };
 };

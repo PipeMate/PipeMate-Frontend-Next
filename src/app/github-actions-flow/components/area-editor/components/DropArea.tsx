@@ -28,10 +28,19 @@ interface DropAreaProps {
   ) => React.ReactNode;
   dragOverArea: string | null;
   dragOverJobId: string | null;
+  //* 새로운 접근성 및 터치 지원 props
+  onTouchStart?: (e: React.TouchEvent, node: AreaNodeData) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
+  onTouchEnd?: () => void;
+  onKeyNavigation?: (e: React.KeyboardEvent, nodeId: string) => void;
+  focusedNodeId?: string | null;
+  focusedArea?: string | null;
+  getFocusStyle?: (nodeId: string, areaKey?: string) => string;
 }
 
 /**
  * 드롭 영역 컴포넌트
+ * 키보드 접근성 및 터치 DnD 지원 포함
  */
 export const DropArea: React.FC<DropAreaProps> = ({
   areaKey,
@@ -52,157 +61,117 @@ export const DropArea: React.FC<DropAreaProps> = ({
   renderEmptyState,
   dragOverArea,
   dragOverJobId,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+  onKeyNavigation,
+  focusedNodeId,
+  focusedArea,
+  getFocusStyle,
 }) => {
-  const isFull = maxItems ? nodes.length >= maxItems : false;
-  const color = getWorkspaceAreaColor(areaKey.toUpperCase() as any);
-
-  /**
-   * 영역 헤더 렌더링
-   */
-  const renderAreaHeader = (
-    title: string,
-    count: number,
-    maxItems?: number,
-    subtitle?: string,
-  ) => {
-    return (
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold text-gray-800">
-            {title}
-            {subtitle && ` - ${subtitle}`}
-          </h3>
-          <span
-            className={`text-xs px-2 py-1 rounded-full ${
-              maxItems && count >= maxItems
-                ? 'bg-red-100 text-red-700'
-                : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            {count}
-            {maxItems && `/${maxItems}`}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  /**
-   * 트리거 영역 헤더 렌더링 (컴팩트 버전)
-   */
-  const renderTriggerHeader = (title: string, count: number, maxItems?: number) => {
-    return (
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-          <span
-            className={`text-xs px-2 py-1 rounded-full ${
-              maxItems && count >= maxItems
-                ? 'bg-red-100 text-red-700'
-                : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            {count}
-            {maxItems && `/${maxItems}`}
-          </span>
-        </div>
-      </div>
-    );
-  };
+  const isDragOver = dragOverArea === areaKey;
+  const stepsByJob = getStepsByJob();
 
   return (
     <div
-      className={`border-2 border-dashed ${color} rounded-xl transition-all duration-300 ease-in-out ${
-        areaKey === 'trigger' ? 'p-4 h-fit' : 'p-6 h-fit'
-      } ${getDragOverStyle(areaKey)}`}
+      className={`w-full min-h-[120px] rounded-lg border-2 border-dashed transition-all duration-300 ${getWorkspaceAreaColor(
+        areaKey === 'trigger' ? 'TRIGGER' : areaKey === 'job' ? 'JOB' : 'STEP'
+      )} ${getDragOverStyle(areaKey)}`}
       onDragOver={(e) => onDragOver(e, areaKey)}
-      onDrop={(e) => {
-        e.stopPropagation();
-        onDrop(e, areaKey);
-      }}
+      onDrop={(e) => onDrop(e, areaKey)}
       onDragLeave={(e) => onDragLeave(e, areaKey)}
+      role="region"
+      aria-label={`${title} 영역`}
+      tabIndex={-1}
     >
-      {areaKey === 'trigger'
-        ? renderTriggerHeader(title, nodes.length, maxItems)
-        : renderAreaHeader(title, nodes.length, maxItems)}
-      <div
-        className={
-          areaKey === 'job'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-            : 'space-y-3'
-        }
-      >
-        {nodes.map((node, index) => (
-          <div
-            key={node.id}
-            data-job-id={node.type === 'job' ? node.id : undefined}
-            onDragOver={(e) => onDragOver(e, areaKey)}
-            onDrop={(e) => onDrop(e, areaKey)}
-            onDragLeave={(e) => onDragLeave(e, areaKey)}
-            className={areaKey === 'job' ? 'flex-shrink-0' : ''}
-          >
-            <AreaNode
-              node={node}
-              onSelect={onNodeSelect}
-              onDragStart={onNodeDragStart}
-              onDrag={onNodeDrag}
-            />
+      {/* 영역 헤더 */}
+      <div className="p-3 border-b border-gray-200 bg-white/50 rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+          <span className="text-xs text-gray-500">
+            {nodes.length}개 {maxItems ? `/ ${maxItems}` : ''}
+          </span>
+        </div>
+      </div>
 
-            {/* Job 내부에 Step 영역 표시 */}
-            {node.type === 'job' && (
-              <div className="mt-3 w-full">
-                {renderAreaHeader(
-                  'Steps',
-                  getStepsByJob()[node.id]?.length || 0,
-                  undefined,
-                  node.data.jobName,
+      {/* 노드 컨테이너 */}
+      <div className="p-3 space-y-3">
+        {nodes.length === 0 ? (
+          //* 빈 상태 렌더링
+          renderEmptyState(areaKey, title, isDragOver)
+        ) : (
+          //* 노드들 렌더링
+          nodes.map((node, index) => {
+            const isFocused = focusedNodeId === node.id || focusedArea === areaKey;
+            const focusStyle = getFocusStyle ? getFocusStyle(node.id, areaKey) : '';
+            
+            return (
+              <div key={node.id} className="relative">
+                <AreaNode
+                  node={node}
+                  onSelect={onNodeSelect}
+                  onDragStart={onNodeDragStart}
+                  onDrag={onNodeDrag}
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                  onKeyNavigation={onKeyNavigation}
+                  isFocused={isFocused}
+                  tabIndex={index}
+                />
+                
+                {/* 포커스 스타일 적용 */}
+                {focusStyle && (
+                  <div className={`absolute inset-0 rounded-lg pointer-events-none ${focusStyle}`} />
                 )}
 
-                {/* Step 드롭 영역 - Job과 동일한 너비 */}
-                <div
-                  className={`border-2 border-dashed border-orange-300 bg-orange-50/30 rounded-xl p-4 transition-all duration-300 ease-in-out w-full ${getDragOverStyle(
-                    areaKey,
-                    true,
-                    node.id,
-                  )}`}
-                  onDragOver={(e) => onJobDragOver(e, node.id)}
-                  onDrop={(e) => {
-                    e.stopPropagation();
-                    onJobStepDrop(e, node.id);
-                  }}
-                  onDragLeave={(e) => onJobDragLeave(e, node.id)}
-                >
-                  <div className="space-y-3 w-full">
-                    {getStepsByJob()[node.id]?.map((step, stepIndex) => (
-                      <div key={step.id} className="w-full">
-                        <AreaNode
-                          node={step}
-                          onSelect={onNodeSelect}
-                          onDragStart={onNodeDragStart}
-                          onDrag={onNodeDrag}
-                        />
-                      </div>
-                    ))}
-                    {(!getStepsByJob()[node.id] ||
-                      getStepsByJob()[node.id].length === 0) &&
-                      renderEmptyState(
-                        areaKey,
-                        'Step',
-                        dragOverJobId === node.id,
-                        true,
-                        node.id,
-                      )}
+                {/* Job 내부의 Step들 렌더링 */}
+                {node.type === 'job' && stepsByJob[node.id] && stepsByJob[node.id].length > 0 && (
+                  <div className="mt-3 ml-6 pl-4 border-l-2 border-gray-200">
+                    <div className="space-y-2">
+                      {stepsByJob[node.id].map((stepNode, stepIndex) => {
+                        const isStepFocused = focusedNodeId === stepNode.id;
+                        const stepFocusStyle = getFocusStyle ? getFocusStyle(stepNode.id) : '';
+                        
+                        return (
+                          <div key={stepNode.id} className="relative">
+                            <AreaNode
+                              node={stepNode}
+                              onSelect={onNodeSelect}
+                              onDragStart={onNodeDragStart}
+                              onDrag={onNodeDrag}
+                              onTouchStart={onTouchStart}
+                              onTouchMove={onTouchMove}
+                              onTouchEnd={onTouchEnd}
+                              onKeyNavigation={onKeyNavigation}
+                              isFocused={isStepFocused}
+                              tabIndex={nodes.length + stepIndex}
+                            />
+                            
+                            {/* Step 포커스 스타일 적용 */}
+                            {stepFocusStyle && (
+                              <div className={`absolute inset-0 rounded-lg pointer-events-none ${stepFocusStyle}`} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
-        {nodes.length === 0 && (
-          <div className={areaKey === 'job' ? 'col-span-full' : ''}>
-            {renderEmptyState(areaKey, title, dragOverArea === areaKey)}
-          </div>
+            );
+          })
         )}
+      </div>
+
+      {/* 접근성 안내 (스크린 리더용) */}
+      <div className="sr-only">
+        <span>
+          {nodes.length === 0 
+            ? `${title} 영역이 비어있습니다. 사이드바에서 블록을 드래그하여 추가하세요.`
+            : `${title} 영역에 ${nodes.length}개의 블록이 있습니다. Tab 키로 탐색할 수 있습니다.`
+          }
+        </span>
       </div>
     </div>
   );
