@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
@@ -13,6 +14,7 @@ import {
   useCancelWorkflowRun,
   useWorkflowRunJobs,
   useWorkflowRunLogs,
+  useWorkflowRunDetail,
 } from '@/api/hooks';
 import {
   Monitor,
@@ -47,9 +49,11 @@ export default function MonitoringPage() {
   const { owner, repo, isConfigured } = useRepository();
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'logs'>('overview');
-  const detailRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
   const [focusedStepName, setFocusedStepName] = useState<string | null>(null);
+  const detailRef = useRef<HTMLDivElement | null>(null);
 
   // 훅 사용
   const {
@@ -79,19 +83,31 @@ export default function MonitoringPage() {
     repo || '',
     runId,
   );
+  const { data: runDetailData } = useWorkflowRunDetail(owner || '', repo || '', runId);
 
-  // 상세 선택 시 스크롤 이동으로 반응성 강화
+  // 반응형: 모바일 여부
   useEffect(() => {
-    if (selectedRun && detailRef.current) {
-      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [selectedRun]);
+    const mql = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) =>
+      setIsMobile('matches' in e ? e.matches : (e as MediaQueryList).matches);
+    handler(mql);
+    const listener = (e: MediaQueryListEvent) => handler(e);
+    mql.addEventListener?.('change', listener);
+    return () => mql.removeEventListener?.('change', listener);
+  }, []);
 
   const handleShowDetails = (run: WorkflowRun) => {
     setSelectedRun(run);
     setActiveTab('jobs');
     setFocusedJobId(null);
     setFocusedStepName(null);
+    if (isMobile) setIsDetailOpen(true);
+    // 데스크톱에서는 하단 상세 패널로 스크롤 (임시, 2열 전환 전까지)
+    if (!isMobile && detailRef.current) {
+      setTimeout(() => {
+        detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
   };
 
   const copyText = async (text: string) => {
@@ -148,6 +164,156 @@ export default function MonitoringPage() {
     const start = Math.max(0, matches[0] - contextLines);
     const end = Math.min(lines.length, matches[0] + contextLines);
     return lines.slice(start, end).join('\n');
+  };
+
+  const RunDetail = () => {
+    if (!selectedRun) return null;
+    const meta = runDetailData?.data || {};
+    const metaRows = [
+      { k: 'Run ID', v: selectedRun.id },
+      { k: 'Workflow', v: selectedRun.name },
+      { k: 'Status', v: selectedRun.status },
+      { k: 'Conclusion', v: selectedRun.conclusion || '-' },
+      { k: 'Created', v: new Date(selectedRun.created_at).toLocaleString() },
+      { k: 'Updated', v: new Date(selectedRun.updated_at).toLocaleString() },
+      { k: 'Run #', v: selectedRun.run_number },
+      { k: 'Repo', v: `${owner}/${repo}` },
+      // 확장 가능: meta에서 브랜치/커밋/트리거 등 제공 시 병합
+      { k: 'Branch', v: (meta as any)?.head_branch || '-' },
+      { k: 'Commit', v: (meta as any)?.head_sha || '-' },
+      { k: 'Event', v: (meta as any)?.event || '-' },
+    ];
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>
+              실행 상세: {selectedRun.name} (#{selectedRun.run_number})
+            </span>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              상태: {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
+              {!isMobile && (
+                <Button size="sm" variant="ghost" onClick={() => setSelectedRun(null)}>
+                  닫기
+                </Button>
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">개요</TabsTrigger>
+              <TabsTrigger value="jobs">Jobs/Steps</TabsTrigger>
+              <TabsTrigger value="logs">원시 로그</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {metaRows.map((row) => (
+                  <div
+                    key={row.k}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                  >
+                    <span className="text-gray-600">{row.k}</span>
+                    <span className="text-gray-900 font-medium truncate max-w-[60%] text-right">
+                      {String(row.v)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="jobs" className="space-y-3">
+              {jobsLoading ? (
+                <div className="text-center py-6 text-gray-500">
+                  잡/스텝 불러오는 중...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(runJobsData?.data || []).map((job: any) => (
+                    <div key={job.id} className="border rounded p-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-900">{job.name}</div>
+                        {getStatusBadge(job.status, job.conclusion)}
+                      </div>
+                      <div className="mt-2 grid gap-2">
+                        {(job.steps || []).map((st: any, idx: number) => (
+                          <button
+                            key={idx}
+                            className={`flex items-center justify-between text-sm text-left w-full px-2 py-1 rounded hover:bg-gray-50 border ${
+                              focusedJobId === job.id && focusedStepName === st.name
+                                ? 'border-blue-300 bg-blue-50'
+                                : 'border-transparent'
+                            }`}
+                            onClick={() => {
+                              setFocusedJobId(job.id);
+                              setFocusedStepName(st.name);
+                              setActiveTab('logs');
+                            }}
+                          >
+                            <div className="text-gray-700">{st.name}</div>
+                            <div className="text-gray-500">
+                              {st.status} {st.conclusion ? `• ${st.conclusion}` : ''}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="logs">
+              {logsLoading ? (
+                <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
+              ) : (
+                (() => {
+                  const rawLog: string = runLogsData?.data || '';
+                  const snippet =
+                    focusedStepName && rawLog
+                      ? extractSnippetByKeyword(rawLog, focusedStepName)
+                      : rawLog || '로그가 없습니다.';
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyText(snippet)}
+                        >
+                          복사
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            downloadText(`run-${selectedRun?.id}.log`, snippet)
+                          }
+                        >
+                          다운로드
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
+                        >
+                          새 창
+                        </Button>
+                      </div>
+                      <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
+                        <pre className="whitespace-pre-wrap break-words">{snippet}</pre>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
   };
 
   // 헤더 설정
@@ -628,26 +794,36 @@ export default function MonitoringPage() {
                       return (
                         <div className="space-y-2">
                           <div className="flex items-center justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => copyText(snippet)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyText(snippet)}
+                            >
                               복사
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => downloadText(`run-${selectedRun?.id}.log`, snippet)}
+                              onClick={() =>
+                                downloadText(`run-${selectedRun?.id}.log`, snippet)
+                              }
                             >
                               다운로드
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
+                              onClick={() =>
+                                openInNewWindow('Workflow Run Logs', snippet)
+                              }
                             >
                               새 창
                             </Button>
                           </div>
                           <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
-                            <pre className="whitespace-pre-wrap break-words">{snippet}</pre>
+                            <pre className="whitespace-pre-wrap break-words">
+                              {snippet}
+                            </pre>
                           </div>
                         </div>
                       );
