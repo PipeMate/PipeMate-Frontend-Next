@@ -275,7 +275,7 @@ export const useDropHandlers = (
             addNode(nodeType as NodeType, nodeData, parentId);
           });
 
-          showToast('파이프라인이 성공적으로 추가되었습니다.');
+          showToast('파이프라인이 성공적으로 추가되었습니다.', 'success');
           return;
         }
 
@@ -319,10 +319,10 @@ export const useDropHandlers = (
         }
 
         addNode(nodeType as NodeType, nodeData, parentId);
-        showToast(`'${block.name}' 블록이 추가되었습니다.`);
+        showToast(`'${block.name}' 블록이 추가되었습니다.`, 'success');
       } catch (error) {
         console.error('드롭 처리 오류:', error);
-        showToast('드롭 처리 중 오류가 발생했습니다.');
+        showToast('드롭 처리 중 오류가 발생했습니다.', 'error');
       }
     },
     [addNode, areaNodes.job, performValidation, clearDragState, showToast],
@@ -384,13 +384,13 @@ export const useDropHandlers = (
             const parentJob = jobNodes[jobNodes.length - 1];
             nodeData.jobName = parentJob.data.jobName || ''; // 해당 Job의 이름 사용
             addNode('step', nodeData, parentJob.id);
-            showToast(`'${block.name}' Step이 Job에 추가되었습니다.`);
+            showToast(`'${block.name}' Step이 Job에 추가되었습니다.`, 'success');
             return;
           }
         }
 
         addNode(nodeType as NodeType, nodeData);
-        showToast(`'${block.name}' 블록이 추가되었습니다.`);
+        showToast(`'${block.name}' 블록이 추가되었습니다.`, 'success');
       }
     },
     [addNode, areaNodes.job, handleDrop, performValidation, clearDragState, showToast],
@@ -446,9 +446,9 @@ export const useDropHandlers = (
           };
 
           addNode('step', nodeData, jobId);
-          showToast(`'${block.name}' Step이 Job에 추가되었습니다.`);
+          showToast(`'${block.name}' Step이 Job에 추가되었습니다.`, 'success');
         } else {
-          showToast('Step 블록만 Job 내부에 드롭할 수 있습니다.');
+          showToast('Step 블록만 Job 내부에 드롭할 수 있습니다.', 'error');
         }
       }
     },

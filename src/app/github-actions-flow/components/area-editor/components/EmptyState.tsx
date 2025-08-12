@@ -97,9 +97,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         </div>
 
         {/* 간단한 메시지 */}
-        <span className="font-medium text-gray-600">
-          {getMessage()}
-        </span>
+        <span className="font-medium text-gray-600">{getMessage()}</span>
       </div>
     </div>
   );

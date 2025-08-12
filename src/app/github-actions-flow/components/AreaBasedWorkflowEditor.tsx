@@ -61,9 +61,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     convertBlockTypeToNodeType,
   } = useDragDrop();
 
-  const { 
-    handleDrop, 
-    handleAreaDrop, 
+  const {
+    handleDrop,
+    handleAreaDrop,
     handleJobStepDrop,
     dragOverArea,
     dragOverJobId,
@@ -73,13 +73,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     handleJobDragLeave,
     handleDragEnd,
     getDragOverStyle,
-  } = useDropHandlers(
-    areaNodes,
-    addNode,
-    () => {
-      // 드래그 상태 초기화는 useDropHandlers에서 처리
-    },
-  );
+  } = useDropHandlers(areaNodes, addNode, () => {
+    // 드래그 상태 초기화는 useDropHandlers에서 처리
+  });
 
   //* ========================================
   //* 상태 관리

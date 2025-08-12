@@ -45,7 +45,11 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
     [node, onDrag],
   );
 
-  const nodeStyle = getNodeStyle(node.type, node.parentId !== undefined, node.data.domain);
+  const nodeStyle = getNodeStyle(
+    node.type,
+    node.parentId !== undefined,
+    node.data.domain,
+  );
   const isSelected = node.isSelected;
   const isEditing = node.isEditing;
 
@@ -75,12 +79,16 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
             {node.data.label}
           </h4>
           {node.data.description && (
-            <p className="text-xs text-gray-500 truncate">
-              {node.data.description}
-            </p>
+            <p className="text-xs text-gray-500 truncate">{node.data.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* Job name 배지 */}
+          {(node.type === 'job' || node.type === 'step') && node.data.jobName && (
+            <span className="text-xs bg-white/80 px-2 py-1 rounded-full font-medium shadow-sm border border-gray-200 text-gray-700">
+              {node.data.jobName}
+            </span>
+          )}
           <Info size={14} className="text-gray-400" />
         </div>
       </div>
