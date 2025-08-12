@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTrigger,
@@ -8,12 +8,12 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Github,
   GitBranch,
@@ -26,8 +26,8 @@ import {
   Key,
   AlertCircle,
   CheckCircle,
-} from "lucide-react";
-import { STORAGES } from "@/config/appConstants";
+} from 'lucide-react';
+import { STORAGES } from '@/config/appConstants';
 import {
   setCookie,
   getCookie,
@@ -35,13 +35,9 @@ import {
   setRepositoryConfig,
   getRepositoryConfig,
   deleteRepositoryConfig,
-} from "@/lib/cookieUtils";
-import { useRepository } from "@/contexts/RepositoryContext";
-import {
-  useSecrets,
-  useCreateOrUpdateSecret,
-  useDeleteSecret,
-} from "@/api/hooks";
+} from '@/lib/cookieUtils';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api/hooks';
 
 interface Secret {
   name: string;
@@ -61,28 +57,27 @@ export function GithubTokenDialog({
   missingSecrets = [],
 }: GithubTokenDialogProps) {
   const [open, setOpen] = useState(false);
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState('');
   const [savedToken, setSavedToken] = useState<string | null>(null);
-  const [owner, setOwner] = useState("");
-  const [repo, setRepo] = useState("");
+  const [owner, setOwner] = useState('');
+  const [repo, setRepo] = useState('');
   const [savedOwner, setSavedOwner] = useState<string | null>(null);
   const [savedRepo, setSavedRepo] = useState<string | null>(null);
-  const [tokenError, setTokenError] = useState("");
-  const [repoError, setRepoError] = useState("");
+  const [tokenError, setTokenError] = useState('');
+  const [repoError, setRepoError] = useState('');
   const { setRepository } = useRepository();
 
   // Secrets 관련 상태
   const [secrets, setSecrets] = useState<Secret[]>([]);
-  const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
-  const [newSecret, setNewSecret] = useState<Secret>({
-    name: "",
-    value: "",
+  const [_editingSecret, setEditingSecret] = useState<Secret | null>(null);
+  const [newSecret, setNewSecret] = useState({
+    name: '',
+    value: '',
     isVisible: false,
   });
-  const [activeSecretsTab, setActiveSecretsTab] = useState("existing");
 
   // API 훅 사용
-  const { data: secretsData, isLoading } = useSecrets(owner || "", repo || "");
+  const { data: secretsData, isLoading } = useSecrets(owner || '', repo || '');
   const createOrUpdateSecret = useCreateOrUpdateSecret();
   const deleteSecret = useDeleteSecret();
 
@@ -91,14 +86,14 @@ export function GithubTokenDialog({
       // 토큰 정보 로드
       const storedToken = getCookie(STORAGES.GITHUB_TOKEN);
       setSavedToken(storedToken);
-      setToken(storedToken || "");
+      setToken(storedToken || '');
 
       // 레포지토리 정보 로드
       const repoConfig = getRepositoryConfig();
       setSavedOwner(repoConfig.owner);
       setSavedRepo(repoConfig.repo);
-      setOwner(repoConfig.owner || "");
-      setRepo(repoConfig.repo || "");
+      setOwner(repoConfig.owner || '');
+      setRepo(repoConfig.repo || '');
     }
   }, [open]);
 
@@ -107,7 +102,7 @@ export function GithubTokenDialog({
     if (secretsData?.data?.secrets) {
       const existingSecrets = secretsData.data.secrets.map((secret: any) => ({
         name: secret.name,
-        value: "", // 보안상 값은 표시하지 않음
+        value: '', // 보안상 값은 표시하지 않음
         isVisible: false,
       }));
       setSecrets(existingSecrets);
@@ -116,30 +111,30 @@ export function GithubTokenDialog({
 
   const handleSaveToken = () => {
     if (!token.trim()) {
-      setTokenError("토큰을 입력해주세요.");
+      setTokenError('토큰을 입력해주세요.');
       return;
     }
     setCookie(STORAGES.GITHUB_TOKEN, token.trim(), 30); // 30일간 저장
     setSavedToken(token.trim());
-    setTokenError("");
+    setTokenError('');
     onTokenChange?.(token.trim());
   };
 
   const handleDeleteToken = () => {
     deleteCookie(STORAGES.GITHUB_TOKEN);
     setSavedToken(null);
-    setToken("");
-    setTokenError("");
+    setToken('');
+    setTokenError('');
     onTokenChange?.(null);
   };
 
   const handleSaveRepository = () => {
     if (!owner.trim()) {
-      setRepoError("소유자를 입력해주세요.");
+      setRepoError('소유자를 입력해주세요.');
       return;
     }
     if (!repo.trim()) {
-      setRepoError("레포지토리를 입력해주세요.");
+      setRepoError('레포지토리를 입력해주세요.');
       return;
     }
 
@@ -147,17 +142,17 @@ export function GithubTokenDialog({
     setSavedOwner(owner.trim());
     setSavedRepo(repo.trim());
     setRepository(owner.trim(), repo.trim());
-    setRepoError("");
+    setRepoError('');
   };
 
   const handleDeleteRepository = () => {
     deleteRepositoryConfig();
     setSavedOwner(null);
     setSavedRepo(null);
-    setOwner("");
-    setRepo("");
-    setRepository("", "");
-    setRepoError("");
+    setOwner('');
+    setRepo('');
+    setRepository('', '');
+    setRepoError('');
   };
 
   // Secrets 관련 함수들
@@ -165,14 +160,14 @@ export function GithubTokenDialog({
     if (!newSecret.name || !newSecret.value) return;
 
     setSecrets([...secrets, { ...newSecret }]);
-    setNewSecret({ name: "", value: "", isVisible: false });
+    setNewSecret({ name: '', value: '', isVisible: false });
   };
 
   const handleEditSecret = (index: number) => {
     setEditingSecret(secrets[index]);
   };
 
-  const handleSaveSecret = async (secret: Secret) => {
+  const _handleSaveSecret = async (secret: Secret) => {
     if (!owner || !repo) return;
 
     try {
@@ -181,19 +176,16 @@ export function GithubTokenDialog({
         repo,
         secretName: secret.name,
         data: {
-          name: secret.name,
           value: secret.value,
         },
       });
 
       // 로컬 상태 업데이트
-      const updatedSecrets = secrets.map((s) =>
-        s.name === secret.name ? secret : s
-      );
+      const updatedSecrets = secrets.map((s) => (s.name === secret.name ? secret : s));
       setSecrets(updatedSecrets);
       setEditingSecret(null);
     } catch (error) {
-      console.error("Secret 저장 실패:", error);
+      console.error('Secret 저장 실패:', error);
     }
   };
 
@@ -210,7 +202,7 @@ export function GithubTokenDialog({
       // 로컬 상태 업데이트
       setSecrets(secrets.filter((s) => s.name !== secretName));
     } catch (error) {
-      console.error("Secret 삭제 실패:", error);
+      console.error('Secret 삭제 실패:', error);
     }
   };
 
@@ -237,8 +229,7 @@ export function GithubTokenDialog({
         <DialogHeader>
           <DialogTitle>GitHub 설정 관리</DialogTitle>
           <DialogDescription>
-            GitHub API 연동을 위한 토큰, 레포지토리 설정, 그리고 Secrets를
-            관리하세요.
+            GitHub API 연동을 위한 토큰, 레포지토리 설정, 그리고 Secrets를 관리하세요.
           </DialogDescription>
         </DialogHeader>
 
@@ -265,9 +256,7 @@ export function GithubTokenDialog({
 
           <TabsContent value="token" className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Personal Access Token
-              </label>
+              <label className="text-sm font-medium">Personal Access Token</label>
               <Input
                 type="password"
                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxxx"
@@ -275,9 +264,7 @@ export function GithubTokenDialog({
                 onChange={(e) => setToken(e.target.value)}
                 autoFocus
               />
-              {tokenError && (
-                <div className="text-destructive text-xs">{tokenError}</div>
-              )}
+              {tokenError && <div className="text-destructive text-xs">{tokenError}</div>}
             </div>
 
             <DialogFooter>
@@ -285,11 +272,7 @@ export function GithubTokenDialog({
                 저장
               </Button>
               {savedToken && (
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteToken}
-                  type="button"
-                >
+                <Button variant="destructive" onClick={handleDeleteToken} type="button">
                   삭제
                 </Button>
               )}
@@ -307,18 +290,14 @@ export function GithubTokenDialog({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  레포지토리 (Repository)
-                </label>
+                <label className="text-sm font-medium">레포지토리 (Repository)</label>
                 <Input
                   placeholder="레포지토리 이름"
                   value={repo}
                   onChange={(e) => setRepo(e.target.value)}
                 />
               </div>
-              {repoError && (
-                <div className="text-destructive text-xs">{repoError}</div>
-              )}
+              {repoError && <div className="text-destructive text-xs">{repoError}</div>}
             </div>
 
             <DialogFooter>
@@ -340,11 +319,8 @@ export function GithubTokenDialog({
             </DialogFooter>
           </TabsContent>
 
-          <TabsContent
-            value="secrets"
-            className="space-y-4 max-h-[60vh] overflow-y-auto"
-          >
-            <Tabs value={activeSecretsTab} onValueChange={setActiveSecretsTab}>
+          <TabsContent value="secrets" className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <Tabs defaultValue="existing">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="existing">기존 Secrets</TabsTrigger>
                 <TabsTrigger value="missing">
@@ -395,7 +371,7 @@ export function GithubTokenDialog({
                             </label>
                             <div className="relative">
                               <Input
-                                type={newSecret.isVisible ? "text" : "password"}
+                                type={newSecret.isVisible ? 'text' : 'password'}
                                 placeholder="Secret 값을 입력하세요"
                                 value={newSecret.value}
                                 onChange={(e) =>
@@ -465,9 +441,7 @@ export function GithubTokenDialog({
                                   </div>
                                   <div className="relative">
                                     <Input
-                                      type={
-                                        secret.isVisible ? "text" : "password"
-                                      }
+                                      type={secret.isVisible ? 'text' : 'password'}
                                       value={secret.value}
                                       readOnly
                                       className="bg-gray-50"
@@ -498,9 +472,7 @@ export function GithubTokenDialog({
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() =>
-                                      handleDeleteSecret(secret.name)
-                                    }
+                                    onClick={() => handleDeleteSecret(secret.name)}
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -521,8 +493,7 @@ export function GithubTokenDialog({
                     <CardContent className="p-8 text-center">
                       <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
                       <p className="text-gray-600">
-                        누락된 Secret이 없습니다. 모든 필요한 Secret이 설정되어
-                        있습니다.
+                        누락된 Secret이 없습니다. 모든 필요한 Secret이 설정되어 있습니다.
                       </p>
                     </CardContent>
                   </Card>
@@ -558,10 +529,9 @@ export function GithubTokenDialog({
                                 onClick={() => {
                                   setNewSecret({
                                     name: secretName,
-                                    value: "",
+                                    value: '',
                                     isVisible: false,
                                   });
-                                  setActiveSecretsTab("existing");
                                 }}
                               >
                                 <Plus className="w-4 h-4 mr-2" />

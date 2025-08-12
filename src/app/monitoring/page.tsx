@@ -8,14 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useWorkflows, useWorkflowRuns, useCancelWorkflowRun } from '@/api/hooks';
-import { WorkflowItem } from '@/api/types';
 import {
   Monitor,
   Play,
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
   GitBranch,
   RefreshCw,
   Activity,
@@ -41,8 +39,7 @@ interface WorkflowRun {
 export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
-  const [activeTab, setActiveTab] = useState('recent');
-  const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [_selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
 
   // 훅 사용
   const {
@@ -58,7 +55,7 @@ export default function MonitoringPage() {
   const cancelWorkflowRun = useCancelWorkflowRun();
 
   const workflows = workflowsData?.data?.workflows || [];
-  const workflowRuns = workflowRunsData?.data?.workflow_runs || [];
+  const workflowRuns: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
 
   // 헤더 설정
   useEffect(() => {
@@ -100,7 +97,7 @@ export default function MonitoringPage() {
     } else if (status === 'waiting') {
       return <Clock className="w-4 h-4 text-yellow-600" />;
     } else {
-      return <AlertCircle className="w-4 h-4 text-gray-600" />;
+      return <AlertTriangle className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -126,16 +123,17 @@ export default function MonitoringPage() {
     }
   };
 
-  const getStatusText = (status: string, conclusion?: string) => {
+  const _getStatusText = (status: string, conclusion?: string) => {
     if (status === 'completed') {
       return conclusion === 'success' ? '성공' : '실패';
     } else if (status === 'in_progress') {
       return '실행 중';
     } else if (status === 'waiting') {
       return '대기 중';
-    } else {
-      return '알 수 없음';
+    } else if (status === 'cancelled') {
+      return '취소됨';
     }
+    return '알 수 없음';
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -283,7 +281,7 @@ export default function MonitoringPage() {
         </div>
 
         {/* 모니터링 탭 */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="recent" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="recent">최근 실행</TabsTrigger>
             <TabsTrigger value="workflows">워크플로우별</TabsTrigger>

@@ -1,37 +1,37 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLayout } from "@/components/layout/LayoutContext";
-import { useBlocks } from "@/api/hooks";
-import { BlockResponse } from "@/api/types";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLayout } from '@/components/layout/LayoutContext';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { useBlocks } from '@/api/hooks';
+import { BlockResponse } from '@/api/types';
 import {
   Settings,
-  Plus,
   Search,
-  Copy,
+  Plus,
   Edit,
   Trash2,
-  Workflow,
+  Copy,
+  CheckCircle,
   GitBranch,
+  Workflow,
   Code,
   Database,
   Server,
   Globe,
-  Loader2,
-  CheckCircle,
   RefreshCw,
-} from "lucide-react";
-import { ROUTES } from "@/config/appConstants";
+} from 'lucide-react';
+import { ROUTES } from '@/config/appConstants';
 
 export default function PresetsPage() {
   const { setHeaderExtra } = useLayout();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const { owner: _owner, repo: _repo, isConfigured: _isConfigured } = useRepository();
+  const [searchTerm, setSearchTerm] = useState('');
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
 
   // 훅 사용
@@ -50,10 +50,8 @@ export default function PresetsPage() {
           <Settings size={20} />
           {ROUTES.PRESETS.label}
         </h1>
-        <p className="text-sm text-gray-500 m-0">
-          GitHub Actions 워크플로우 프리셋 관리
-        </p>
-      </div>
+        <p className="text-sm text-gray-500 m-0">GitHub Actions 워크플로우 프리셋 관리</p>
+      </div>,
     );
     return () => setHeaderExtra(null);
   }, [setHeaderExtra]);
@@ -61,12 +59,13 @@ export default function PresetsPage() {
   // 프리셋 필터링
   const filteredBlocks = blocks.filter((block) => {
     const matchesSearch =
-      searchTerm === "" ||
+      searchTerm === '' ||
       block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       block.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       block.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesTab = activeTab === "all" || block.type === activeTab;
+    // activeTab 상태가 제거되었으므로, 모든 타입을 포함하도록 변경
+    const matchesTab = true;
 
     return matchesSearch && matchesTab;
   });
@@ -81,42 +80,42 @@ export default function PresetsPage() {
       };
 
       await navigator.clipboard.writeText(JSON.stringify(blockData, null, 2));
-      setCopiedBlock(block.id);
+      setCopiedBlock(block.id.toString());
 
       setTimeout(() => {
         setCopiedBlock(null);
       }, 2000);
     } catch (error) {
-      console.error("복사 실패:", error);
+      console.error('복사 실패:', error);
     }
   };
 
   const handleEditBlock = (block: BlockResponse) => {
     // 편집 기능은 별도 모달이나 페이지로 이동
-    console.log("편집할 블록:", block);
+    console.log('편집할 블록:', block);
   };
 
   const handleDeleteBlock = (block: BlockResponse) => {
     // 삭제 확인 후 API 호출
     if (confirm(`"${block.name}" 프리셋을 삭제하시겠습니까?`)) {
-      console.log("삭제할 블록:", block);
+      console.log('삭제할 블록:', block);
       // TODO: 삭제 API 호출
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case "trigger":
+      case 'trigger':
         return <GitBranch className="w-4 h-4 text-blue-600" />;
-      case "job":
+      case 'job':
         return <Workflow className="w-4 h-4 text-green-600" />;
-      case "step":
+      case 'step':
         return <Code className="w-4 h-4 text-purple-600" />;
-      case "database":
+      case 'database':
         return <Database className="w-4 h-4 text-orange-600" />;
-      case "server":
+      case 'server':
         return <Server className="w-4 h-4 text-red-600" />;
-      case "api":
+      case 'api':
         return <Globe className="w-4 h-4 text-indigo-600" />;
       default:
         return <Settings className="w-4 h-4 text-gray-600" />;
@@ -125,12 +124,12 @@ export default function PresetsPage() {
 
   const getTypeBadge = (type: string) => {
     const typeLabels: Record<string, string> = {
-      trigger: "트리거",
-      job: "잡",
-      step: "스텝",
-      database: "데이터베이스",
-      server: "서버",
-      api: "API",
+      trigger: '트리거',
+      job: '잡',
+      step: '스텝',
+      database: '데이터베이스',
+      server: '서버',
+      api: 'API',
     };
 
     return (
@@ -142,20 +141,20 @@ export default function PresetsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "trigger":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "job":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "step":
-        return "bg-purple-50 text-purple-700 border-purple-200";
-      case "database":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-      case "server":
-        return "bg-red-50 text-red-700 border-red-200";
-      case "api":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      case 'trigger':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'job':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'step':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'database':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'server':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'api':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -183,9 +182,7 @@ export default function PresetsPage() {
                 size="sm"
               >
                 <RefreshCw
-                  className={`w-4 h-4 mr-2 ${
-                    blocksLoading ? "animate-spin" : ""
-                  }`}
+                  className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`}
                 />
                 새로고침
               </Button>
@@ -210,11 +207,7 @@ export default function PresetsPage() {
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <Tabs
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                  className="w-auto"
-                >
+                <Tabs defaultValue="all" className="w-auto">
                   <TabsList>
                     <TabsTrigger value="all">전체</TabsTrigger>
                     <TabsTrigger value="trigger">트리거</TabsTrigger>
@@ -228,8 +221,8 @@ export default function PresetsPage() {
         </Card>
 
         {/* 프리셋 목록 */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsContent value={activeTab} className="space-y-4">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsContent value="all" className="space-y-4">
             {blocksLoading ? (
               <Card>
                 <CardContent className="p-12">
@@ -249,8 +242,8 @@ export default function PresetsPage() {
                     </h3>
                     <p className="text-gray-600 mb-4">
                       {searchTerm
-                        ? "검색 결과가 없습니다."
-                        : "아직 프리셋이 생성되지 않았습니다."}
+                        ? '검색 결과가 없습니다.'
+                        : '아직 프리셋이 생성되지 않았습니다.'}
                     </p>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />첫 프리셋 생성
@@ -269,16 +262,12 @@ export default function PresetsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           {getTypeIcon(block.type)}
-                          <h3 className="font-semibold text-gray-900">
-                            {block.name}
-                          </h3>
+                          <h3 className="font-semibold text-gray-900">{block.name}</h3>
                         </div>
                         {getTypeBadge(block.type)}
                       </div>
                       {block.description && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {block.description}
-                        </p>
+                        <p className="text-sm text-gray-600 mt-2">{block.description}</p>
                       )}
                     </CardHeader>
                     <CardContent>
@@ -295,9 +284,7 @@ export default function PresetsPage() {
 
                         <div className="flex items-center justify-between text-sm text-gray-500">
                           <span>생성일</span>
-                          <span>
-                            {new Date(block.createdAt).toLocaleDateString()}
-                          </span>
+                          <span>{new Date(block.createdAt).toLocaleDateString()}</span>
                         </div>
 
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -306,14 +293,14 @@ export default function PresetsPage() {
                             variant="outline"
                             className="flex-1"
                             onClick={() => handleCopyBlock(block)}
-                            disabled={copiedBlock === block.id}
+                            disabled={copiedBlock === block.id.toString()}
                           >
-                            {copiedBlock === block.id ? (
+                            {copiedBlock === block.id.toString() ? (
                               <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
                             ) : (
                               <Copy className="w-4 h-4 mr-2" />
                             )}
-                            {copiedBlock === block.id ? "복사됨" : "복사"}
+                            {copiedBlock === block.id.toString() ? '복사됨' : '복사'}
                           </Button>
                           <Button
                             size="sm"
@@ -350,9 +337,7 @@ export default function PresetsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">총 프리셋</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {blocks.length}
-                  </p>
+                  <p className="text-2xl font-bold text-blue-600">{blocks.length}</p>
                 </div>
                 <Settings className="w-6 h-6 text-blue-600" />
               </div>
@@ -365,7 +350,7 @@ export default function PresetsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">트리거</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {blocks.filter((b) => b.type === "trigger").length}
+                    {blocks.filter((b) => b.type === 'trigger').length}
                   </p>
                 </div>
                 <GitBranch className="w-6 h-6 text-green-600" />
@@ -379,7 +364,7 @@ export default function PresetsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">잡</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {blocks.filter((b) => b.type === "job").length}
+                    {blocks.filter((b) => b.type === 'job').length}
                   </p>
                 </div>
                 <Workflow className="w-6 h-6 text-purple-600" />
@@ -393,7 +378,7 @@ export default function PresetsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">스텝</p>
                   <p className="text-2xl font-bold text-orange-600">
-                    {blocks.filter((b) => b.type === "step").length}
+                    {blocks.filter((b) => b.type === 'step').length}
                   </p>
                 </div>
                 <Code className="w-6 h-6 text-orange-600" />
