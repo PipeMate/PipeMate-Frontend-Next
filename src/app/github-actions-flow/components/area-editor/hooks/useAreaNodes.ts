@@ -130,8 +130,35 @@ export const useAreaNodes = (
    */
   const addNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => {
-      //* 트리거는 하나만 허용
+      //* Trigger는 기존 블록을 교체
       if (nodeType === "workflowTrigger" && areaNodes.trigger.length > 0) {
+        //* 기존 Trigger를 새로운 Trigger로 교체
+        setAreaNodes((prev) => {
+          const newTrigger = createNode(nodeType, nodeData, parentId);
+          
+          const newAreaNodes = {
+            ...prev,
+            trigger: [{ ...newTrigger, order: 0 }], //* Trigger는 항상 첫 번째
+          };
+
+          //* 노드 교체 후 워크플로우 변경 스케줄링
+          const allNodes = [
+            ...newAreaNodes.trigger,
+            ...newAreaNodes.job,
+            ...newAreaNodes.step,
+          ];
+          const blocks = convertNodesToServerBlocks(
+            allNodes.map((n) => ({
+              id: n.id,
+              type: n.type,
+              position: { x: 0, y: 0 },
+              data: n.data as unknown as Record<string, unknown>,
+            }))
+          );
+          scheduleWorkflowChange(blocks);
+
+          return newAreaNodes;
+        });
         return;
       }
 

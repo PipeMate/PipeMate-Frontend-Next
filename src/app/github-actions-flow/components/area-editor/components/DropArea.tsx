@@ -75,7 +75,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
   return (
     <div
       className={`w-full min-h-[120px] rounded-lg border-2 border-dashed transition-all duration-300 ${getWorkspaceAreaColor(
-        areaKey === 'trigger' ? 'TRIGGER' : areaKey === 'job' ? 'JOB' : 'STEP'
+        areaKey === 'trigger' ? 'TRIGGER' : areaKey === 'job' ? 'JOB' : 'STEP',
       )} ${getDragOverStyle(areaKey)}`}
       onDragOver={(e) => onDragOver(e, areaKey)}
       onDrop={(e) => onDrop(e, areaKey)}
@@ -101,15 +101,17 @@ export const DropArea: React.FC<DropAreaProps> = ({
           renderEmptyState(areaKey, title, isDragOver)
         ) : (
           //* 노드들 렌더링
-          <div className={
-            areaKey === 'job' 
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' 
-              : 'space-y-3'
-          }>
+          <div
+            className={
+              areaKey === 'job'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                : 'space-y-3'
+            }
+          >
             {nodes.map((node, index) => {
               const isFocused = focusedNodeId === node.id || focusedArea === areaKey;
               const focusStyle = getFocusStyle ? getFocusStyle(node.id, areaKey) : '';
-              
+
               return (
                 <div key={node.id} className="relative">
                   <AreaNode
@@ -124,10 +126,12 @@ export const DropArea: React.FC<DropAreaProps> = ({
                     isFocused={isFocused}
                     tabIndex={index}
                   />
-                  
+
                   {/* 포커스 스타일 적용 */}
                   {focusStyle && (
-                    <div className={`absolute inset-0 rounded-lg pointer-events-none ${focusStyle}`} />
+                    <div
+                      className={`absolute inset-0 rounded-lg pointer-events-none ${focusStyle}`}
+                    />
                   )}
 
                   {/* Job 내부의 Step 영역 렌더링 */}
@@ -154,16 +158,24 @@ export const DropArea: React.FC<DropAreaProps> = ({
                         role="region"
                         aria-label={`${node.data.label} Job의 Step 영역`}
                       >
-                        {(!stepsByJob[node.id] || stepsByJob[node.id].length === 0) ? (
+                        {!stepsByJob[node.id] || stepsByJob[node.id].length === 0 ? (
                           //* Step 영역이 비어있을 때
-                          renderEmptyState(areaKey, 'Step', dragOverJobId === node.id, true, node.id)
+                          renderEmptyState(
+                            areaKey,
+                            'Step',
+                            dragOverJobId === node.id,
+                            true,
+                            node.id,
+                          )
                         ) : (
                           //* Step들이 있을 때
                           <div className="p-2 space-y-2">
                             {stepsByJob[node.id].map((stepNode, stepIndex) => {
                               const isStepFocused = focusedNodeId === stepNode.id;
-                              const stepFocusStyle = getFocusStyle ? getFocusStyle(stepNode.id) : '';
-                              
+                              const stepFocusStyle = getFocusStyle
+                                ? getFocusStyle(stepNode.id)
+                                : '';
+
                               return (
                                 <div key={stepNode.id} className="relative">
                                   <AreaNode
@@ -178,10 +190,12 @@ export const DropArea: React.FC<DropAreaProps> = ({
                                     isFocused={isStepFocused}
                                     tabIndex={nodes.length + stepIndex}
                                   />
-                                  
+
                                   {/* Step 포커스 스타일 적용 */}
                                   {stepFocusStyle && (
-                                    <div className={`absolute inset-0 rounded-lg pointer-events-none ${stepFocusStyle}`} />
+                                    <div
+                                      className={`absolute inset-0 rounded-lg pointer-events-none ${stepFocusStyle}`}
+                                    />
                                   )}
                                 </div>
                               );
@@ -201,10 +215,9 @@ export const DropArea: React.FC<DropAreaProps> = ({
       {/* 접근성 안내 (스크린 리더용) */}
       <div className="sr-only">
         <span>
-          {nodes.length === 0 
+          {nodes.length === 0
             ? `${title} 영역이 비어있습니다. 사이드바에서 블록을 드래그하여 추가하세요.`
-            : `${title} 영역에 ${nodes.length}개의 블록이 있습니다. Tab 키로 탐색할 수 있습니다.`
-          }
+            : `${title} 영역에 ${nodes.length}개의 블록이 있습니다. Tab 키로 탐색할 수 있습니다.`}
         </span>
       </div>
     </div>

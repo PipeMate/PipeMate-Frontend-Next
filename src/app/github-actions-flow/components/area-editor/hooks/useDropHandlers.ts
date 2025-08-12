@@ -57,11 +57,7 @@ export const useDropHandlers = (
             showToast('Trigger 영역에는 Trigger 블록만 드롭할 수 있습니다.');
             return false;
           }
-          //* Trigger는 하나만 허용
-          if (areaNodes.trigger.length >= 1) {
-            showToast('Trigger는 하나만 설정할 수 있습니다.');
-            return false;
-          }
+          //* Trigger는 기존 블록을 교체하도록 허용 (중복 검사 제거)
           break;
 
         case 'job':
@@ -69,6 +65,7 @@ export const useDropHandlers = (
             showToast('Job 영역에는 Trigger 블록을 드롭할 수 없습니다.');
             return false;
           }
+          //* Job은 복수 생성 가능 (중복 검사 제거)
           break;
 
         case 'step':
@@ -76,12 +73,13 @@ export const useDropHandlers = (
             showToast('Step 영역에는 Step 블록만 드롭할 수 있습니다.');
             return false;
           }
+          //* Step은 중복 가능 (중복 검사 제거)
           break;
       }
 
       return true;
     },
-    [areaNodes.trigger.length, showToast],
+    [showToast],
   );
 
   /**
@@ -109,25 +107,27 @@ export const useDropHandlers = (
   );
 
   /**
-   * 중복 검사
+   * 중복 검사 (Trigger만 적용)
    */
   const validateDuplicates = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
-      const blockName = block.name;
 
-      //* 같은 이름의 블록이 이미 존재하는지 검사
-      const existingNodes = areaNodes[targetArea];
-      const isDuplicate = existingNodes.some((node) => node.data.label === blockName);
+      //* Trigger만 중복 검사 적용 (기존 블록 교체)
+      if (blockType === 'trigger' && targetArea === 'trigger') {
+        const existingNodes = areaNodes.trigger;
+        const isDuplicate = existingNodes.some((node) => node.data.label === block.name);
 
-      if (isDuplicate) {
-        showToast(`'${blockName}' 블록이 이미 존재합니다.`);
-        return false;
+        if (isDuplicate) {
+          //* 중복된 Trigger는 기존 블록을 교체하도록 허용
+          return true; //* 교체 로직은 addNode에서 처리
+        }
       }
 
+      //* Job과 Step은 중복 허용
       return true;
     },
-    [areaNodes, showToast],
+    [areaNodes.trigger, showToast],
   );
 
   /**
