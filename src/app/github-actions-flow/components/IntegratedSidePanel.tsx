@@ -955,12 +955,36 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         <head>
                           <title>YAML 미리보기</title>
                           <style>
-                            body { font-family: monospace; background: #1e1e1e; color: #4ade80; padding: 20px; }
-                            pre { white-space: pre-wrap; word-break: break-word; }
+                            :root { color-scheme: dark; }
+                            body {
+                              margin: 0;
+                              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                              background: #0f172a; /* slate-900 */
+                              color: #f1f5f9; /* slate-100 */
+                              padding: 20px;
+                            }
+                            .container {
+                              background: #0f172a; /* slate-900 */
+                              border: 1px solid #1e293b; /* slate-800 */
+                              border-radius: 8px;
+                              box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+                              padding: 16px;
+                              max-height: 80vh;
+                              overflow: auto;
+                            }
+                            pre {
+                              margin: 0;
+                              white-space: pre-wrap;
+                              word-break: break-word;
+                              font-size: 11px;
+                              line-height: 1.4;
+                            }
                           </style>
                         </head>
                         <body>
-                          <pre>${yaml}</pre>
+                          <div class="container">
+                            <pre>${yaml.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                          </div>
                         </body>
                       </html>
                     `);
