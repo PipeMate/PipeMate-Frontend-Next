@@ -200,10 +200,7 @@ export default function MonitoringPage() {
         <CardContent>
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
             {metaRows.map((row) => (
-              <div
-                key={row.k}
-                className="flex items-center justify-between px-3 py-1.5 rounded border bg-white"
-              >
+              <div key={row.k} className="flex items-center justify-between px-2.5 py-1.5 rounded bg-white">
                 <span className="text-slate-500">{row.k}</span>
                 <span className="text-slate-900 font-medium truncate max-w-[65%] text-right">
                   {String(row.v)}
@@ -229,7 +226,9 @@ export default function MonitoringPage() {
                     <div key={job.id} className="border rounded-lg p-3 bg-white">
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-slate-900">{job.name}</div>
-                        <div className="ml-2">{getStatusBadge(job.status, job.conclusion)}</div>
+                        <div className="ml-2">
+                          {getStatusBadge(job.status, job.conclusion)}
+                        </div>
                       </div>
                       <div className="mt-2 grid gap-2">
                         {(job.steps || []).map((st: any, idx: number) => (
@@ -252,8 +251,8 @@ export default function MonitoringPage() {
                               </span>
                               {st.name}
                             </div>
-                            <div className="text-slate-500">
-                              {st.status} {st.conclusion ? `• ${st.conclusion}` : ''}
+                            <div className="flex items-center gap-2 text-slate-500">
+                              {getStepBadge?.(st.status, st.conclusion) || null}
                             </div>
                           </button>
                         ))}
@@ -368,19 +367,25 @@ export default function MonitoringPage() {
     const base = 'border px-2 py-0.5 rounded text-xs font-medium';
     if (status === 'completed') {
       return conclusion === 'success' ? (
-        <span className={`${base} bg-green-100 text-green-800 border-green-200`}>성공</span>
+        <span className={`${base} bg-green-100 text-green-800 border-green-200`}>
+          성공
+        </span>
       ) : (
         <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>
       );
     }
     if (status === 'in_progress') {
       return (
-        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>실행 중</span>
+        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>
+          실행 중
+        </span>
       );
     }
     if (status === 'waiting') {
       return (
-        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>대기 중</span>
+        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>
+          대기 중
+        </span>
       );
     }
     if (status === 'cancelled') {
@@ -388,7 +393,21 @@ export default function MonitoringPage() {
         <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>취소</span>
       );
     }
-    return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>기타</span>;
+    return (
+      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>기타</span>
+    );
+  };
+  const getStepBadge = (status?: string, conclusion?: string) => {
+    const base = 'border px-2 py-0.5 rounded text-[11px] font-medium';
+    if (conclusion) {
+      if (conclusion === 'success') return <span className={`${base} bg-green-100 text-green-800 border-green-200`}>성공</span>;
+      if (conclusion === 'failure' || conclusion === 'failed') return <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>;
+      if (conclusion === 'cancelled') return <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>취소</span>;
+      if (conclusion === 'skipped') return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>건너뜀</span>;
+    }
+    if (status === 'in_progress') return <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>실행 중</span>;
+    if (status === 'queued' || status === 'waiting') return <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>대기 중</span>;
+    return <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>{status || '기타'}</span>;
   };
 
   const _getStatusText = (status: string, conclusion?: string) => {
