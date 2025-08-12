@@ -900,11 +900,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                   <textarea
                     value={editableYaml}
                     onChange={(e) => handleYamlChange(e.target.value)}
-                    className="w-full h-64 p-3 border rounded font-mono text-xs"
+                    className="w-full h-64 p-3 border rounded font-mono text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="블록 YAML을 편집하세요"
                   />
                 ) : (
-                  <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+                  <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
                     <pre className="whitespace-pre-wrap break-words">
                       {getCurrentYaml()}
                     </pre>
@@ -912,7 +912,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                 )}
               </div>
             ) : (
-              <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+              <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
                 <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
               </div>
             )}
