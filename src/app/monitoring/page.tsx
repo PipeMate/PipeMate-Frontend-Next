@@ -388,21 +388,66 @@ export default function MonitoringPage() {
     );
   };
 
-  // 헤더 설정
+  // 헤더 설정(페이지 상단 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Monitor size={20} />
-          {ROUTES.MONITORING.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">
-          GitHub Actions 워크플로우 실행 로그 모니터링
-        </p>
+      <div className="flex items-start justify-between gap-4 w-full">
+        <div className="flex flex-col gap-0 min-w-0">
+          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
+            <Monitor size={20} />
+            {ROUTES.MONITORING.label}
+          </h1>
+          <div className="text-sm text-gray-600 m-0 truncate">
+            {owner && repo ? (
+              <span className="text-gray-700 font-medium">{owner}/{repo}</span>
+            ) : (
+              'GitHub Actions 워크플로우 실행 로그 모니터링'
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-sm">
+            <Activity className="w-4 h-4 mr-1" />
+            {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
+          </Badge>
+          <Button
+            onClick={() => {
+              refetchWorkflows();
+              refetchRuns();
+            }}
+            disabled={workflowsLoading || runsLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${
+                workflowsLoading || runsLoading ? 'animate-spin' : ''
+              }`}
+            />
+            새로고침
+          </Button>
+          <Button
+            onClick={() => setAutoRefresh((v) => !v)}
+            variant={autoRefresh ? 'default' : 'outline'}
+            size="sm"
+          >
+            {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
+          </Button>
+        </div>
       </div>,
     );
     return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+  }, [
+    setHeaderExtra,
+    owner,
+    repo,
+    autoRefresh,
+    autoRefreshPausedDueToDetails,
+    workflowsLoading,
+    runsLoading,
+    refetchWorkflows,
+    refetchRuns,
+  ]);
 
   const handleCancelRun = async (run: WorkflowRun) => {
     try {
@@ -564,46 +609,7 @@ export default function MonitoringPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {owner}/{repo}
-              </h2>
-              <p className="text-gray-600 mt-1">실시간 모니터링 대시보드</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <Activity className="w-4 h-4 mr-1" />
-                {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
-              </Badge>
-              <Button
-                onClick={() => {
-                  refetchWorkflows();
-                  refetchRuns();
-                }}
-                disabled={workflowsLoading || runsLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${
-                    workflowsLoading || runsLoading ? 'animate-spin' : ''
-                  }`}
-                />
-                새로고침
-              </Button>
-              <Button
-                onClick={() => setAutoRefresh((v) => !v)}
-                variant={autoRefresh ? 'default' : 'outline'}
-                size="sm"
-              >
-                {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤 섹션은 레이아웃 헤더로 통합됨 (공간 절약을 위해 제거) */}
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
