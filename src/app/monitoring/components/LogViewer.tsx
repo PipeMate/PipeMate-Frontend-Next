@@ -10,6 +10,21 @@ type Segment = {
 };
 const TOKEN_REGEX = /(##\[[^\]]*\]|\[[^\]]*\]|::(error|warning|notice)::)/gi;
 
+// 스타일 상수/헬퍼(중앙 관리)
+const LINE_BASE_CLASS =
+  'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words border-l-2 transition-colors duration-150 hover:bg-slate-900/40';
+
+const LINE_STYLE_MAP: Record<string, { text: string; border: string }> = {
+  error: { text: 'text-red-400 font-semibold', border: 'border-red-500' },
+  warn: { text: 'text-amber-300 font-semibold', border: 'border-amber-500' },
+  success: { text: 'text-green-400 font-semibold', border: 'border-green-500' },
+  meta: { text: 'text-slate-300', border: 'border-slate-600' },
+  info: { text: 'text-slate-200', border: 'border-slate-800' },
+};
+
+const isStrongLine = (kind?: string) =>
+  kind === 'error' || kind === 'warn' || kind === 'success';
+
 function splitSegments(line: string): Segment[] {
   const segments: Segment[] = [];
   let lastIndex = 0;
@@ -46,27 +61,14 @@ function classifyLine(line: string, segments: Segment[]) {
 }
 
 function getLineClasses(kind: string) {
-  const base =
-    'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words text-slate-200 border-l-2 transition-colors duration-150 hover:bg-slate-900/40';
-  switch (kind) {
-    case 'error':
-      return `${base} text-red-400 font-semibold border-red-500`;
-    case 'warn':
-      return `${base} text-amber-300 font-semibold border-amber-500`;
-    case 'success':
-      return `${base} text-green-400 font-semibold border-green-500`;
-    case 'meta':
-      return `${base} text-slate-300 border-slate-600`;
-    default:
-      return `${base} border-slate-800`;
-  }
+  const style = LINE_STYLE_MAP[kind] ?? LINE_STYLE_MAP.info;
+  return `${LINE_BASE_CLASS} ${style.text} ${style.border}`;
 }
 
 function renderSegment(seg: Segment, idx: number, lineKind?: string) {
   if (seg.type === 'meta') {
     const t = seg.text.toLowerCase();
-    const strongLine =
-      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine = isStrongLine(lineKind);
     const color = strongLine
       ? 'text-current'
       : /error|fail/.test(t)
@@ -87,8 +89,7 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
   }
   if (seg.type === 'bracket') {
     const t = seg.text.toLowerCase();
-    const strongLine =
-      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine = isStrongLine(lineKind);
     const color = strongLine
       ? 'text-current'
       : /error|fail/.test(t)
@@ -105,8 +106,7 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     );
   }
   if (seg.type === 'gha') {
-    const strongLine =
-      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine = isStrongLine(lineKind);
     const color = strongLine
       ? 'text-current'
       : seg.level === 'error'
@@ -150,9 +150,7 @@ export default function LogViewer({ raw }: { raw: string }) {
       p.toLowerCase() === query.toLowerCase() ? (
         <mark
           key={i}
-          className={`${
-            strongLine ? 'text-current' : 'text-yellow-900'
-          } bg-yellow-200 rounded px-0.5`}
+          className={`${strongLine ? 'text-current' : 'text-yellow-900'} bg-yellow-200 rounded px-0.5`}
         >
           {p}
         </mark>
