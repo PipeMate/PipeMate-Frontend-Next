@@ -87,7 +87,9 @@ export default function WorkflowsPage() {
           variant="outline"
           size="sm"
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`}
+          />
           새로고침
         </Button>
       </div>,
@@ -96,7 +98,15 @@ export default function WorkflowsPage() {
       setHeaderExtra(null);
       setHeaderRight(null);
     };
-  }, [setHeaderExtra, setHeaderRight, owner, repo, workflows.length, workflowsLoading, refetchWorkflows]);
+  }, [
+    setHeaderExtra,
+    setHeaderRight,
+    owner,
+    repo,
+    workflows.length,
+    workflowsLoading,
+    refetchWorkflows,
+  ]);
 
   // 워크플로우 필터링
   const filteredWorkflows = workflows.filter((workflow) => {

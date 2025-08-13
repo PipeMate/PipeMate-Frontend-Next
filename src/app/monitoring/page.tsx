@@ -215,6 +215,18 @@ export default function MonitoringPage() {
     return lines.slice(start, end).join('\n');
   };
 
+  const formatDuration = (start?: string, end?: string) => {
+    if (!start) return '';
+    const s = new Date(start).getTime();
+    const e = end ? new Date(end).getTime() : Date.now();
+    const ms = Math.max(0, e - s);
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    const r = sec % 60;
+    return r ? `${m}m ${r}s` : `${m}m`;
+  };
+
   const RunDetail = ({ compact = false }: { compact?: boolean }) => {
     if (!selectedRun) return null;
     const meta = runDetailData?.data || {};
@@ -260,6 +272,32 @@ export default function MonitoringPage() {
           </CardHeader>
         )}
         <CardContent>
+          {/* 개요 요약 */}
+          {Array.isArray(runJobsData) && runJobsData.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px]">
+              {(() => {
+                const jobs = runJobsData as any[];
+                const totalJobs = jobs.length;
+                const stepsAll = jobs.flatMap((j: any) => j.steps || []);
+                const totalSteps = stepsAll.length;
+                const successSteps = stepsAll.filter((s: any) => s.conclusion === 'success').length;
+                const failedSteps = stepsAll.filter((s: any) => s.conclusion === 'failure' || s.conclusion === 'failed').length;
+                const skippedSteps = stepsAll.filter((s: any) => s.conclusion === 'skipped').length;
+                const items = [
+                  { k: '잡 수', v: totalJobs, cls: 'bg-slate-50' },
+                  { k: '스텝 수', v: totalSteps, cls: 'bg-slate-50' },
+                  { k: '성공', v: successSteps, cls: 'bg-green-50' },
+                  { k: '실패/스킵', v: `${failedSteps}/${skippedSteps}`, cls: 'bg-red-50' },
+                ];
+                return items.map((it) => (
+                  <div key={it.k} className={`px-2.5 py-1.5 rounded border border-slate-200 ${it.cls} flex items-center justify-between`}>
+                    <span className="text-slate-500">{it.k}</span>
+                    <span className="text-slate-900 font-semibold">{it.v}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
             {metaRows.map((row) => (
               <div
@@ -314,11 +352,14 @@ export default function MonitoringPage() {
                               setActiveTab('details');
                             }}
                           >
-                            <div className="text-slate-700 flex items-center gap-2">
-                              <span className="inline-block px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-700 border border-slate-200">
-                                STEP
+                            <div className="text-slate-700 flex items-center gap-3 min-w-0">
+                              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold ${
+                                focusedJobId === job.id && focusedStepName === st.name ? 'bg-blue-200 text-blue-800' : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {idx + 1}
                               </span>
-                              {st.name}
+                              <span className="truncate">{st.name}</span>
+                              <span className="text-xs text-slate-400 flex-shrink-0">{formatDuration(st.startedAt, st.completedAt)}</span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-500">
                               {getStepBadge?.(st.status, st.conclusion) || null}
@@ -343,11 +384,23 @@ export default function MonitoringPage() {
                     focusedStepName && rawLog
                       ? extractSnippetByKeyword(rawLog, focusedStepName)
                       : rawLog || '로그가 없습니다.';
+                  const jobName = (() => {
+                    const jobs = Array.isArray(runJobsData) ? (runJobsData as any[]) : [];
+                    const j = jobs.find((j) => j.id === focusedJobId);
+                    return j?.name as string | undefined;
+                  })();
                   return (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-xs text-slate-500">
-                          {focusedStepName ? `필터: ${focusedStepName}` : '전체 로그'}
+                        <div className="text-xs text-slate-500 truncate">
+                          {focusedStepName ? (
+                            <>
+                              {jobName ? `${jobName} › ` : ''}
+                              <span className="font-medium text-slate-600">{focusedStepName}</span>
+                            </>
+                          ) : (
+                            '전체 로그'
+                          )}
                         </div>
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -402,7 +455,9 @@ export default function MonitoringPage() {
           </div>
           <div className="text-xs md:text-sm text-slate-500 truncate">
             {owner && repo ? (
-              <span className="text-slate-700">{owner}/{repo}</span>
+              <span className="text-slate-700">
+                {owner}/{repo}
+              </span>
             ) : (
               'GitHub Actions 워크플로우 실행 로그 모니터링'
             )}
@@ -425,7 +480,11 @@ export default function MonitoringPage() {
           variant="outline"
           size="sm"
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading || runsLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${
+              workflowsLoading || runsLoading ? 'animate-spin' : ''
+            }`}
+          />
           새로고침
         </Button>
         <Button
