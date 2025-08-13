@@ -318,9 +318,6 @@ export default function MonitoringPage() {
                         {failedSteps}/{skippedSteps}
                       </span>
                     </div>
-                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center gap-1">
-                      {statusBadge}
-                    </div>
                   </>
                 );
               })()}
