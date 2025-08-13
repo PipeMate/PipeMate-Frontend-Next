@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Search, Clipboard, ExternalLink } from 'lucide-react';
 
 type Segment = {
@@ -198,7 +200,12 @@ export default function LogViewer({ raw }: { raw: string }) {
             size="sm"
             variant="outline"
             className="inline-flex items-center gap-1.5 px-2.5"
-            onClick={() => navigator.clipboard.writeText(text)}
+            onClick={() => {
+              navigator.clipboard.writeText(text).then(
+                () => toast.success('로그를 클립보드에 복사했어요.'),
+                () => toast.error('복사에 실패했어요.'),
+              );
+            }}
           >
             <Clipboard className="w-3.5 h-3.5" />
             복사
@@ -217,8 +224,7 @@ export default function LogViewer({ raw }: { raw: string }) {
               }
             }}
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-            새 창
+            <ExternalLink className="w-3.5 h-3.5" />새 창
           </Button>
         </div>
       </div>
