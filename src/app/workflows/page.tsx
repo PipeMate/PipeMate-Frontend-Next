@@ -44,24 +44,40 @@ export default function WorkflowsPage() {
   );
   const dispatchWorkflow = useDispatchWorkflow();
 
-  const workflows = workflowsData?.data?.workflows || [];
-  const workflowRuns = workflowRunsData?.data?.workflow_runs || [];
+  const workflows = workflowsData?.workflows || [];
+  const workflowRuns = workflowRunsData?.workflow_runs || [];
 
-  // 헤더 설정
+  // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Workflow size={20} />
-          {ROUTES.WORKFLOWS.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">
-          GitHub Actions 워크플로우 관리 및 실행
-        </p>
+      <div className="flex items-start justify-between gap-4 w-full">
+        <div className="flex flex-col gap-0 min-w-0">
+          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
+            <Workflow size={20} />
+            {ROUTES.WORKFLOWS.label}
+          </h1>
+          <div className="text-sm text-gray-600 m-0 truncate">
+            {owner && repo ? <span className="text-gray-700 font-medium">{owner}/{repo}</span> : 'GitHub Actions 워크플로우 관리 및 실행'}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-sm">
+            <GitBranch className="w-4 h-4 mr-1" /> {workflows.length} 워크플로우
+          </Badge>
+          <Button
+            onClick={() => refetchWorkflows()}
+            disabled={workflowsLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </Button>
+        </div>
       </div>,
     );
     return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+  }, [setHeaderExtra, owner, repo, workflows.length, workflowsLoading, refetchWorkflows]);
 
   // 워크플로우 필터링
   const filteredWorkflows = workflows.filter((workflow) => {
@@ -149,34 +165,7 @@ export default function WorkflowsPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {owner}/{repo}
-              </h2>
-              <p className="text-gray-600 mt-1">GitHub 레포지토리</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <GitBranch className="w-4 h-4 mr-1" />
-                {workflows.length} 워크플로우
-              </Badge>
-              <Button
-                onClick={() => refetchWorkflows()}
-                disabled={workflowsLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`}
-                />
-                새로고침
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤은 레이아웃 헤더로 통합됨 */}
 
         {/* 통계 카드 - 최상단으로 이동 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

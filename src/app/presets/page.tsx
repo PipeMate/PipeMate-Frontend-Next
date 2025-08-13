@@ -42,19 +42,40 @@ export default function PresetsPage() {
   } = useBlocks();
   const blocks = blocksData?.data || [];
 
-  // 헤더 설정
+  // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Settings size={20} />
-          {ROUTES.PRESETS.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">GitHub Actions 워크플로우 프리셋 관리</p>
+      <div className="flex items-start justify-between gap-4 w-full">
+        <div className="flex flex-col gap-0 min-w-0">
+          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
+            <Settings size={20} />
+            {ROUTES.PRESETS.label}
+          </h1>
+          <div className="text-sm text-gray-600 m-0 truncate">
+            GitHub Actions 워크플로우 프리셋 관리
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-sm">
+            <Settings className="w-4 h-4 mr-1" /> {blocks.length} 프리셋
+          </Badge>
+          <Button
+            onClick={() => refetchBlocks()}
+            disabled={blocksLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
+            새로고침
+          </Button>
+          <Button size="sm">
+            <Plus className="w-4 h-4 mr-2" />새 프리셋
+          </Button>
+        </div>
       </div>,
     );
     return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+  }, [setHeaderExtra, blocks.length, blocksLoading, refetchBlocks]);
 
   // 프리셋 필터링
   const filteredBlocks = blocks.filter((block) => {
@@ -165,37 +186,7 @@ export default function PresetsPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">프리셋 관리</h2>
-              <p className="text-gray-600 mt-1">
-                자주 사용하는 GitHub Actions 워크플로우 템플릿을 관리하세요
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <Settings className="w-4 h-4 mr-1" />
-                {blocks.length} 프리셋
-              </Badge>
-              <Button
-                onClick={() => refetchBlocks()}
-                disabled={blocksLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`}
-                />
-                새로고침
-              </Button>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />새 프리셋
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤은 레이아웃 헤더로 통합됨 */}
 
         {/* 검색 및 필터 */}
         <Card>

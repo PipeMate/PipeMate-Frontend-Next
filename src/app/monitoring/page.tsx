@@ -399,7 +399,9 @@ export default function MonitoringPage() {
           </h1>
           <div className="text-sm text-gray-600 m-0 truncate">
             {owner && repo ? (
-              <span className="text-gray-700 font-medium">{owner}/{repo}</span>
+              <span className="text-gray-700 font-medium">
+                {owner}/{repo}
+              </span>
             ) : (
               'GitHub Actions 워크플로우 실행 로그 모니터링'
             )}
