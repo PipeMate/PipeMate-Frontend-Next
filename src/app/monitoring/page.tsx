@@ -5,15 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useWorkflows, useWorkflowRuns, useCancelWorkflowRun } from '@/api/hooks';
+import {
+  useWorkflows,
+  useWorkflowRuns,
+  useCancelWorkflowRun,
+  useWorkflowRunJobs,
+  useWorkflowRunLogs,
+  useWorkflowRunDetail,
+} from '@/api/hooks';
 import {
   Monitor,
   Play,
   Clock,
-  CheckCircle,
-  XCircle,
   GitBranch,
   RefreshCw,
   Activity,
@@ -23,6 +30,15 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
+import {
+  getStatusIcon,
+  getStatusBadge,
+  getStepBadge,
+  getStepTone,
+} from './components/Status';
+import RunOverviewChips from './components/RunOverviewChips';
+import StepsList from './components/StepsList';
+import LogViewer from './components/LogViewer';
 import { ROUTES } from '@/config/appConstants';
 
 interface WorkflowRun {
@@ -37,9 +53,20 @@ interface WorkflowRun {
 }
 
 export default function MonitoringPage() {
-  const { setHeaderExtra } = useLayout();
+  const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
-  const [_selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const MonitoringIcon = ROUTES.MONITORING.icon;
+  const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
+  const [selectedRunSnapshot, setSelectedRunSnapshot] = useState<WorkflowRun | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<'execution' | 'details'>('execution');
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // 스텝별 선택/필터는 사용하지 않음(전체 로그만 표시)
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
 
   // 훅 사용
   const {
@@ -47,31 +74,384 @@ export default function MonitoringPage() {
     isLoading: workflowsLoading,
     refetch: refetchWorkflows,
   } = useWorkflows(owner || '', repo || '');
+  const autoRefreshPausedDueToDetails = !!selectedRun && activeTab === 'details';
   const {
     data: workflowRunsData,
     isLoading: runsLoading,
     refetch: refetchRuns,
-  } = useWorkflowRuns(owner || '', repo || '');
+  } = useWorkflowRuns(owner || '', repo || '', {
+    refetchInterval: autoRefresh && !autoRefreshPausedDueToDetails ? 10 * 1000 : false,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
+  });
   const cancelWorkflowRun = useCancelWorkflowRun();
 
-  const workflows = workflowsData?.data?.workflows || [];
-  const workflowRuns: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
+  const workflowsResponse = workflowsData as unknown as { workflows?: any[] } | undefined;
+  const runsResponse = workflowRunsData as unknown as
+    | { workflow_runs?: WorkflowRun[] }
+    | undefined;
+  const workflows = Array.isArray(workflowsResponse?.workflows)
+    ? (workflowsResponse!.workflows as any[])
+    : [];
+  const workflowRuns: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
+    ? (runsResponse!.workflow_runs as any[])
+    : [];
 
-  // 헤더 설정
+  // 상세: jobs / logs 로드 (선택 시)
+  const runId = selectedRun?.id ? String(selectedRun.id) : '';
+  const { data: runJobsData, isLoading: jobsLoading } = useWorkflowRunJobs(
+    owner || '',
+    repo || '',
+    runId,
+  );
+  const { data: runLogsData, isLoading: logsLoading } = useWorkflowRunLogs(
+    owner || '',
+    repo || '',
+    runId,
+  );
+  const { data: runDetailData } = useWorkflowRunDetail(owner || '', repo || '', runId);
+
+  // 반응형: 모바일/태블릿 여부
+  useEffect(() => {
+    const mobileMql = window.matchMedia('(max-width: 767px)');
+    const tabletMql = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+
+    const setStates = () => {
+      setIsMobile(mobileMql.matches);
+      setIsTablet(tabletMql.matches);
+    };
+    setStates();
+
+    const mobileListener = () => setStates();
+    const tabletListener = () => setStates();
+
+    mobileMql.addEventListener?.('change', mobileListener);
+    tabletMql.addEventListener?.('change', tabletListener);
+    return () => {
+      mobileMql.removeEventListener?.('change', mobileListener);
+      tabletMql.removeEventListener?.('change', tabletListener);
+    };
+  }, []);
+
+  const handleShowDetails = (run: WorkflowRun) => {
+    setSelectedRun(run);
+    setSelectedRunId(run.id);
+    setSelectedRunSnapshot(run);
+    setActiveTab('execution');
+    if (isMobile || isTablet) setIsDetailOpen(true);
+    // 데스크톱에서 데이터 리페치로 인한 잠깐의 selectedRun undefined 방지
+    // 선택되었을 때는 모달/우측 패널이 유지되도록 상세 오픈 상태는 건드리지 않음
+  };
+
+  // 리페치 시에도 선택된 실행을 유지
+  useEffect(() => {
+    if (!selectedRunId) return;
+    const list: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
+      ? (runsResponse!.workflow_runs as any[])
+      : [];
+    const found = list.find((r) => r.id === selectedRunId);
+    if (found) {
+      setSelectedRun(found);
+    } else if (!selectedRun) {
+      // 리스트에 없더라도 스냅샷으로 유지
+      if (selectedRunSnapshot) setSelectedRun(selectedRunSnapshot);
+    }
+  }, [workflowRunsData, selectedRunId]);
+
+  // 반응형 전환 시 모바일/태블릿에서는 선택되어 있으면 상세 자동 오픈
+  useEffect(() => {
+    if ((isMobile || isTablet) && selectedRunId) setIsDetailOpen(true);
+  }, [isMobile, isTablet, selectedRunId]);
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // noop
+    }
+  };
+
+  const downloadText = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const openInNewWindow = (title: string, content: string) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const escaped = content
+      .replaceAll(/&/g, '&amp;')
+      .replaceAll(/</g, '&lt;')
+      .replaceAll(/>/g, '&gt;');
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8" />
+      <title>${title}</title>
+      <style>
+        body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0f172a; color:#f1f5f9; padding:20px; }
+        pre { white-space: pre-wrap; word-break: break-word; border:1px solid #1e293b; border-radius:8px; padding:16px; box-shadow: inset 0 2px 4px rgba(0,0,0,.06); line-height:1.5; }
+        .toolbar { display:flex; gap:8px; margin-bottom:12px; }
+        .btn { background:#1e293b; color:#e2e8f0; border:1px solid #334155; padding:6px 10px; border-radius:6px; cursor:pointer; }
+        .btn:hover { background:#0b1220; }
+      </style></head><body>
+      <div class="toolbar">
+        <button class="btn" onclick="navigator.clipboard.writeText(document.querySelector('pre').innerText)">복사</button>
+      </div>
+      <pre>${escaped}</pre>
+    </body></html>`);
+    win.document.close();
+  };
+
+  const extractSnippetByKeyword = (text: string, keyword: string, contextLines = 40) => {
+    const lines = text.split(/\r?\n/);
+    const matches: number[] = [];
+    lines.forEach((line, idx) => {
+      if (line.toLowerCase().includes(keyword.toLowerCase())) matches.push(idx);
+    });
+    if (matches.length === 0) return '';
+    const start = Math.max(0, matches[0] - contextLines);
+    const end = Math.min(lines.length, matches[0] + contextLines);
+    return lines.slice(start, end).join('\n');
+  };
+
+  const formatDuration = (start?: string, end?: string) => {
+    if (!start) return '';
+    const s = new Date(start).getTime();
+    const e = end ? new Date(end).getTime() : Date.now();
+    const ms = Math.max(0, e - s);
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    const r = sec % 60;
+    return r ? `${m}m ${r}s` : `${m}m`;
+  };
+
+  const RunDetail = ({ compact = false }: { compact?: boolean }) => {
+    if (!selectedRun) return null;
+    const meta = runDetailData?.data || {};
+    const metaRows = [
+      { k: 'Run ID', v: selectedRun.id },
+      { k: 'Workflow', v: selectedRun.name },
+      { k: 'Status', v: selectedRun.status },
+      { k: 'Conclusion', v: selectedRun.conclusion || '-' },
+      { k: 'Created', v: new Date(selectedRun.created_at).toLocaleString() },
+      { k: 'Updated', v: new Date(selectedRun.updated_at).toLocaleString() },
+      { k: 'Run #', v: selectedRun.run_number },
+      { k: 'Repo', v: `${owner}/${repo}` },
+      // 확장 가능: meta에서 브랜치/커밋/트리거 등 제공 시 병합
+      { k: 'Branch', v: (meta as any)?.head_branch || '-' },
+      { k: 'Commit', v: (meta as any)?.head_sha || '-' },
+      { k: 'Event', v: (meta as any)?.event || '-' },
+    ];
+    return (
+      <Card className="border-slate-200 shadow-sm">
+        {!compact && (
+          <CardHeader className="pb-3 border-b">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm text-slate-500">실행 상세</div>
+                <CardTitle className="text-lg mt-1 flex items-center gap-2">
+                  {getStatusIcon(selectedRun.status, selectedRun.conclusion)}
+                  <span className="truncate">
+                    {selectedRun.name}{' '}
+                    <span className="text-slate-400">#{selectedRun.run_number}</span>
+                  </span>
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isMobile && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedRun(null)}
+                  >
+                    닫기
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+        )}
+        <CardContent className="pt-5">
+          {/* 개요 요약 */}
+          {Array.isArray(runJobsData) && runJobsData.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px]">
+              {(() => {
+                const jobs = runJobsData as any[];
+                const totalJobs = jobs.length;
+                const stepsAll = jobs.flatMap((j: any) => j.steps || []);
+                const totalSteps = stepsAll.length;
+                const successSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'success',
+                ).length;
+                const failedSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'failure' || s.conclusion === 'failed',
+                ).length;
+                const skippedSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'skipped',
+                ).length;
+                const statusBadge = getStatusBadge(
+                  selectedRun.status,
+                  selectedRun.conclusion,
+                );
+                return (
+                  <>
+                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                      Jobs:{' '}
+                      <span className="font-semibold text-slate-900">{totalJobs}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                      Steps:{' '}
+                      <span className="font-semibold text-slate-900">{totalSteps}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-green-200 bg-green-50 text-green-700">
+                      Success: <span className="font-semibold">{successSteps}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-red-700">
+                      Fail/Skip:{' '}
+                      <span className="font-semibold">
+                        {failedSteps}/{skippedSteps}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
+            {metaRows.map((row) => (
+              <div
+                key={row.k}
+                className="flex items-center justify-between px-2.5 py-1.5 rounded bg-white"
+              >
+                <span className="text-slate-500">{row.k}</span>
+                <span className="text-slate-900 font-medium truncate max-w-[65%] text-right">
+                  {String(row.v)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Tabs
+            defaultValue={activeTab}
+            value={activeTab}
+            onValueChange={(v: string) => setActiveTab(v as 'execution' | 'details')}
+          >
+            <TabsList className="grid w-full grid-cols-2 bg-slate-50">
+              <TabsTrigger value="execution">Steps</TabsTrigger>
+              <TabsTrigger value="details">Logs</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="execution" className="space-y-3">
+              {jobsLoading ? (
+                <div className="text-center py-6 text-gray-500">
+                  잡/스텝 불러오는 중...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(Array.isArray(runJobsData) ? runJobsData : []).map((job: any) => (
+                    <div key={job.id} className="border rounded-lg p-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-slate-900">{job.name}</div>
+                        <div className="ml-2">
+                          {getStatusBadge(job.status, job.conclusion)}
+                        </div>
+                      </div>
+                      <StepsList steps={job.steps || []} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="details">
+              {logsLoading ? (
+                <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
+              ) : (
+                <LogViewer raw={typeof runLogsData === 'string' ? runLogsData : ''} />
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Monitor size={20} />
-          {ROUTES.MONITORING.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">
-          GitHub Actions 워크플로우 실행 로그 모니터링
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex items-center justify-center rounded-md bg-emerald-100 text-emerald-700 p-2">
+          <MonitoringIcon size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+            {ROUTES.MONITORING.label}
+          </div>
+          <div className="text-xs md:text-sm text-slate-500 truncate">
+            {owner && repo ? (
+              <span className="text-slate-700">
+                {owner}/{repo}
+              </span>
+            ) : (
+              'GitHub Actions 워크플로우 실행 로그 모니터링'
+            )}
+          </div>
+        </div>
       </div>,
     );
-    return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+    setHeaderRight(
+      <div className="flex items-center gap-2.5">
+        <Badge variant="outline" className="text-xs py-1 px-2">
+          <Activity className="w-4 h-4 mr-2" />
+          {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
+        </Badge>
+        <Button
+          onClick={() => {
+            refetchWorkflows();
+            refetchRuns();
+          }}
+          disabled={workflowsLoading || runsLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${
+              workflowsLoading || runsLoading ? 'animate-spin' : ''
+            }`}
+          />
+          새로고침
+        </Button>
+        <Button
+          onClick={() => setAutoRefresh((v) => !v)}
+          variant={autoRefresh ? 'default' : 'outline'}
+          size="sm"
+        >
+          {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
+        </Button>
+      </div>,
+    );
+    return () => {
+      setHeaderExtra(null);
+      setHeaderRight(null);
+    };
+  }, [
+    setHeaderExtra,
+    setHeaderRight,
+    owner,
+    repo,
+    autoRefresh,
+    autoRefreshPausedDueToDetails,
+    workflowsLoading,
+    runsLoading,
+    refetchWorkflows,
+    refetchRuns,
+  ]);
 
   const handleCancelRun = async (run: WorkflowRun) => {
     try {
@@ -82,44 +462,6 @@ export default function MonitoringPage() {
       });
     } catch (error) {
       console.error('워크플로우 실행 취소 실패:', error);
-    }
-  };
-
-  const getStatusIcon = (status: string, conclusion?: string) => {
-    if (status === 'completed') {
-      return conclusion === 'success' ? (
-        <CheckCircle className="w-4 h-4 text-green-600" />
-      ) : (
-        <XCircle className="w-4 h-4 text-red-600" />
-      );
-    } else if (status === 'in_progress') {
-      return <Activity className="w-4 h-4 text-blue-600 animate-pulse" />;
-    } else if (status === 'waiting') {
-      return <Clock className="w-4 h-4 text-yellow-600" />;
-    } else {
-      return <AlertTriangle className="w-4 h-4 text-gray-600" />;
-    }
-  };
-
-  const getStatusBadge = (status: string, conclusion?: string) => {
-    if (status === 'completed') {
-      return conclusion === 'success' ? (
-        <Badge variant="default" className="bg-green-100 text-green-800">
-          성공
-        </Badge>
-      ) : (
-        <Badge variant="destructive">실패</Badge>
-      );
-    } else if (status === 'in_progress') {
-      return (
-        <Badge variant="default" className="bg-blue-100 text-blue-800">
-          실행 중
-        </Badge>
-      );
-    } else if (status === 'waiting') {
-      return <Badge variant="secondary">대기 중</Badge>;
-    } else {
-      return <Badge variant="outline">알 수 없음</Badge>;
     }
   };
 
@@ -176,39 +518,7 @@ export default function MonitoringPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {owner}/{repo}
-              </h2>
-              <p className="text-gray-600 mt-1">실시간 모니터링 대시보드</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <Activity className="w-4 h-4 mr-1" />
-                실시간
-              </Badge>
-              <Button
-                onClick={() => {
-                  refetchWorkflows();
-                  refetchRuns();
-                }}
-                disabled={workflowsLoading || runsLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${
-                    workflowsLoading || runsLoading ? 'animate-spin' : ''
-                  }`}
-                />
-                새로고침
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤 섹션은 레이아웃 헤더로 통합됨 (공간 절약을 위해 제거) */}
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -280,173 +590,225 @@ export default function MonitoringPage() {
           </Card>
         </div>
 
-        {/* 모니터링 탭 */}
-        <Tabs defaultValue="recent" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="recent">최근 실행</TabsTrigger>
-            <TabsTrigger value="workflows">워크플로우별</TabsTrigger>
-          </TabsList>
+        {/* 2열 레이아웃: 좌측 목록 / 우측 상세 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div>
+            <Tabs defaultValue="recent" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="recent">최근 실행</TabsTrigger>
+                <TabsTrigger value="workflows">워크플로우별</TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="recent" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  최근 워크플로우 실행
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {runsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">데이터를 불러오는 중...</p>
-                  </div>
-                ) : workflowRuns.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      실행 기록이 없습니다
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      아직 워크플로우가 실행되지 않았습니다.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {workflowRuns.slice(0, 10).map((run) => (
-                      <Card key={run.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              {getStatusIcon(run.status, run.conclusion)}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900 truncate">
-                                  {run.name}
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  #{run.run_number} • {getTimeAgo(run.created_at)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(run.status, run.conclusion)}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setSelectedRun(run)}
-                              >
-                                <Info className="w-4 h-4 mr-2" />
-                                상세보기
-                              </Button>
-                              {run.status === 'in_progress' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCancelRun(run)}
-                                  disabled={cancelWorkflowRun.isPending}
-                                >
-                                  {cancelWorkflowRun.isPending ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  ) : (
-                                    <X className="w-4 h-4 mr-2" />
+              <TabsContent value="recent" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      최근 워크플로우 실행
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {runsLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">데이터를 불러오는 중...</p>
+                      </div>
+                    ) : workflowRuns.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          실행 기록이 없습니다
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          아직 워크플로우가 실행되지 않았습니다.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {workflowRuns.slice(0, 10).map((run) => (
+                          <Card
+                            key={run.id}
+                            className="hover:shadow-md transition-shadow"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  {getStatusIcon(run.status, run.conclusion)}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 truncate">
+                                      {run.name}
+                                    </h4>
+                                    <p className="text-sm text-gray-600">
+                                      #{run.run_number} • {getTimeAgo(run.created_at)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleShowDetails(run)}
+                                  >
+                                    <Info className="w-4 h-4 mr-2" />
+                                    상세보기
+                                  </Button>
+                                  {run.status === 'in_progress' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCancelRun(run)}
+                                      disabled={cancelWorkflowRun.isPending}
+                                    >
+                                      {cancelWorkflowRun.isPending ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      ) : (
+                                        <X className="w-4 h-4 mr-2" />
+                                      )}
+                                      취소
+                                    </Button>
                                   )}
-                                  취소
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="workflows" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <GitBranch className="w-5 h-5" />
-                  워크플로우별 상태
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {workflowsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">워크플로우를 불러오는 중...</p>
-                  </div>
-                ) : workflows.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      워크플로우가 없습니다
-                    </h3>
-                    <p className="text-gray-600 mb-4">
-                      이 레포지토리에 워크플로우가 없습니다.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {workflows.map((workflow) => {
-                      const workflowRuns = getWorkflowRuns(workflow.id);
-                      const recentRun = workflowRuns[0];
-
-                      return (
-                        <Card
-                          key={workflow.id}
-                          className="hover:shadow-md transition-shadow"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(workflow.state)}
-                                <h4 className="font-semibold text-gray-900">
-                                  {workflow.name}
-                                </h4>
+                                </div>
                               </div>
-                              {getStatusBadge(workflow.state)}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-3">{workflow.path}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                            {recentRun && (
-                              <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
+              <TabsContent value="workflows" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <GitBranch className="w-5 h-5" />
+                      워크플로우별 상태
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {workflowsLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">워크플로우를 불러오는 중...</p>
+                      </div>
+                    ) : workflows.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          워크플로우가 없습니다
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          이 레포지토리에 워크플로우가 없습니다.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {workflows.map((workflow) => {
+                          const workflowRuns = getWorkflowRuns(workflow.id);
+                          const recentRun = workflowRuns[0];
+
+                          return (
+                            <Card
+                              key={workflow.id}
+                              className="hover:shadow-md transition-shadow"
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(workflow.state)}
+                                    <h4 className="font-semibold text-gray-900">
+                                      {workflow.name}
+                                    </h4>
+                                  </div>
+                                  {getStatusBadge(workflow.state)}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {workflow.path}
+                                </p>
+
+                                {recentRun && (
+                                  <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-600">최근 실행:</span>
+                                      <span className="text-gray-700">
+                                        #{recentRun.run_number} •{' '}
+                                        {getTimeAgo(recentRun.created_at)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-gray-600">상태:</span>
+                                      {getStatusBadge(
+                                        recentRun.status,
+                                        recentRun.conclusion,
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div className="flex items-center justify-between">
-                                  <span className="text-gray-600">최근 실행:</span>
-                                  <span className="text-gray-700">
-                                    #{recentRun.run_number} •{' '}
-                                    {getTimeAgo(recentRun.created_at)}
+                                  <span className="text-xs text-gray-500">
+                                    마지막 업데이트:{' '}
+                                    {new Date(workflow.updatedAt).toLocaleDateString()}
                                   </span>
+                                  <Button size="sm" variant="outline">
+                                    <Play className="w-4 h-4 mr-2" />
+                                    실행
+                                  </Button>
                                 </div>
-                                <div className="flex items-center justify-between mt-1">
-                                  <span className="text-gray-600">상태:</span>
-                                  {getStatusBadge(recentRun.status, recentRun.conclusion)}
-                                </div>
-                              </div>
-                            )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
 
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500">
-                                마지막 업데이트:{' '}
-                                {new Date(workflow.updatedAt).toLocaleDateString()}
-                              </span>
-                              <Button size="sm" variant="outline">
-                                <Play className="w-4 h-4 mr-2" />
-                                실행
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+          <div className="hidden lg:block sticky top-4 self-start">
+            {selectedRun ? (
+              <RunDetail />
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="p-10 text-center text-gray-500">
+                  <div className="text-lg font-medium mb-2">실행 상세</div>
+                  <div className="text-sm">
+                    좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* 모바일/태블릿 공통: 우측 시트로 통일 */}
+        <div className="block lg:hidden">
+          <Sheet open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
+            <SheetContent side="right" className="w-[95vw] sm:w-[88vw] sm:max-w-none p-0">
+              {/* 접근성: 시트는 Dialog 기반이므로 Title 필요 (시각적 숨김) */}
+              <SheetTitle className="sr-only">실행 상세</SheetTitle>
+              <div className="px-6 pt-6 pb-0 border-b">
+                <div className="text-sm text-slate-500">실행 상세</div>
+                <div className="text-lg font-semibold text-slate-900">
+                  {selectedRun ? (
+                    <>
+                      {selectedRun.name}{' '}
+                      <span className="text-slate-400">#{selectedRun.run_number}</span>
+                    </>
+                  ) : (
+                    '실행 상세'
+                  )}
+                </div>
+              </div>
+              <div className="p-4 max-h-[85vh] overflow-y-auto">
+                {selectedRun ? <RunDetail compact /> : null}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </div>
   );

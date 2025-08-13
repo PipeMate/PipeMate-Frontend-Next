@@ -29,8 +29,9 @@ import {
 import { ROUTES } from '@/config/appConstants';
 
 export default function PresetsPage() {
-  const { setHeaderExtra } = useLayout();
+  const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner: _owner, repo: _repo, isConfigured: _isConfigured } = useRepository();
+  const PresetsIcon = ROUTES.PRESETS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
 
@@ -42,19 +43,47 @@ export default function PresetsPage() {
   } = useBlocks();
   const blocks = blocksData?.data || [];
 
-  // 헤더 설정
+  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Settings size={20} />
-          {ROUTES.PRESETS.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">GitHub Actions 워크플로우 프리셋 관리</p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex items-center justify-center rounded-md bg-violet-100 text-violet-700 p-2">
+          <PresetsIcon size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+            {ROUTES.PRESETS.label}
+          </div>
+          <div className="text-xs md:text-sm text-slate-500 truncate">
+            GitHub Actions 워크플로우 프리셋 관리
+          </div>
+        </div>
       </div>,
     );
-    return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+    setHeaderRight(
+      <div className="flex items-center gap-2.5">
+        <Badge variant="outline" className="text-xs py-1 px-2">
+          <Settings className="w-4 h-4 mr-2" /> {blocks.length} 프리셋
+        </Badge>
+        <Button
+          onClick={() => refetchBlocks()}
+          disabled={blocksLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
+          새로고침
+        </Button>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />새 프리셋
+        </Button>
+      </div>,
+    );
+    return () => {
+      setHeaderExtra(null);
+      setHeaderRight(null);
+    };
+  }, [setHeaderExtra, setHeaderRight, blocks.length, blocksLoading, refetchBlocks]);
 
   // 프리셋 필터링
   const filteredBlocks = blocks.filter((block) => {
@@ -165,37 +194,7 @@ export default function PresetsPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">프리셋 관리</h2>
-              <p className="text-gray-600 mt-1">
-                자주 사용하는 GitHub Actions 워크플로우 템플릿을 관리하세요
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <Settings className="w-4 h-4 mr-1" />
-                {blocks.length} 프리셋
-              </Badge>
-              <Button
-                onClick={() => refetchBlocks()}
-                disabled={blocksLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`}
-                />
-                새로고침
-              </Button>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />새 프리셋
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤은 레이아웃 헤더로 통합됨 */}
 
         {/* 검색 및 필터 */}
         <Card>
@@ -288,7 +287,11 @@ export default function PresetsPage() {
 
                         <div className="flex items-center justify-between text-sm text-gray-500">
                           <span>생성일</span>
-                          <span>{new Date(block.createdAt).toLocaleDateString()}</span>
+                          <span>
+                            {block.createdAt
+                              ? new Date(block.createdAt).toLocaleDateString()
+                              : '-'}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

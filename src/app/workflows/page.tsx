@@ -27,8 +27,9 @@ import {
 import { ROUTES } from '@/config/appConstants';
 
 export default function WorkflowsPage() {
-  const { setHeaderExtra } = useLayout();
+  const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
+  const WorkflowsIcon = ROUTES.WORKFLOWS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [_selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
 
@@ -44,24 +45,68 @@ export default function WorkflowsPage() {
   );
   const dispatchWorkflow = useDispatchWorkflow();
 
-  const workflows = workflowsData?.data?.workflows || [];
-  const workflowRuns = workflowRunsData?.data?.workflow_runs || [];
+  const workflows = workflowsData?.workflows || [];
+  const runsResponse = workflowRunsData as unknown as
+    | { workflow_runs?: any[] }
+    | undefined;
+  const workflowRuns = Array.isArray(runsResponse?.workflow_runs)
+    ? (runsResponse!.workflow_runs as any[])
+    : [];
 
-  // 헤더 설정
+  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex flex-col gap-0 min-w-0">
-        <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-          <Workflow size={20} />
-          {ROUTES.WORKFLOWS.label}
-        </h1>
-        <p className="text-sm text-gray-500 m-0">
-          GitHub Actions 워크플로우 관리 및 실행
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
+          <WorkflowsIcon size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+            {ROUTES.WORKFLOWS.label}
+          </div>
+          <div className="text-xs md:text-sm text-slate-500 truncate">
+            {owner && repo ? (
+              <span className="text-slate-700">
+                {owner}/{repo}
+              </span>
+            ) : (
+              'GitHub Actions 워크플로우 관리 및 실행'
+            )}
+          </div>
+        </div>
       </div>,
     );
-    return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+    setHeaderRight(
+      <div className="flex items-center gap-2.5">
+        <Badge variant="outline" className="text-xs py-1 px-2">
+          <GitBranch className="w-4 h-4 mr-2" /> {workflows.length} 워크플로우
+        </Badge>
+        <Button
+          onClick={() => refetchWorkflows()}
+          disabled={workflowsLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`}
+          />
+          새로고침
+        </Button>
+      </div>,
+    );
+    return () => {
+      setHeaderExtra(null);
+      setHeaderRight(null);
+    };
+  }, [
+    setHeaderExtra,
+    setHeaderRight,
+    owner,
+    repo,
+    workflows.length,
+    workflowsLoading,
+    refetchWorkflows,
+  ]);
 
   // 워크플로우 필터링
   const filteredWorkflows = workflows.filter((workflow) => {
@@ -149,34 +194,7 @@ export default function WorkflowsPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {owner}/{repo}
-              </h2>
-              <p className="text-gray-600 mt-1">GitHub 레포지토리</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-sm">
-                <GitBranch className="w-4 h-4 mr-1" />
-                {workflows.length} 워크플로우
-              </Badge>
-              <Button
-                onClick={() => refetchWorkflows()}
-                disabled={workflowsLoading}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`}
-                />
-                새로고침
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀/컨트롤은 레이아웃 헤더로 통합됨 */}
 
         {/* 통계 카드 - 최상단으로 이동 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
