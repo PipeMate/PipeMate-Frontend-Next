@@ -887,27 +887,19 @@ export default function MonitoringPage() {
           </Sheet>
         </div>
 
-        {/* 모바일 상세: 모달 */}
-        <Dialog
-          open={isDetailOpen}
-          onOpenChange={(open) => {
-            // 모바일에서만 모달 사용
-            if (!isMobile) {
-              setIsDetailOpen(false);
-              return;
-            }
-            setIsDetailOpen(open);
-          }}
-        >
-          <DialogContent className="sm:max-w-3xl w-[95vw] p-0" showCloseButton>
-            <DialogHeader className="px-6 pt-6">
-              <DialogTitle>실행 상세</DialogTitle>
-            </DialogHeader>
-            <div className="p-6">
-              <RunDetail />
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* 모바일 상세: 모달 (모바일에서만 마운트) */}
+        {isMobile && (
+          <Dialog open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
+            <DialogContent className="sm:max-w-3xl w-[95vw] p-0" showCloseButton>
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle>실행 상세</DialogTitle>
+              </DialogHeader>
+              <div className="p-6">
+                <RunDetail />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
