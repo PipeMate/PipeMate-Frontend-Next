@@ -68,7 +68,7 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     const strongLine =
       lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
-      ? 'text-inherit'
+      ? 'text-current'
       : /error|fail/.test(t)
       ? 'text-red-400'
       : /warn/.test(t)
@@ -90,7 +90,7 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     const strongLine =
       lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
-      ? 'text-inherit'
+      ? 'text-current'
       : /error|fail/.test(t)
       ? 'text-red-400'
       : /warn/.test(t)
@@ -108,7 +108,7 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     const strongLine =
       lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
-      ? 'text-inherit'
+      ? 'text-current'
       : seg.level === 'error'
       ? 'text-red-300'
       : seg.level === 'warning'
@@ -150,7 +150,9 @@ export default function LogViewer({ raw }: { raw: string }) {
       p.toLowerCase() === query.toLowerCase() ? (
         <mark
           key={i}
-          className={`${strongLine ? 'text-inherit' : 'text-yellow-900'} bg-yellow-200 rounded px-0.5`}
+          className={`${
+            strongLine ? 'text-current' : 'text-yellow-900'
+          } bg-yellow-200 rounded px-0.5`}
         >
           {p}
         </mark>
@@ -206,12 +208,22 @@ export default function LogViewer({ raw }: { raw: string }) {
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
                       s.type === 'text' ? (
-                        <span key={idx}>{highlight(s.text, it.kind === 'error' || it.kind === 'warn' || it.kind === 'success')}</span>
+                        <span key={idx}>
+                          {highlight(
+                            s.text,
+                            it.kind === 'error' ||
+                              it.kind === 'warn' ||
+                              it.kind === 'success',
+                          )}
+                        </span>
                       ) : (
                         renderSegment(s, idx, it.kind)
                       ),
                     )
-                  : highlight(it.line, it.kind === 'error' || it.kind === 'warn' || it.kind === 'success')}
+                  : highlight(
+                      it.line,
+                      it.kind === 'error' || it.kind === 'warn' || it.kind === 'success',
+                    )}
               </span>
             </div>
           </div>
