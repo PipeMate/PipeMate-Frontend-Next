@@ -81,26 +81,21 @@ function renderSegment(seg: Segment, idx: number) {
       </span>
     );
   }
-  if (seg.type === 'bracket')
+  if (seg.type === 'bracket') {
+    const t = seg.text.toLowerCase();
+    const color = /error|fail/.test(t)
+      ? 'text-red-300'
+      : /warn/.test(t)
+      ? 'text-amber-300'
+      : /success|completed|ok/.test(t)
+      ? 'text-green-300'
+      : 'text-slate-100';
     return (
-      <>
-        {(() => {
-          const t = seg.text.toLowerCase();
-          const color = /error|fail/.test(t)
-            ? 'text-red-300'
-            : /warn/.test(t)
-            ? 'text-amber-300'
-            : /success|completed|ok/.test(t)
-            ? 'text-green-300'
-            : 'text-slate-100';
-          return (
-            <span key={idx} className={`px-1 rounded bg-white/5 ${color}`}>
-              {seg.text}
-            </span>
-          );
-        })()}
-      </>
+      <span key={idx} className={`px-1 rounded bg-white/5 ${color}`}>
+        {seg.text}
+      </span>
     );
+  }
   if (seg.type === 'gha') {
     const color =
       seg.level === 'error'
