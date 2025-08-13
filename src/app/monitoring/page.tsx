@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
@@ -246,7 +246,11 @@ export default function MonitoringPage() {
               <div className="flex items-center gap-2">
                 {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
                 {!isMobile && (
-                  <Button size="sm" variant="outline" onClick={() => setSelectedRun(null)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedRun(null)}
+                  >
                     닫기
                   </Button>
                 )}
@@ -870,12 +874,15 @@ export default function MonitoringPage() {
         <div className="hidden md:block lg:hidden">
           <Sheet open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
             <SheetContent side="right" className="w-[88vw] sm:max-w-none p-0">
+              {/* 접근성: 시트는 Dialog 기반이므로 Title 필요 (시각적 숨김) */}
+              <SheetTitle className="sr-only">실행 상세</SheetTitle>
               <div className="px-6 pt-6 pb-0 border-b">
                 <div className="text-sm text-slate-500">실행 상세</div>
                 <div className="text-lg font-semibold text-slate-900">
                   {selectedRun ? (
                     <>
-                      {selectedRun.name} <span className="text-slate-400">#{selectedRun.run_number}</span>
+                      {selectedRun.name}{' '}
+                      <span className="text-slate-400">#{selectedRun.run_number}</span>
                     </>
                   ) : (
                     '실행 상세'
