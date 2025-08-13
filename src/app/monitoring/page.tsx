@@ -851,6 +851,22 @@ export default function MonitoringPage() {
           </div>
         </div>
 
+        {/* 태블릿 전용(768~1023px): 상세 패널을 리스트 아래에 인라인 렌더링 */}
+        <div className="hidden md:block lg:hidden">
+          {selectedRun ? (
+            <RunDetail />
+          ) : (
+            <Card className="border-dashed mt-4">
+              <CardContent className="p-10 text-center text-gray-500">
+                <div className="text-lg font-medium mb-2">실행 상세</div>
+                <div className="text-sm">
+                  좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {/* 모바일 상세: 모달 */}
         <Dialog
           open={isDetailOpen}
