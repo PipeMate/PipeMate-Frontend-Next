@@ -58,8 +58,7 @@ export default function MonitoringPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
-  const [focusedStepName, setFocusedStepName] = useState<string | null>(null);
+  // 스텝별 선택/필터는 사용하지 않음(전체 로그만 표시)
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
 
   // 훅 사용
@@ -132,8 +131,6 @@ export default function MonitoringPage() {
     setSelectedRunId(run.id);
     setSelectedRunSnapshot(run);
     setActiveTab('execution');
-    setFocusedJobId(null);
-    setFocusedStepName(null);
     if (isMobile || isTablet) setIsDetailOpen(true);
     // 데스크톱에서 데이터 리페치로 인한 잠깐의 selectedRun undefined 방지
     // 선택되었을 때는 모달/우측 패널이 유지되도록 상세 오픈 상태는 건드리지 않음
@@ -247,7 +244,7 @@ export default function MonitoringPage() {
     return (
       <Card className="border-slate-200 shadow-sm">
         {!compact && (
-          <CardHeader className="pb-4 border-b">
+          <CardHeader className="pb-3 border-b">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm text-slate-500">실행 상세</div>
@@ -271,10 +268,10 @@ export default function MonitoringPage() {
             </div>
           </CardHeader>
         )}
-        <CardContent>
+        <CardContent className="pt-5">
           {/* 개요 요약 */}
           {Array.isArray(runJobsData) && runJobsData.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[12px]">
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px]">
               {(() => {
                 const jobs = runJobsData as any[];
                 const totalJobs = jobs.length;
@@ -289,29 +286,29 @@ export default function MonitoringPage() {
                 const skippedSteps = stepsAll.filter(
                   (s: any) => s.conclusion === 'skipped',
                 ).length;
-                const statusBadge = getStatusBadge(selectedRun.status, selectedRun.conclusion);
-                const items = [
-                  { k: '잡 수', v: totalJobs, cls: 'bg-slate-50' },
-                  { k: '스텝 수', v: totalSteps, cls: 'bg-slate-50' },
-                  { k: '성공', v: successSteps, cls: 'bg-green-50' },
-                  {
-                    k: '실패/스킵',
-                    v: `${failedSteps}/${skippedSteps}`,
-                    cls: 'bg-red-50',
-                  },
-                  { k: '결론', v: statusBadge, cls: 'bg-slate-50' },
-                ];
-                return items.map((it) => (
-                  <div
-                    key={it.k}
-                    className={`px-2.5 py-1.5 rounded border border-slate-200 ${it.cls} flex items-center justify-between`}
-                  >
-                    <span className="text-slate-500">{it.k}</span>
-                    <span className="text-slate-900 font-semibold flex items-center gap-1">
-                      {typeof it.v === 'string' ? it.v : it.v}
-                    </span>
-                  </div>
-                ));
+                const statusBadge = getStatusBadge(
+                  selectedRun.status,
+                  selectedRun.conclusion,
+                );
+                return (
+                  <>
+                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                      Jobs: <span className="font-semibold text-slate-900">{totalJobs}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                      Steps: <span className="font-semibold text-slate-900">{totalSteps}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-green-200 bg-green-50 text-green-700">
+                      Success: <span className="font-semibold">{successSteps}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-red-700">
+                      Fail/Skip: <span className="font-semibold">{failedSteps}/{skippedSteps}</span>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center gap-1">
+                      {statusBadge}
+                    </div>
+                  </>
+                );
               })()}
             </div>
           )}
@@ -335,8 +332,8 @@ export default function MonitoringPage() {
             onValueChange={(v: string) => setActiveTab(v as 'execution' | 'details')}
           >
             <TabsList className="grid w-full grid-cols-2 bg-slate-50">
-              <TabsTrigger value="execution">실행 로그</TabsTrigger>
-              <TabsTrigger value="details">상세 로그</TabsTrigger>
+              <TabsTrigger value="execution">Steps</TabsTrigger>
+              <TabsTrigger value="details">Logs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="execution" className="space-y-3">
@@ -355,25 +352,49 @@ export default function MonitoringPage() {
                         </div>
                       </div>
                       <div className="mt-2 grid gap-1.5">
-                        {(job.steps || []).map((st: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded border border-transparent hover:bg-slate-50"
-                          >
-                            <div className="text-slate-700 flex items-center gap-3 min-w-0">
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
-                                {idx + 1}
-                              </span>
-                              <span className="truncate">{st.name}</span>
-                              <span className="text-xs text-slate-400 flex-shrink-0">
-                                {formatDuration(st.startedAt, st.completedAt)}
-                              </span>
+                        {(job.steps || []).map((st: any, idx: number) => {
+                          const tone = getStepTone(st.status, st.conclusion);
+                          const iconOnly =
+                            st.conclusion === 'success' ? (
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            ) : st.conclusion === 'failure' ||
+                              st.conclusion === 'failed' ? (
+                              <XCircle className="w-4 h-4 text-red-600" />
+                            ) : st.conclusion === 'skipped' ? (
+                              <AlertTriangle className="w-4 h-4 text-slate-500" />
+                            ) : st.status === 'in_progress' ? (
+                              <Activity className="w-4 h-4 text-blue-600" />
+                            ) : st.status === 'queued' || st.status === 'waiting' ? (
+                              <Clock className="w-4 h-4 text-amber-600" />
+                            ) : (
+                              <AlertTriangle className="w-4 h-4 text-slate-500" />
+                            );
+                          return (
+                            <div
+                              key={idx}
+                              className={`group flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded border border-transparent hover:bg-slate-50 ${tone.border}`}
+                            >
+                              <div className="text-slate-700 flex items-center gap-3 min-w-0">
+                                <span
+                                  className={`inline-block w-2.5 h-2.5 rounded-full ${tone.dot}`}
+                                />
+                                <span className="text-[10px] text-slate-400 w-6 text-center">
+                                  #{idx + 1}
+                                </span>
+                                <span className="truncate">{st.name}</span>
+                                <span className="text-xs text-slate-400 flex-shrink-0">
+                                  {formatDuration(st.startedAt, st.completedAt)}
+                                </span>
+                              </div>
+                              <div
+                                className="flex items-center gap-2 text-slate-500"
+                                title={st.conclusion || st.status}
+                              >
+                                {iconOnly}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-slate-500">
-                              {getStepBadge?.(st.status, st.conclusion) || null}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -389,11 +410,6 @@ export default function MonitoringPage() {
                   const rawLog: string =
                     typeof runLogsData === 'string' ? runLogsData : '';
                   const snippet = rawLog || '로그가 없습니다.';
-                  const jobName = (() => {
-                    const jobs = Array.isArray(runJobsData) ? (runJobsData as any[]) : [];
-                    const j = jobs.find((j) => j.id === focusedJobId);
-                    return j?.name as string | undefined;
-                  })();
                   return (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -541,38 +557,50 @@ export default function MonitoringPage() {
     const base = 'border px-2 py-0.5 rounded text-xs font-medium';
     if (status === 'completed') {
       return conclusion === 'success' ? (
-        <span className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}
+        >
           <CheckCircle className="w-3.5 h-3.5" /> 성공
         </span>
       ) : (
-        <span className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}
+        >
           <XCircle className="w-3.5 h-3.5" /> 실패
         </span>
       );
     }
     if (status === 'in_progress') {
       return (
-        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}
+        >
           <Activity className="w-3.5 h-3.5" /> 실행 중
         </span>
       );
     }
     if (status === 'waiting') {
       return (
-        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}
+        >
           <Clock className="w-3.5 h-3.5" /> 대기 중
         </span>
       );
     }
     if (status === 'cancelled') {
       return (
-        <span className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}
+        >
           <XCircle className="w-3.5 h-3.5" /> 취소
         </span>
       );
     }
     return (
-      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+      <span
+        className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
+      >
         <AlertTriangle className="w-3.5 h-3.5" /> 기타
       </span>
     );
@@ -582,46 +610,75 @@ export default function MonitoringPage() {
     if (conclusion) {
       if (conclusion === 'success')
         return (
-          <span className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}>
+          <span
+            className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}
+          >
             <CheckCircle className="w-3.5 h-3.5" /> 성공
           </span>
         );
       if (conclusion === 'failure' || conclusion === 'failed')
         return (
-          <span className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}>
+          <span
+            className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}
+          >
             <XCircle className="w-3.5 h-3.5" /> 실패
           </span>
         );
       if (conclusion === 'cancelled')
         return (
-          <span className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}>
+          <span
+            className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}
+          >
             <XCircle className="w-3.5 h-3.5" /> 취소
           </span>
         );
       if (conclusion === 'skipped')
         return (
-          <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+          <span
+            className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
+          >
             <AlertTriangle className="w-3.5 h-3.5" /> 건너뜀
           </span>
         );
     }
     if (status === 'in_progress')
       return (
-        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}
+        >
           <Activity className="w-3.5 h-3.5" /> 실행 중
         </span>
       );
     if (status === 'queued' || status === 'waiting')
       return (
-        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}>
+        <span
+          className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}
+        >
           <Clock className="w-3.5 h-3.5" /> 대기 중
         </span>
       );
     return (
-      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+      <span
+        className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
+      >
         <AlertTriangle className="w-3.5 h-3.5" /> {status || '기타'}
       </span>
     );
+  };
+  const getStepTone = (status?: string, conclusion?: string) => {
+    if (conclusion === 'success')
+      return { dot: 'bg-green-500', border: 'border-l-2 border-green-400' };
+    if (conclusion === 'failure' || conclusion === 'failed')
+      return { dot: 'bg-red-500', border: 'border-l-2 border-red-400' };
+    if (conclusion === 'cancelled')
+      return { dot: 'bg-gray-400', border: 'border-l-2 border-gray-300' };
+    if (conclusion === 'skipped')
+      return { dot: 'bg-slate-400', border: 'border-l-2 border-slate-300' };
+    if (status === 'in_progress')
+      return { dot: 'bg-blue-500', border: 'border-l-2 border-blue-400' };
+    if (status === 'queued' || status === 'waiting')
+      return { dot: 'bg-amber-500', border: 'border-l-2 border-amber-400' };
+    return { dot: 'bg-slate-300', border: 'border-l-2 border-slate-200' };
   };
 
   const _getStatusText = (status: string, conclusion?: string) => {
