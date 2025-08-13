@@ -114,10 +114,7 @@ function renderSegment(seg: Segment, idx: number) {
 
 export default function LogViewer({ raw }: { raw: string }) {
   const text = raw || '로그가 없습니다.';
-  const [filter, setFilter] = useState<'all' | 'error' | 'warn' | 'meta'>('all');
   const [query, setQuery] = useState<string>('');
-  // 라인 번호는 기본적으로 표시 (토글 제거)
-  const [selectedMetas, setSelectedMetas] = useState<string[]>([]);
 
   const items = useMemo(() => {
     const arr = (text.split(/\r?\n/) as string[]).map((line, idx) => {
@@ -129,18 +126,8 @@ export default function LogViewer({ raw }: { raw: string }) {
   }, [text]);
 
   const visible = useMemo(() => {
-    return items.filter((it) => {
-      if (filter !== 'all' && it.kind !== filter) return false;
-      if (query && !it.line.toLowerCase().includes(query.toLowerCase())) return false;
-      if (selectedMetas.length > 0) {
-        const hasMeta = it.segs.some(
-          (s) => s.type === 'meta' && selectedMetas.includes(s.text),
-        );
-        if (!hasMeta) return false;
-      }
-      return true;
-    });
-  }, [items, filter, query]);
+    return items.filter((it) => (query ? it.line.toLowerCase().includes(query.toLowerCase()) : true));
+  }, [items, query]);
 
   const highlight = (content: string) => {
     if (!query) return content;
@@ -163,26 +150,6 @@ export default function LogViewer({ raw }: { raw: string }) {
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="font-medium text-slate-900">Logs</div>
         <div className="flex items-center gap-1.5">
-          <div className="hidden sm:flex items-center rounded border bg-white overflow-hidden">
-            {(
-              [
-                { k: 'all', t: '전체' },
-                { k: 'error', t: '에러' },
-                { k: 'warn', t: '워닝' },
-                { k: 'meta', t: '메타' },
-              ] as const
-            ).map((f) => (
-              <button
-                key={f.k}
-                className={`px-2.5 py-1 text-[12px] ${
-                  filter === f.k ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
-                }`}
-                onClick={() => setFilter(f.k as any)}
-              >
-                {f.t}
-              </button>
-            ))}
-          </div>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -213,47 +180,6 @@ export default function LogViewer({ raw }: { raw: string }) {
           </Button>
         </div>
       </div>
-      {(() => {
-        const metaTokens = Array.from(
-          new Set(
-            items.flatMap((it) => it.segs.filter((s) => s.type === 'meta').map((s) => s.text)),
-          ),
-        );
-        if (metaTokens.length === 0) return null;
-        return (
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            {metaTokens.map((tok) => {
-              const active = selectedMetas.includes(tok);
-              return (
-                <button
-                  key={tok}
-                  onClick={() =>
-                    setSelectedMetas((prev) =>
-                      active ? prev.filter((t) => t !== tok) : [...prev, tok],
-                    )
-                  }
-                  className={`px-2 py-0.5 rounded text-[11px] border ${
-                    active
-                      ? 'bg-slate-900 text-slate-100 border-slate-800'
-                      : 'bg-slate-100 text-slate-700 border-slate-200'
-                  }`}
-                  title={tok}
-                >
-                  {tok}
-                </button>
-              );
-            })}
-            {selectedMetas.length > 0 && (
-              <button
-                onClick={() => setSelectedMetas([])}
-                className="ml-1 px-2 py-0.5 rounded text-[11px] border bg-white text-slate-600 hover:bg-slate-50"
-              >
-                초기화
-              </button>
-            )}
-          </div>
-        );
-      })()}
       <div className="max-h-[520px] overflow-auto rounded border border-slate-800 bg-slate-950 p-2">
         {visible.map((it, i) => (
           <div key={i} className={getLineClasses(it.kind)}>
