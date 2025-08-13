@@ -63,17 +63,43 @@ function getLineClasses(kind: string) {
 }
 
 function renderSegment(seg: Segment, idx: number) {
-  if (seg.type === 'meta')
+  if (seg.type === 'meta') {
+    const t = seg.text.toLowerCase();
+    const color = /error|fail/.test(t)
+      ? 'text-red-300'
+      : /warn/.test(t)
+      ? 'text-amber-300'
+      : /success|completed|ok/.test(t)
+      ? 'text-green-300'
+      : 'text-slate-300';
+    const weight = /error|warn|success|completed|ok|fail/.test(t)
+      ? 'font-semibold'
+      : 'font-medium';
     return (
-      <span key={idx} className="text-slate-300 font-medium">
+      <span key={idx} className={`${color} ${weight}`}>
         {seg.text}
       </span>
     );
+  }
   if (seg.type === 'bracket')
     return (
-      <span key={idx} className="px-1 rounded bg-white/10 text-slate-100">
-        {seg.text}
-      </span>
+      <>
+        {(() => {
+          const t = seg.text.toLowerCase();
+          const color = /error|fail/.test(t)
+            ? 'text-red-300'
+            : /warn/.test(t)
+            ? 'text-amber-300'
+            : /success|completed|ok/.test(t)
+            ? 'text-green-300'
+            : 'text-slate-100';
+          return (
+            <span key={idx} className={`px-1 rounded bg-white/5 ${color}`}>
+              {seg.text}
+            </span>
+          );
+        })()}
+      </>
     );
   if (seg.type === 'gha') {
     const color =
@@ -116,9 +142,9 @@ export default function LogViewer({ raw }: { raw: string }) {
 
   const highlight = (content: string) => {
     if (!query) return content;
-    const parts = content.split(
-      new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'gi'),
-    );
+    // 사용자가 입력한 쿼리를 안전하게 이스케이프
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = content.split(new RegExp(`(${escaped})`, 'gi'));
     return parts.map((p, i) =>
       p.toLowerCase() === query.toLowerCase() ? (
         <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5">
