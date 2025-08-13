@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Search, Clipboard, ExternalLink } from 'lucide-react';
 
 type Segment = {
   type: 'text' | 'meta' | 'bracket' | 'gha';
@@ -89,7 +90,9 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
       : /success|completed|ok/.test(t)
       ? 'text-green-400'
       : 'text-slate-300';
-    const weight = /error|warn|success|completed|ok|fail/.test(t) ? 'font-semibold' : 'font-medium';
+    const weight = /error|warn|success|completed|ok|fail/.test(t)
+      ? 'font-semibold'
+      : 'font-medium';
     const chipBg = strongLine
       ? 'bg-slate-800/40 border-slate-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
       : 'bg-slate-800/40 border-slate-400/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]';
@@ -181,23 +184,29 @@ export default function LogViewer({ raw }: { raw: string }) {
     <div className="bg-white rounded border border-slate-200 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="font-medium text-slate-900">Logs</div>
-        <div className="flex items-center gap-1.5">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="검색"
-            className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="검색"
+              className="h-8 pl-7 pr-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+            />
+          </div>
           <Button
             size="sm"
             variant="outline"
+            className="inline-flex items-center gap-1.5 px-2.5"
             onClick={() => navigator.clipboard.writeText(text)}
           >
+            <Clipboard className="w-3.5 h-3.5" />
             복사
           </Button>
           <Button
             size="sm"
             variant="outline"
+            className="inline-flex items-center gap-1.5 px-2.5"
             onClick={() => {
               const w = window.open('', '_blank');
               if (w) {
@@ -208,6 +217,7 @@ export default function LogViewer({ raw }: { raw: string }) {
               }
             }}
           >
+            <ExternalLink className="w-3.5 h-3.5" />
             새 창
           </Button>
         </div>
