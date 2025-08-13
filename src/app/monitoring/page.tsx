@@ -245,27 +245,29 @@ export default function MonitoringPage() {
       <Card className="border-slate-200 shadow-sm">
         {!compact && (
           <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-sm text-slate-500">실행 상세</div>
-                <CardTitle className="text-lg mt-1">
-                  {selectedRun.name}{' '}
-                  <span className="text-slate-400">#{selectedRun.run_number}</span>
-                </CardTitle>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm text-slate-500">실행 상세</div>
+                  <CardTitle className="text-lg mt-1 flex items-center gap-2">
+                    {getStatusIcon(selectedRun.status, selectedRun.conclusion)}
+                    <span className="truncate">
+                      {selectedRun.name}{' '}
+                      <span className="text-slate-400">#{selectedRun.run_number}</span>
+                    </span>
+                  </CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isMobile && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedRun(null)}
+                    >
+                      닫기
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
-                {!isMobile && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedRun(null)}
-                  >
-                    닫기
-                  </Button>
-                )}
-              </div>
-            </div>
           </CardHeader>
         )}
         <CardContent className="pt-5">
@@ -293,16 +295,21 @@ export default function MonitoringPage() {
                 return (
                   <>
                     <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
-                      Jobs: <span className="font-semibold text-slate-900">{totalJobs}</span>
+                      Jobs:{' '}
+                      <span className="font-semibold text-slate-900">{totalJobs}</span>
                     </div>
                     <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
-                      Steps: <span className="font-semibold text-slate-900">{totalSteps}</span>
+                      Steps:{' '}
+                      <span className="font-semibold text-slate-900">{totalSteps}</span>
                     </div>
                     <div className="px-2.5 py-1 rounded-full border border-green-200 bg-green-50 text-green-700">
                       Success: <span className="font-semibold">{successSteps}</span>
                     </div>
                     <div className="px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-red-700">
-                      Fail/Skip: <span className="font-semibold">{failedSteps}/{skippedSteps}</span>
+                      Fail/Skip:{' '}
+                      <span className="font-semibold">
+                        {failedSteps}/{skippedSteps}
+                      </span>
                     </div>
                     <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center gap-1">
                       {statusBadge}
@@ -860,7 +867,6 @@ export default function MonitoringPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {getStatusBadge(run.status, run.conclusion)}
                                   <Button
                                     size="sm"
                                     variant="outline"
