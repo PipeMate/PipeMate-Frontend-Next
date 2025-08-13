@@ -49,12 +49,15 @@ export default function MonitoringPage() {
   const { owner, repo, isConfigured } = useRepository();
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
-  const [selectedRunSnapshot, setSelectedRunSnapshot] = useState<WorkflowRun | null>(null);
+  const [selectedRunSnapshot, setSelectedRunSnapshot] = useState<WorkflowRun | null>(
+    null,
+  );
   const [activeTab, setActiveTab] = useState<'execution' | 'details'>('execution');
   const [isMobile, setIsMobile] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
   const [focusedStepName, setFocusedStepName] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
 
   // 훅 사용
   const {
@@ -62,15 +65,28 @@ export default function MonitoringPage() {
     isLoading: workflowsLoading,
     refetch: refetchWorkflows,
   } = useWorkflows(owner || '', repo || '');
+  const autoRefreshPausedDueToDetails = !!selectedRun && activeTab === 'details';
   const {
     data: workflowRunsData,
     isLoading: runsLoading,
     refetch: refetchRuns,
-  } = useWorkflowRuns(owner || '', repo || '');
+  } = useWorkflowRuns(owner || '', repo || '', {
+    refetchInterval: autoRefresh && !autoRefreshPausedDueToDetails ? 10 * 1000 : false,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
+  });
   const cancelWorkflowRun = useCancelWorkflowRun();
 
-  const workflows = workflowsData?.data?.workflows || [];
-  const workflowRuns: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
+  const workflowsResponse = workflowsData as unknown as { workflows?: any[] } | undefined;
+  const runsResponse = workflowRunsData as unknown as
+    | { workflow_runs?: WorkflowRun[] }
+    | undefined;
+  const workflows = Array.isArray(workflowsResponse?.workflows)
+    ? (workflowsResponse!.workflows as any[])
+    : [];
+  const workflowRuns: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
+    ? (runsResponse!.workflow_runs as any[])
+    : [];
 
   // 상세: jobs / logs 로드 (선택 시)
   const runId = selectedRun?.id ? String(selectedRun.id) : '';
@@ -112,7 +128,9 @@ export default function MonitoringPage() {
   // 리페치 시에도 선택된 실행을 유지
   useEffect(() => {
     if (!selectedRunId) return;
-    const list: WorkflowRun[] = workflowRunsData?.data?.workflow_runs || [];
+    const list: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
+      ? (runsResponse!.workflow_runs as any[])
+      : [];
     const found = list.find((r) => r.id === selectedRunId);
     if (found) {
       setSelectedRun(found);
@@ -236,7 +254,11 @@ export default function MonitoringPage() {
             ))}
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs
+            defaultValue={activeTab}
+            value={activeTab}
+            onValueChange={(v: string) => setActiveTab(v as 'execution' | 'details')}
+          >
             <TabsList className="grid w-full grid-cols-2 bg-slate-50">
               <TabsTrigger value="execution">실행 로그</TabsTrigger>
               <TabsTrigger value="details">상세 로그</TabsTrigger>
@@ -249,7 +271,7 @@ export default function MonitoringPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {(runJobsData?.data || []).map((job: any) => (
+                  {(Array.isArray(runJobsData) ? runJobsData : []).map((job: any) => (
                     <div key={job.id} className="border rounded-lg p-3 bg-white">
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-slate-900">{job.name}</div>
@@ -295,7 +317,8 @@ export default function MonitoringPage() {
                 <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
               ) : (
                 (() => {
-                  const rawLog: string = runLogsData?.data || '';
+                  const rawLog: string =
+                    typeof runLogsData === 'string' ? runLogsData : '';
                   const snippet =
                     focusedStepName && rawLog
                       ? extractSnippetByKeyword(rawLog, focusedStepName)
@@ -534,7 +557,7 @@ export default function MonitoringPage() {
             <div className="flex items-center space-x-3">
               <Badge variant="outline" className="text-sm">
                 <Activity className="w-4 h-4 mr-1" />
-                실시간
+                {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
               </Badge>
               <Button
                 onClick={() => {
@@ -551,6 +574,13 @@ export default function MonitoringPage() {
                   }`}
                 />
                 새로고침
+              </Button>
+              <Button
+                onClick={() => setAutoRefresh((v) => !v)}
+                variant={autoRefresh ? 'default' : 'outline'}
+                size="sm"
+              >
+                {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
               </Button>
             </div>
           </div>
@@ -822,14 +852,17 @@ export default function MonitoringPage() {
         </div>
 
         {/* 모바일 상세: 모달 */}
-        <Dialog open={isDetailOpen} onOpenChange={(open) => {
-          // 모바일에서만 모달 사용
-          if (!isMobile) {
-            setIsDetailOpen(false);
-            return;
-          }
-          setIsDetailOpen(open);
-        }}>
+        <Dialog
+          open={isDetailOpen}
+          onOpenChange={(open) => {
+            // 모바일에서만 모달 사용
+            if (!isMobile) {
+              setIsDetailOpen(false);
+              return;
+            }
+            setIsDetailOpen(open);
+          }}
+        >
           <DialogContent className="sm:max-w-3xl w-[95vw] p-0" showCloseButton>
             <DialogHeader className="px-6 pt-6">
               <DialogTitle>실행 상세</DialogTitle>
@@ -839,134 +872,6 @@ export default function MonitoringPage() {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* 상세 패널 (하단, 2열 도입 후 제거 대상) */}
-        {false && selectedRun && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>
-                  실행 상세: {selectedRun.name} (#{selectedRun.run_number})
-                </span>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  상태: {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
-                  <Button size="sm" variant="ghost" onClick={() => setSelectedRun(null)}>
-                    닫기
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="overview">개요</TabsTrigger>
-                  <TabsTrigger value="jobs">Jobs/Steps</TabsTrigger>
-                  <TabsTrigger value="logs">원시 로그</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="space-y-2 text-sm text-gray-700">
-                  <div>run id: {selectedRun.id}</div>
-                  <div>workflow: {selectedRun.name}</div>
-                  <div>created: {new Date(selectedRun.created_at).toLocaleString()}</div>
-                  <div>updated: {new Date(selectedRun.updated_at).toLocaleString()}</div>
-                </TabsContent>
-
-                <TabsContent value="jobs" className="space-y-3">
-                  {jobsLoading ? (
-                    <div className="text-center py-6 text-gray-500">
-                      잡/스텝 불러오는 중...
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {(runJobsData?.data || []).map((job: any) => (
-                        <div key={job.id} className="border rounded p-3 bg-white">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-gray-900">{job.name}</div>
-                            {getStatusBadge(job.status, job.conclusion)}
-                          </div>
-                          <div className="mt-2 grid gap-2">
-                            {(job.steps || []).map((st: any, idx: number) => (
-                              <button
-                                key={idx}
-                                className={`flex items-center justify-between text-sm text-left w-full px-2 py-1 rounded hover:bg-gray-50 border ${
-                                  focusedJobId === job.id && focusedStepName === st.name
-                                    ? 'border-blue-300 bg-blue-50'
-                                    : 'border-transparent'
-                                }`}
-                                onClick={() => {
-                                  setFocusedJobId(job.id);
-                                  setFocusedStepName(st.name);
-                                  setActiveTab('logs');
-                                }}
-                              >
-                                <div className="text-gray-700">{st.name}</div>
-                                <div className="text-gray-500">
-                                  {st.status} {st.conclusion ? `• ${st.conclusion}` : ''}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="logs">
-                  {logsLoading ? (
-                    <div className="text-center py-6 text-gray-500">
-                      로그 불러오는 중...
-                    </div>
-                  ) : (
-                    (() => {
-                      const rawLog: string = runLogsData?.data || '';
-                      const snippet =
-                        focusedStepName && rawLog
-                          ? extractSnippetByKeyword(rawLog, focusedStepName)
-                          : rawLog || '로그가 없습니다.';
-                      return (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => copyText(snippet)}
-                            >
-                              복사
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                downloadText(`run-${selectedRun?.id}.log`, snippet)
-                              }
-                            >
-                              다운로드
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                openInNewWindow('Workflow Run Logs', snippet)
-                              }
-                            >
-                              새 창
-                            </Button>
-                          </div>
-                          <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
-                            <pre className="whitespace-pre-wrap break-words">
-                              {snippet}
-                            </pre>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
