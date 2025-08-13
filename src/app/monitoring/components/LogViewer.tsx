@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type Segment = {
@@ -47,18 +48,18 @@ function classifyLine(line: string, segments: Segment[]) {
 
 function getLineClasses(kind: string) {
   const base =
-    'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words text-slate-100';
+    'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words text-slate-200 border-l-2';
   switch (kind) {
     case 'error':
-      return `${base} text-red-400 font-semibold`;
+      return `${base} text-red-400 font-semibold border-red-500 bg-red-950/30`;
     case 'warn':
-      return `${base} text-amber-300 font-semibold`;
+      return `${base} text-amber-300 font-semibold border-amber-500 bg-amber-950/20`;
     case 'success':
-      return `${base} text-green-400 font-semibold`;
+      return `${base} text-green-400 font-semibold border-green-500 bg-green-950/20`;
     case 'meta':
-      return `${base} text-slate-300`;
+      return `${base} text-slate-300 border-slate-600 bg-slate-900/40`;
     default:
-      return `${base}`;
+      return `${base} border-slate-800`;
   }
 }
 
@@ -126,7 +127,9 @@ export default function LogViewer({ raw }: { raw: string }) {
   }, [text]);
 
   const visible = useMemo(() => {
-    return items.filter((it) => (query ? it.line.toLowerCase().includes(query.toLowerCase()) : true));
+    return items.filter((it) =>
+      query ? it.line.toLowerCase().includes(query.toLowerCase()) : true,
+    );
   }, [items, query]);
 
   const highlight = (content: string) => {
@@ -156,6 +159,7 @@ export default function LogViewer({ raw }: { raw: string }) {
             placeholder="검색"
             className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
           />
+          <span className="hidden md:inline text-[11px] text-slate-500">• 에러/워닝/메타 행은 색상+좌측 보더로 강조됩니다</span>
           <Button
             size="sm"
             variant="outline"
@@ -187,7 +191,16 @@ export default function LogViewer({ raw }: { raw: string }) {
               <span className="w-9 pr-1 text-right text-slate-400 select-none">
                 {it.lineNo}
               </span>
-              <span className="flex-1">
+              <span className="flex-1 inline-flex items-start gap-2">
+                {it.kind === 'error' ? (
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 mt-0.5" />
+                ) : it.kind === 'warn' ? (
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-300 mt-0.5" />
+                ) : it.kind === 'success' ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-green-400 mt-0.5" />
+                ) : (
+                  <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                )}
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
                       s.type === 'text' ? (
