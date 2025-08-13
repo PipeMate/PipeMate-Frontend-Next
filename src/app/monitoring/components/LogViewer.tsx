@@ -12,7 +12,7 @@ const TOKEN_REGEX = /(##\[[^\]]*\]|\[[^\]]*\]|::(error|warning|notice)::)/gi;
 
 // 스타일 상수/헬퍼(중앙 관리)
 const LINE_BASE_CLASS =
-  'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words border-l-2 transition-colors duration-150 hover:bg-slate-900/40';
+  'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words border-l-2 transition-colors duration-150 hover:bg-slate-900/60 hover:ring-1 hover:ring-slate-700';
 
 const LINE_STYLE_MAP: Record<string, { text: string; border: string }> = {
   error: { text: 'text-red-400 font-semibold', border: 'border-red-500' },
@@ -26,7 +26,8 @@ const isStrongLine = (kind?: string) =>
   kind === 'error' || kind === 'warn' || kind === 'success';
 
 // 타임스탬프 추출 유틸: 라인 앞의 날짜/시간 부분을 분리해 다른 색으로 표시
-const TS_REGEX = /^(\[?\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?\]?|\[?\d{2}:\d{2}:\d{2}\]?)/;
+const TS_REGEX =
+  /^(\[?\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?\]?|\[?\d{2}:\d{2}:\d{2}\]?)/;
 function extractTimestampPrefix(text: string): [string, string] {
   const m = text.match(TS_REGEX);
   if (!m) return ['', text];
@@ -88,14 +89,14 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
       : /success|completed|ok/.test(t)
       ? 'text-green-400'
       : 'text-slate-300';
-    const accent = strongLine ? 'decoration-slate-400/60' : 'decoration-slate-500/60';
-    const weight = /error|warn|success|completed|ok|fail/.test(t)
-      ? 'font-semibold'
-      : 'font-medium';
+    const weight = /error|warn|success|completed|ok|fail/.test(t) ? 'font-semibold' : 'font-medium';
+    const chipBg = strongLine
+      ? 'bg-slate-800/40 border-slate-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
+      : 'bg-slate-800/40 border-slate-400/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]';
     return (
       <span
         key={idx}
-        className={`${color} ${weight} underline decoration-dotted underline-offset-2 ${accent}`}
+        className={`${color} ${weight} px-1.5 py-0.5 rounded border ${chipBg} hover:bg-slate-700/70 hover:border-slate-300 transition-colors`}
       >
         {seg.text}
       </span>
