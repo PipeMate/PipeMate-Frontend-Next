@@ -50,13 +50,13 @@ function getLineClasses(kind: string) {
     'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words text-slate-100';
   switch (kind) {
     case 'error':
-      return `${base} bg-red-900/20 text-red-300`;
+      return `${base} text-red-400 font-semibold`;
     case 'warn':
-      return `${base} bg-amber-900/20 text-amber-300`;
+      return `${base} text-amber-300 font-semibold`;
     case 'success':
-      return `${base} bg-green-900/20 text-green-300`;
+      return `${base} text-green-400 font-semibold`;
     case 'meta':
-      return `${base} bg-slate-800/50 text-slate-300`;
+      return `${base} text-slate-300`;
     default:
       return `${base}`;
   }
@@ -66,11 +66,11 @@ function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'meta') {
     const t = seg.text.toLowerCase();
     const color = /error|fail/.test(t)
-      ? 'text-red-300'
+      ? 'text-red-400'
       : /warn/.test(t)
       ? 'text-amber-300'
       : /success|completed|ok/.test(t)
-      ? 'text-green-300'
+      ? 'text-green-400'
       : 'text-slate-300';
     const weight = /error|warn|success|completed|ok|fail/.test(t)
       ? 'font-semibold'
@@ -84,14 +84,14 @@ function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'bracket') {
     const t = seg.text.toLowerCase();
     const color = /error|fail/.test(t)
-      ? 'text-red-300'
+      ? 'text-red-400'
       : /warn/.test(t)
       ? 'text-amber-300'
       : /success|completed|ok/.test(t)
-      ? 'text-green-300'
+      ? 'text-green-400'
       : 'text-slate-100';
     return (
-      <span key={idx} className={`px-1 rounded bg-white/5 ${color}`}>
+      <span key={idx} className={`px-1 ${color} font-medium`}>
         {seg.text}
       </span>
     );
@@ -99,12 +99,12 @@ function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'gha') {
     const color =
       seg.level === 'error'
-        ? 'bg-red-900/40 text-red-200'
+        ? 'text-red-300'
         : seg.level === 'warning'
-        ? 'bg-amber-900/40 text-amber-200'
-        : 'bg-blue-900/40 text-blue-200';
+        ? 'text-amber-300'
+        : 'text-blue-300';
     return (
-      <span key={idx} className={`px-1 rounded ${color} text-[11px] font-semibold`}>
+      <span key={idx} className={`${color} text-[11px] font-semibold`}>
         {seg.text}
       </span>
     );
