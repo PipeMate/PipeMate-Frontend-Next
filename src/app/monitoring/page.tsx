@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
@@ -594,82 +594,79 @@ export default function MonitoringPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div>
             <div className="w-full space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      최근 워크플로우 실행
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {runsLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">데이터를 불러오는 중...</p>
-                      </div>
-                    ) : workflowRuns.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          실행 기록이 없습니다
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          아직 워크플로우가 실행되지 않았습니다.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {workflowRuns.slice(0, 10).map((run) => (
-                          <Card
-                            key={run.id}
-                            className="hover:shadow-md transition-shadow"
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  {getStatusIcon(run.status, run.conclusion)}
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold text-gray-900 truncate">
-                                      {run.name}
-                                    </h4>
-                                    <p className="text-sm text-gray-600">
-                                      #{run.run_number} • {getTimeAgo(run.created_at)}
-                                    </p>
-                                  </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    최근 워크플로우 실행
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {runsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">데이터를 불러오는 중...</p>
+                    </div>
+                  ) : workflowRuns.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        실행 기록이 없습니다
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        아직 워크플로우가 실행되지 않았습니다.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {workflowRuns.slice(0, 10).map((run) => (
+                        <Card key={run.id} className="hover:shadow-md transition-shadow">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                {getStatusIcon(run.status, run.conclusion)}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 truncate">
+                                    {run.name}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    #{run.run_number} • {getTimeAgo(run.created_at)}
+                                  </p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleShowDetails(run)}
+                                >
+                                  <Info className="w-4 h-4 mr-2" />
+                                  상세보기
+                                </Button>
+                                {run.status === 'in_progress' && (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleShowDetails(run)}
+                                    onClick={() => handleCancelRun(run)}
+                                    disabled={cancelWorkflowRun.isPending}
                                   >
-                                    <Info className="w-4 h-4 mr-2" />
-                                    상세보기
+                                    {cancelWorkflowRun.isPending ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <X className="w-4 h-4 mr-2" />
+                                    )}
+                                    취소
                                   </Button>
-                                  {run.status === 'in_progress' && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleCancelRun(run)}
-                                      disabled={cancelWorkflowRun.isPending}
-                                    >
-                                      {cancelWorkflowRun.isPending ? (
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      ) : (
-                                        <X className="w-4 h-4 mr-2" />
-                                      )}
-                                      취소
-                                    </Button>
-                                  )}
-                                </div>
+                                )}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
 
