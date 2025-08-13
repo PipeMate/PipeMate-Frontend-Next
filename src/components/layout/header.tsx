@@ -16,13 +16,11 @@ export default function Header() {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        {/* headerExtra slot */}
-        {headerExtra && (
-          <div className="ml-4 flex flex-col justify-center">{headerExtra}</div>
-        )}
+        {/* headerExtra slot (왼쪽: 타이틀/배지) */}
+        {headerExtra && <div className="ml-3 flex items-center gap-2">{headerExtra}</div>}
       </div>
-      {/* headerRight slot */}
-      {headerRight && <div className="ml-auto">{headerRight}</div>}
+      {/* headerRight slot (오른쪽: 기능 버튼) */}
+      {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
     </header>
   );
 }

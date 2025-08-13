@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback, Suspense, useMemo } from "react";
-import { AreaBasedWorkflowEditor } from "./components/AreaBasedWorkflowEditor";
+import { useEffect, useState, useCallback, Suspense, useMemo } from 'react';
+import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 
-import { ServerBlock } from "./types";
-import { useLayout } from "@/components/layout/LayoutContext";
-import { ROUTES } from "@/config/appConstants";
-import { Blocks } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ServerBlock } from './types';
+import { useLayout } from '@/components/layout/LayoutContext';
+import { ROUTES } from '@/config/appConstants';
+import { Blocks } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 /**
  * GitHub Actions Flow 페이지
@@ -42,12 +42,12 @@ export default function GitHubActionsFlowPage() {
   //* 헤더에 동적 내용 주입 (블록 개수 표시, 페이지 제목 등)
   useEffect(() => {
     //* 클라이언트에서만 헤더 설정 (hydration 에러 방지)
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       // 헤더 우측: 블록 수 배지
       setHeaderRight(
         <div className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-700 px-3 py-2 text-sm">
           <Blocks size={16} /> 총 {blocks.length}개 블록
-        </div>
+        </div>,
       );
 
       // 헤더 좌측 확장: 타이틀/서브텍스트 + 아이콘
@@ -66,7 +66,7 @@ export default function GitHubActionsFlowPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
       );
     }
 
@@ -87,13 +87,10 @@ export default function GitHubActionsFlowPage() {
    */
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
     try {
-      console.log(
-        "저장되는 워크플로우 데이터:",
-        JSON.stringify(newBlocks, null, 2)
-      );
+      console.log('저장되는 워크플로우 데이터:', JSON.stringify(newBlocks, null, 2));
       setBlocks(newBlocks);
     } catch (error) {
-      console.error("워크플로우 처리 오류:", error);
+      console.error('워크플로우 처리 오류:', error);
     }
   }, []);
 
@@ -131,13 +128,13 @@ export default function GitHubActionsFlowPage() {
         const updatedBlocks = blocks.map((block) =>
           block.name === selectedBlock.name && block.type === selectedBlock.type
             ? updatedBlock
-            : block
+            : block,
         );
         setBlocks(updatedBlocks);
         setSelectedBlock(updatedBlock);
       }
     },
-    [selectedBlock, blocks]
+    [selectedBlock, blocks],
   );
 
   //* ========================================
@@ -157,7 +154,7 @@ export default function GitHubActionsFlowPage() {
         <div className="text-gray-400 mt-4">워크스페이스 로딩 중...</div>
       </div>
     ),
-    []
+    [],
   );
 
   //* ========================================
