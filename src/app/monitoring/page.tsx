@@ -391,25 +391,27 @@ export default function MonitoringPage() {
   // 헤더 설정(페이지 상단 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex items-start justify-between gap-4 w-full">
-        <div className="flex flex-col gap-0 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-            <Monitor size={20} />
-            {ROUTES.MONITORING.label}
-          </h1>
-          <div className="text-sm text-gray-600 m-0 truncate">
-            {owner && repo ? (
-              <span className="text-gray-700 font-medium">
-                {owner}/{repo}
-              </span>
-            ) : (
-              'GitHub Actions 워크플로우 실행 로그 모니터링'
-            )}
+      <div className="flex w-full items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex items-center justify-center rounded-md bg-emerald-100 text-emerald-700 p-1.5">
+            <Monitor size={16} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900 leading-tight">
+              {ROUTES.MONITORING.label}
+            </div>
+            <div className="text-xs text-slate-500 truncate">
+              {owner && repo ? (
+                <span className="text-slate-700">{owner}/{repo}</span>
+              ) : (
+                'GitHub Actions 워크플로우 실행 로그 모니터링'
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-sm">
-            <Activity className="w-4 h-4 mr-1" />
+          <Badge variant="outline" className="text-[11px]">
+            <Activity className="w-3.5 h-3.5 mr-1" />
             {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
           </Badge>
           <Button
@@ -422,7 +424,7 @@ export default function MonitoringPage() {
             size="sm"
           >
             <RefreshCw
-              className={`w-4 h-4 mr-2 ${
+              className={`w-4 h-4 mr-1.5 ${
                 workflowsLoading || runsLoading ? 'animate-spin' : ''
               }`}
             />

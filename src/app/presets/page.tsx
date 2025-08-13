@@ -45,19 +45,23 @@ export default function PresetsPage() {
   // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex items-start justify-between gap-4 w-full">
-        <div className="flex flex-col gap-0 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-            <Settings size={20} />
-            {ROUTES.PRESETS.label}
-          </h1>
-          <div className="text-sm text-gray-600 m-0 truncate">
-            GitHub Actions 워크플로우 프리셋 관리
+      <div className="flex w-full items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex items-center justify-center rounded-md bg-violet-100 text-violet-700 p-1.5">
+            <Settings size={16} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900 leading-tight">
+              {ROUTES.PRESETS.label}
+            </div>
+            <div className="text-xs text-slate-500 truncate">
+              GitHub Actions 워크플로우 프리셋 관리
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-sm">
-            <Settings className="w-4 h-4 mr-1" /> {blocks.length} 프리셋
+          <Badge variant="outline" className="text-[11px]">
+            <Settings className="w-3.5 h-3.5 mr-1" /> {blocks.length} 프리셋
           </Badge>
           <Button
             onClick={() => refetchBlocks()}
@@ -65,11 +69,11 @@ export default function PresetsPage() {
             variant="outline"
             size="sm"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${blocksLoading ? 'animate-spin' : ''}`} />
             새로고침
           </Button>
           <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />새 프리셋
+            <Plus className="w-4 h-4 mr-1.5" />새 프리셋
           </Button>
         </div>
       </div>,

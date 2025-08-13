@@ -116,13 +116,14 @@ export default function Home() {
   // 헤더 설정(홈도 레이아웃 헤더 사용)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex items-start justify-between gap-4 w-full">
-        <div className="flex flex-col gap-0 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-            PipeMate
-          </h1>
-          <div className="text-sm text-gray-600 m-0 truncate">
-            GitHub Actions 워크플로우 대시보드
+      <div className="flex w-full items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-1.5">
+            <span className="text-[10px] font-bold leading-none">PM</span>
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900 leading-tight">PipeMate</div>
+            <div className="text-xs text-slate-500 truncate">GitHub Actions 워크플로우 대시보드</div>
           </div>
         </div>
       </div>,
