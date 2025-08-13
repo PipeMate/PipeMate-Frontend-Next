@@ -120,11 +120,11 @@ function SidebarHeaderContent() {
   return (
     <SidebarHeader className="border-b border-border h-16 px-2">
       <div className="flex items-center space-x-3">
-        <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-          <BRAND.logo.icon className={cn('w-5 h-5', BRAND.logo.color)} />
+        <div className="p-2.5 bg-blue-100 rounded-lg flex-shrink-0">
+          <BRAND.logo.icon className={cn('w-6 h-6', BRAND.logo.color)} />
         </div>
         <div className="min-w-0">
-          <h1 className="font-semibold text-lg text-gray-900 truncate">{BRAND.name}</h1>
+          <h1 className="font-semibold text-base text-gray-900 truncate">{BRAND.name}</h1>
           <p className="text-xs text-gray-500 truncate">{BRAND.description}</p>
         </div>
       </div>
@@ -136,7 +136,7 @@ function SidebarHeaderContent() {
 function MenuSection() {
   const router = useRouter();
   const pathname = usePathname();
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(true);
 
   const handleRouteClick = (url: string) => {
     router.push(url);
@@ -149,7 +149,7 @@ function MenuSection() {
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full p-3 flex items-center justify-between text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
       >
-        <span>메뉴</span>
+        <span>탐색</span>
         {isExpanded ? (
           <ChevronUp size={16} className="text-gray-500" />
         ) : (

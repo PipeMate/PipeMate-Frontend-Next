@@ -406,7 +406,7 @@ export const YamlPreviewPanel = ({
       {/* ========================================
           YAML 내용 표시 영역
           ======================================== */}
-      <div className="flex-1 min-h-0 p-4 overflow-auto bg-gray-800 text-slate-50 font-mono text-xs leading-[1.5] h-full">
+      <div className="flex-1 min-h-0 p-4 overflow-auto bg-slate-900 text-slate-100 font-mono text-xs leading-[1.6] h-full">
         {viewMode === 'tree' ? (
           <div className="bg-white text-gray-900 rounded border h-full overflow-auto">
             {(() => {
@@ -438,7 +438,7 @@ export const YamlPreviewPanel = ({
           <textarea
             value={editableYaml}
             onChange={(e) => handleYamlChange(e.target.value)}
-            className="w-full h-full bg-gray-800 text-slate-50 font-mono text-xs leading-[1.5] border-none outline-none resize-none"
+            className="w-full h-full bg-slate-900 text-slate-100 font-mono text-xs leading-[1.6] border-none outline-none resize-none"
             placeholder="YAML을 편집하세요..."
           />
         ) : (

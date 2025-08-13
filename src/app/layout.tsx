@@ -4,6 +4,7 @@ import '@/styles';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Header, MainLayout, Sidebar, LayoutProvider } from '@/components/layout';
 import QueryProvider from '@/providers/QueryProvider';
+import ToastProvider from '@/providers/ToastProvider';
 import { RepositoryProvider } from '@/contexts/RepositoryContext';
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
                 <SidebarInset className="relative flex flex-col min-h-screen">
                   <Header />
                   <MainLayout>{children}</MainLayout>
+                  <ToastProvider />
                 </SidebarInset>
               </LayoutProvider>
             </SidebarProvider>

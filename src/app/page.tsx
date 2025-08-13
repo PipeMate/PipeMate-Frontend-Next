@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLayout } from '@/components/layout/LayoutContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useWorkflows, useDispatchWorkflow } from '@/api/hooks';
+import { ROUTES } from '@/config/appConstants';
 import {
   Workflow,
   GitBranch,
@@ -18,7 +20,9 @@ import {
 import Link from 'next/link';
 
 export default function Home() {
+  const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
+  const HomeIcon = ROUTES.HOME.icon;
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -111,6 +115,28 @@ export default function Home() {
     }
   };
 
+  // 헤더 설정(홈도 레이아웃 헤더 사용)
+  useEffect(() => {
+    setHeaderExtra(
+      <div className="flex w-full items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
+            <HomeIcon size={18} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+              PipeMate
+            </div>
+            <div className="text-xs md:text-sm text-slate-500 truncate">
+              GitHub Actions 워크플로우 대시보드
+            </div>
+          </div>
+        </div>
+      </div>,
+    );
+    return () => setHeaderExtra(null);
+  }, [setHeaderExtra]);
+
   if (!isConfigured) {
     return (
       <div className="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -191,26 +217,7 @@ export default function Home() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-8">
-        {/* 헤더 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {owner}/{repo}
-              </h1>
-              <p className="text-gray-600 mt-2">GitHub Actions 워크플로우 대시보드</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="text-sm">
-                <GitBranch className="w-4 h-4 mr-1" />
-                Repository
-              </Badge>
-              <Button variant="outline" size="sm">
-                🔍 토큰 확인
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* 상단 타이틀은 레이아웃 헤더로 통합됨 */}
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

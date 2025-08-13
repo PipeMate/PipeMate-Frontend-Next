@@ -900,11 +900,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                   <textarea
                     value={editableYaml}
                     onChange={(e) => handleYamlChange(e.target.value)}
-                    className="w-full h-64 p-3 border rounded font-mono text-xs"
+                    className="w-full h-64 p-3 border rounded font-mono text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="블록 YAML을 편집하세요"
                   />
                 ) : (
-                  <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+                  <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
                     <pre className="whitespace-pre-wrap break-words">
                       {getCurrentYaml()}
                     </pre>
@@ -912,7 +912,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                 )}
               </div>
             ) : (
-              <div className="bg-gray-900 text-green-400 font-mono text-xs p-4 rounded-lg max-h-96 overflow-auto border border-gray-700">
+              <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
                 <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
               </div>
             )}
@@ -955,12 +955,36 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         <head>
                           <title>YAML 미리보기</title>
                           <style>
-                            body { font-family: monospace; background: #1e1e1e; color: #4ade80; padding: 20px; }
-                            pre { white-space: pre-wrap; word-break: break-word; }
+                            :root { color-scheme: dark; }
+                            body {
+                              margin: 0;
+                              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                              background: #0f172a; /* slate-900 */
+                              color: #f1f5f9; /* slate-100 */
+                              padding: 20px;
+                            }
+                            .container {
+                              background: #0f172a; /* slate-900 */
+                              border: 1px solid #1e293b; /* slate-800 */
+                              border-radius: 8px;
+                              box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
+                              padding: 16px;
+                              max-height: 80vh;
+                              overflow: auto;
+                            }
+                            pre {
+                              margin: 0;
+                              white-space: pre-wrap;
+                              word-break: break-word;
+                              font-size: 11px;
+                              line-height: 1.4;
+                            }
                           </style>
                         </head>
                         <body>
-                          <pre>${yaml}</pre>
+                          <div class="container">
+                            <pre>${yaml.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                          </div>
                         </body>
                       </html>
                     `);
