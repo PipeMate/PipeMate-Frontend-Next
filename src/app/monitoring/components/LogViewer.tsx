@@ -212,22 +212,32 @@ export default function LogViewer({ raw }: { raw: string }) {
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
                       s.type === 'text' ? (
-                        <span key={idx}>
-                          {highlight(
-                            s.text,
-                            it.kind === 'error' ||
-                              it.kind === 'warn' ||
-                              it.kind === 'success',
-                          )}
-                        </span>
+                        (() => {
+                          const strong = isStrongLine(it.kind);
+                          const [ts, rest] = idx === 0 ? extractTimestampPrefix(s.text) : ['', s.text];
+                          return (
+                            <span key={idx}>
+                              {idx === 0 && ts ? (
+                                <span className="text-slate-400 mr-2">{ts}</span>
+                              ) : null}
+                              {highlight(rest, strong)}
+                            </span>
+                          );
+                        })()
                       ) : (
                         renderSegment(s, idx, it.kind)
                       ),
                     )
-                  : highlight(
-                      it.line,
-                      it.kind === 'error' || it.kind === 'warn' || it.kind === 'success',
-                    )}
+                  : (() => {
+                      const strong = isStrongLine(it.kind);
+                      const [ts, rest] = extractTimestampPrefix(it.line);
+                      return (
+                        <>
+                          {ts ? <span className="text-slate-400 mr-2">{ts}</span> : null}
+                          {highlight(rest, strong)}
+                        </>
+                      );
+                    })()}
               </span>
             </div>
           </div>
