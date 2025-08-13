@@ -784,10 +784,10 @@ export default function MonitoringPage() {
           </div>
         </div>
 
-        {/* 태블릿 전용(768~1023px): 상세를 우측 시트로 표시하여 스크롤 왕복 최소화 */}
-        <div className="hidden md:block lg:hidden">
+        {/* 모바일/태블릿 공통: 우측 시트로 통일 */}
+        <div className="block lg:hidden">
           <Sheet open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
-            <SheetContent side="right" className="w-[88vw] sm:max-w-none p-0">
+            <SheetContent side="right" className="w-[95vw] sm:w-[88vw] sm:max-w-none p-0">
               {/* 접근성: 시트는 Dialog 기반이므로 Title 필요 (시각적 숨김) */}
               <SheetTitle className="sr-only">실행 상세</SheetTitle>
               <div className="px-6 pt-6 pb-0 border-b">
@@ -809,20 +809,6 @@ export default function MonitoringPage() {
             </SheetContent>
           </Sheet>
         </div>
-
-        {/* 모바일 상세: 모달 (모바일에서만 마운트) */}
-        {isMobile && (
-          <Dialog open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
-            <DialogContent className="sm:max-w-3xl w-[95vw] p-0" showCloseButton>
-              <DialogHeader className="px-6 pt-6">
-                <DialogTitle>실행 상세</DialogTitle>
-              </DialogHeader>
-              <div className="p-6 max-h-[85vh] overflow-y-auto">
-                <RunDetail compact />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </div>
   );

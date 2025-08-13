@@ -15,14 +15,26 @@ const TOKEN_REGEX = /(##\[[^\]]*\]|\[[^\]]*\]|::(error|warning|notice)::)/gi;
 
 // 스타일 상수/헬퍼(중앙 관리)
 const LINE_BASE_CLASS =
-  'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words border-l-2 transition-colors duration-150 hover:bg-slate-900/60 hover:ring-1 hover:ring-slate-700';
+  'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words border-l-2 transition-colors duration-150 hover:bg-slate-600/70 hover:ring-1 hover:ring-slate-700';
 
-const LINE_STYLE_MAP: Record<string, { text: string; border: string }> = {
-  error: { text: 'text-red-400 font-semibold', border: 'border-red-500' },
-  warn: { text: 'text-amber-300 font-semibold', border: 'border-amber-500' },
-  success: { text: 'text-green-400 font-semibold', border: 'border-green-500' },
-  meta: { text: 'text-slate-300', border: 'border-slate-600' },
-  info: { text: 'text-slate-200', border: 'border-slate-800' },
+const LINE_STYLE_MAP: Record<string, { text: string; border: string; bg: string }> = {
+  error: {
+    text: 'text-red-400 font-semibold',
+    border: 'border-red-500',
+    bg: 'bg-red-900/25',
+  },
+  warn: {
+    text: 'text-amber-300 font-semibold',
+    border: 'border-amber-500',
+    bg: 'bg-amber-900/20',
+  },
+  success: {
+    text: 'text-green-400 font-semibold',
+    border: 'border-green-500',
+    bg: 'bg-green-900/20',
+  },
+  meta: { text: 'text-slate-300', border: 'border-slate-600', bg: 'bg-slate-800/30' },
+  info: { text: 'text-slate-200', border: 'border-slate-800', bg: 'bg-slate-900/10' },
 };
 
 const isStrongLine = (kind?: string) =>
@@ -76,7 +88,7 @@ function classifyLine(line: string, segments: Segment[]) {
 
 function getLineClasses(kind: string) {
   const style = LINE_STYLE_MAP[kind] ?? LINE_STYLE_MAP.info;
-  return `${LINE_BASE_CLASS} ${style.text} ${style.border}`;
+  return `${LINE_BASE_CLASS} ${style.text} ${style.border} ${style.bg}`;
 }
 
 function renderSegment(seg: Segment, idx: number, lineKind?: string) {
@@ -91,18 +103,12 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
       ? 'text-amber-300'
       : /success|completed|ok/.test(t)
       ? 'text-green-400'
-      : 'text-slate-300';
+      : 'text-slate-200';
     const weight = /error|warn|success|completed|ok|fail/.test(t)
-      ? 'font-semibold'
-      : 'font-medium';
-    const chipBg = strongLine
-      ? 'bg-slate-800/40 border-slate-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
-      : 'bg-slate-800/40 border-slate-400/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]';
+      ? 'font-bold'
+      : 'font-semibold';
     return (
-      <span
-        key={idx}
-        className={`${color} ${weight} px-1.5 py-0.5 rounded border ${chipBg} hover:bg-slate-700/70 hover:border-slate-300 transition-colors`}
-      >
+      <span key={idx} className={`${color} ${weight} text-[13px] px-1.5 mr-1`}>
         {seg.text}
       </span>
     );
@@ -113,14 +119,18 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     const color = strongLine
       ? 'text-current'
       : /error|fail/.test(t)
-      ? 'text-red-400'
+      ? 'text-red-300'
       : /warn/.test(t)
       ? 'text-amber-300'
       : /success|completed|ok/.test(t)
-      ? 'text-green-400'
-      : 'text-inherit';
+      ? 'text-green-300'
+      : 'text-slate-200';
+    const bg = strongLine ? 'bg-white/10' : 'bg-slate-700/30';
     return (
-      <span key={idx} className={`px-1 ${color} font-medium`}>
+      <span
+        key={idx}
+        className={`px-1 ${bg} rounded-sm ${color} text-[11px] font-medium`}
+      >
         {seg.text}
       </span>
     );
@@ -232,7 +242,7 @@ export default function LogViewer({ raw }: { raw: string }) {
         {visible.map((it, i) => (
           <div key={i} className={getLineClasses(it.kind)} title={it.kind}>
             <div className="flex items-start gap-1.5">
-              <span className="w-9 pr-1 text-right text-slate-400 select-none">
+              <span className="w-9 pr-2 text-right text-slate-200 select-none">
                 {it.lineNo}
               </span>
               <span className="flex-1">
