@@ -25,6 +25,16 @@ const LINE_STYLE_MAP: Record<string, { text: string; border: string }> = {
 const isStrongLine = (kind?: string) =>
   kind === 'error' || kind === 'warn' || kind === 'success';
 
+// 타임스탬프 추출 유틸: 라인 앞의 날짜/시간 부분을 분리해 다른 색으로 표시
+const TS_REGEX = /^(\[?\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?\]?|\[?\d{2}:\d{2}:\d{2}\]?)/;
+function extractTimestampPrefix(text: string): [string, string] {
+  const m = text.match(TS_REGEX);
+  if (!m) return ['', text];
+  const prefix = m[0];
+  const rest = text.slice(prefix.length).trimStart();
+  return [prefix, rest];
+}
+
 function splitSegments(line: string): Segment[] {
   const segments: Segment[] = [];
   let lastIndex = 0;
@@ -211,22 +221,21 @@ export default function LogViewer({ raw }: { raw: string }) {
               <span className="flex-1">
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
-                      s.type === 'text' ? (
-                        (() => {
-                          const strong = isStrongLine(it.kind);
-                          const [ts, rest] = idx === 0 ? extractTimestampPrefix(s.text) : ['', s.text];
-                          return (
-                            <span key={idx}>
-                              {idx === 0 && ts ? (
-                                <span className="text-slate-400 mr-2">{ts}</span>
-                              ) : null}
-                              {highlight(rest, strong)}
-                            </span>
-                          );
-                        })()
-                      ) : (
-                        renderSegment(s, idx, it.kind)
-                      ),
+                      s.type === 'text'
+                        ? (() => {
+                            const strong = isStrongLine(it.kind);
+                            const [ts, rest] =
+                              idx === 0 ? extractTimestampPrefix(s.text) : ['', s.text];
+                            return (
+                              <span key={idx}>
+                                {idx === 0 && ts ? (
+                                  <span className="text-slate-400 mr-2">{ts}</span>
+                                ) : null}
+                                {highlight(rest, strong)}
+                              </span>
+                            );
+                          })()
+                        : renderSegment(s, idx, it.kind),
                     )
                   : (() => {
                       const strong = isStrongLine(it.kind);
