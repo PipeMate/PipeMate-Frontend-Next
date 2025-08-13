@@ -57,6 +57,9 @@ interface IntegratedSidePanelProps {
   onBlockUpdate?: (updatedBlock: ServerBlock) => void;
   hasNodes: boolean;
   updateNodeData?: (nodeId: string, data: WorkflowNodeData) => void;
+  mode?: 'create' | 'edit';
+  initialWorkflowName?: string;
+  onWorkflowNameChange?: (name: string) => void;
 }
 
 //* ========================================
@@ -127,6 +130,63 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     setConfigFields(fields);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeData]);
+
+  // 도메인/태스크 자동 추론
+  const inferDomainAndTask = useCallback((config: Record<string, unknown>) => {
+    const result: { domain?: string; task?: string[] } = {};
+    const uses = typeof config?.uses === 'string' ? (config.uses as string) : undefined;
+    const run = typeof config?.run === 'string' ? (config.run as string) : undefined;
+
+    if (uses) {
+      if (uses.startsWith('actions/')) {
+        result.domain = 'github';
+        const actionName = uses.split('/')[1]?.split('@')[0] || 'action';
+        result.task = [actionName];
+      } else if (uses.includes('docker')) {
+        result.domain = 'docker';
+        result.task = ['docker'];
+      }
+    }
+
+    if (!result.domain && run) {
+      if (/\b(mvn|maven|gradle)\b/i.test(run)) {
+        result.domain = 'java';
+        const tasks: string[] = [];
+        if (/gradle\s+(build|test|publish)/i.test(run)) {
+          const m = run.match(/gradle\s+(build|test|publish)/i);
+          if (m) tasks.push(m[1].toLowerCase());
+        }
+        if (/mvn\s+([a-z:-]+)/i.test(run)) {
+          const m = run.match(/mvn\s+([a-z:-]+)/i);
+          if (m) tasks.push(m[1].toLowerCase());
+        }
+        if (tasks.length > 0) result.task = tasks;
+      } else if (/\b(npm|yarn|pnpm)\b/i.test(run)) {
+        result.domain = 'node';
+        const m = run.match(/\b(npm|yarn|pnpm)\s+(run\s+)?([a-zA-Z0-9:_-]+)/i);
+        if (m && m[3]) result.task = [m[3].toLowerCase()];
+      } else if (/\bpython\b|pip|poetry/i.test(run)) {
+        result.domain = 'python';
+      }
+    }
+
+    return result;
+  }, []);
+
+  // step 기본 메타 자동완성 (미설정 시에만)
+  useEffect(() => {
+    if (nodeType === 'step') {
+      const needsDomain = !editedData.domain || editedData.domain.trim() === '';
+      const needsTask = !editedData.task || editedData.task.length === 0;
+      if ((needsDomain || needsTask) && editedData.config) {
+        const inferred = inferDomainAndTask(editedData.config);
+        const next: WorkflowNodeData = { ...editedData };
+        if (needsDomain && inferred.domain) next.domain = inferred.domain;
+        if (needsTask && inferred.task) next.task = inferred.task;
+        if (next !== editedData) setEditedData(next);
+      }
+    }
+  }, [nodeType, editedData, inferDomainAndTask]);
 
   // Config 변경 시 secrets 감지
   useEffect(() => {
@@ -324,6 +384,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         config,
       };
       onSave(updatedData);
+      toast.success('노드가 저장되었습니다.');
     } catch {
       setConfigError('설정 저장 중 오류가 발생했습니다.');
     }
@@ -616,10 +677,13 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   onBlockUpdate,
   hasNodes,
   updateNodeData,
+  mode = 'create',
+  initialWorkflowName,
+  onWorkflowNameChange,
 }) => {
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
-  const [workflowName, setWorkflowName] = useState<string>('');
+  const [workflowName, setWorkflowName] = useState<string>(initialWorkflowName || '');
   const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
   const [editableYaml, setEditableYaml] = useState<string>('');
@@ -783,6 +847,17 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
       toast.error('워크플로우 저장에 실패했습니다. 다시 시도해주세요.');
     }
   }, [owner, repo, isConfigured, hasNodes, blocks, workflowName, createPipelineMutation]);
+
+  useEffect(() => {
+    // blocks의 trigger 블록에서 이름 자동완성: x_name 혹은 name 필드를 사용할 수 있다면 확장 가능
+    // 현재는 편집 페이지에서 전달된 initialWorkflowName 우선
+    if (initialWorkflowName && !workflowName) {
+      setWorkflowName(initialWorkflowName);
+    }
+    if (onWorkflowNameChange) {
+      onWorkflowNameChange(workflowName);
+    }
+  }, [initialWorkflowName, workflowName, onWorkflowNameChange]);
 
   if (!isOpen) return null;
 
@@ -1066,37 +1141,62 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         className="mt-1"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
-                        onClick={onSaveWorkflow}
+                        onClick={() => {
+                          onSaveWorkflow();
+                          toast.success(
+                            `임시 저장되었습니다${
+                              workflowName ? `: ${workflowName}` : ''
+                            }.`,
+                          );
+                          if (onWorkflowNameChange) onWorkflowNameChange(workflowName);
+                        }}
                         disabled={isSaving}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                        title="현재 워크스페이스 구성(블록) 상태를 임시 저장합니다."
                       >
                         <Save size={14} />
-                        {isSaving ? '저장 중...' : '워크플로우 저장'}
+                        {isSaving ? '임시 저장 중...' : '임시 저장'}
                       </Button>
                       <Button
                         onClick={onClearWorkspace}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
+                        title="워크스페이스의 블록을 모두 초기화합니다."
                       >
                         <Trash2 size={14} />
                         워크스페이스 초기화
                       </Button>
-                      <Button
-                        onClick={handleSaveWorkflowToServer}
-                        disabled={
-                          createPipelineMutation.isPending || !isConfigured || !hasNodes
-                        }
-                        size="sm"
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
-                      >
-                        <Save size={14} />
-                        {createPipelineMutation.isPending
-                          ? '서버 저장 중...'
-                          : '서버 저장'}
-                      </Button>
+                      {mode === 'create' && (
+                        <Button
+                          onClick={handleSaveWorkflowToServer}
+                          disabled={
+                            createPipelineMutation.isPending || !isConfigured || !hasNodes
+                          }
+                          size="sm"
+                          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                          title="새 워크플로우 파일을 생성하여 서버에 저장합니다."
+                        >
+                          <Save size={14} />
+                          {createPipelineMutation.isPending
+                            ? '신규 생성 중...'
+                            : '신규 생성'}
+                        </Button>
+                      )}
+                      {mode === 'edit' && (
+                        <Button
+                          onClick={() => {
+                            toast.info('편집 중: 상단 저장 버튼으로 서버에 적용됩니다.');
+                          }}
+                          variant="outline"
+                          size="sm"
+                          title="편집 모드에서는 상단 저장 버튼으로 서버에 적용됩니다."
+                        >
+                          서버 저장 안내
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

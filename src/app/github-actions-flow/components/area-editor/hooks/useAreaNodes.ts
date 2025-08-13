@@ -14,45 +14,81 @@ export const useAreaNodes = (
   onWorkflowChange?: (blocks: ServerBlock[]) => void,
 ) => {
   // 최초 마운트 시에만 초기화
-  const [areaNodes, setAreaNodes] = useState<AreaNodes>(() => {
-    if (!initialBlocks) {
-      return { trigger: [], job: [], step: [] };
-    }
-    // ServerBlock[]을 AreaNodes로 변환
+  const buildAreaNodesFromBlocks = useCallback((blocks?: ServerBlock[]): AreaNodes => {
+    if (!blocks) return { trigger: [], job: [], step: [] };
     const trigger: AreaNodeData[] = [];
     const job: AreaNodeData[] = [];
     const step: AreaNodeData[] = [];
-    const nodeIds: string[] = [];
+    const jobNameToNodeId = new Map<string, string>();
 
-    initialBlocks.forEach((block, idx) => {
-      const node: AreaNodeData = {
-        id: uuidv4(),
-        type: block.type === 'trigger' ? 'workflowTrigger' : (block.type as NodeType),
-        data: {
-          label: block.name,
-          type:
-            block.type === 'trigger'
-              ? 'workflow_trigger'
-              : (block.type as 'workflow_trigger' | 'job' | 'step'),
-          description: block.description,
-          jobName: block['job-name'] || '',
-          domain: block.domain,
-          task: block.task,
-          config: block.config,
-        },
-        order: idx,
-        parentId: undefined, // parent-id는 현재 사용하지 않으므로 undefined로 설정
-        isSelected: false,
-        isEditing: false,
-      };
-      if (block.type === 'trigger') trigger.push(node);
-      else if (block.type === 'job') job.push(node);
-      else if (block.type === 'step') step.push(node);
-      nodeIds.push(node.id);
+    blocks.forEach((block, idx) => {
+      if (block.type === 'trigger' || block.type === 'job') {
+        const nodeId = uuidv4();
+        const jobName =
+          block['job-name'] || (block.type === 'job' ? `job${job.length + 1}` : '');
+        const node: AreaNodeData = {
+          id: nodeId,
+          type: block.type === 'trigger' ? 'workflowTrigger' : 'job',
+          data: {
+            label: block.name,
+            type: block.type === 'trigger' ? 'workflow_trigger' : 'job',
+            description: block.description,
+            jobName,
+            domain: block.domain,
+            task: block.task,
+            config: block.config,
+          },
+          order: idx,
+          parentId: undefined,
+          isSelected: false,
+          isEditing: false,
+        };
+        if (block.type === 'trigger') {
+          trigger.push(node);
+        } else {
+          job.push(node);
+          if (jobName) jobNameToNodeId.set(jobName, nodeId);
+        }
+      }
+    });
+
+    blocks.forEach((block, idx) => {
+      if (block.type === 'step') {
+        const nodeId = uuidv4();
+        const parentJobName = block['job-name'] || '';
+        const parentId = parentJobName ? jobNameToNodeId.get(parentJobName) : undefined;
+        const node: AreaNodeData = {
+          id: nodeId,
+          type: 'step',
+          data: {
+            label: block.name,
+            type: 'step',
+            description: block.description,
+            jobName: parentJobName,
+            domain: block.domain,
+            task: block.task,
+            config: block.config,
+          },
+          order: idx,
+          parentId,
+          isSelected: false,
+          isEditing: false,
+        };
+        step.push(node);
+      }
     });
 
     return { trigger, job, step };
-  });
+  }, []);
+
+  const [areaNodes, setAreaNodes] = useState<AreaNodes>(() =>
+    buildAreaNodesFromBlocks(initialBlocks),
+  );
+
+  // initialBlocks 변경 시 워크스페이스를 재구성 (편집 페이지에서 비동기 로드 반영)
+  useEffect(() => {
+    setAreaNodes(buildAreaNodesFromBlocks(initialBlocks));
+  }, [initialBlocks, buildAreaNodesFromBlocks]);
 
   //* onWorkflowChange 호출을 위한 상태
   const [pendingWorkflowChange, setPendingWorkflowChange] = useState<

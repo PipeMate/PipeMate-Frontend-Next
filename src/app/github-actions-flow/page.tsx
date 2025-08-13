@@ -6,7 +6,11 @@ import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 import { ServerBlock } from './types';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { ROUTES } from '@/config/appConstants';
-import { Blocks } from 'lucide-react';
+import { Blocks, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useRepository } from '@/contexts/RepositoryContext';
+import { useCreatePipeline } from '@/api/hooks/usePipeline';
+import { toast } from 'react-toastify';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
@@ -34,6 +38,9 @@ export default function GitHubActionsFlowPage() {
   //* 레이아웃 컨텍스트에서 헤더 slot setter 가져오기
   const { setHeaderRight, setHeaderExtra } = useLayout();
   const FlowIcon = ROUTES.ACTION_FLOW.icon;
+  const { owner, repo, isConfigured } = useRepository();
+  const createPipeline = useCreatePipeline();
+  const [workflowName, setWorkflowName] = useState<string>('');
 
   //* ========================================
   //* 헤더 UI 설정
@@ -43,10 +50,40 @@ export default function GitHubActionsFlowPage() {
   useEffect(() => {
     //* 클라이언트에서만 헤더 설정 (hydration 에러 방지)
     if (typeof window !== 'undefined') {
-      // 헤더 우측: 블록 수 배지
+      // 헤더 우측: 블록 수 + 최종 저장 버튼
       setHeaderRight(
-        <div className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-700 px-3 py-2 text-sm">
-          <Blocks size={16} /> 총 {blocks.length}개 블록
+        <div className="inline-flex items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-700 px-3 py-2 text-sm">
+            <Blocks size={16} /> 총 {blocks.length}개 블록
+          </div>
+          <Button
+            size="sm"
+            onClick={async () => {
+              if (!isConfigured) {
+                toast.error('저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.');
+                return;
+              }
+              if (blocks.length === 0) {
+                toast.error('저장할 워크플로우가 없습니다.');
+                return;
+              }
+              const finalName = (workflowName || `workflow-${Date.now()}`).trim();
+              try {
+                await createPipeline.mutateAsync({
+                  owner: owner!,
+                  repo: repo!,
+                  workflowName: finalName,
+                  inputJson: blocks as unknown as Record<string, unknown>[],
+                  description: 'PipeMate로 생성된 워크플로우',
+                });
+                toast.success(`워크플로우가 서버에 저장되었습니다: ${finalName}`);
+              } catch (e) {
+                toast.error('서버 저장 중 오류가 발생했습니다.');
+              }
+            }}
+          >
+            <Save size={14} className="mr-1" /> 최종 저장
+          </Button>
         </div>,
       );
 

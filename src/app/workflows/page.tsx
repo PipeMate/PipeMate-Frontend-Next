@@ -20,18 +20,20 @@ import {
   XCircle,
   RefreshCw,
   AlertTriangle,
-  Info,
   Loader2,
   X,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
+import { Edit } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function WorkflowsPage() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const WorkflowsIcon = ROUTES.WORKFLOWS.icon;
   const [searchTerm, setSearchTerm] = useState('');
-  const [_selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
+  const [_selectedWorkflow] = useState<WorkflowItem | null>(null);
+  const router = useRouter();
 
   // 훅 사용
   const {
@@ -106,6 +108,7 @@ export default function WorkflowsPage() {
     workflows.length,
     workflowsLoading,
     refetchWorkflows,
+    WorkflowsIcon,
   ]);
 
   // 워크플로우 필터링
@@ -137,6 +140,11 @@ export default function WorkflowsPage() {
 
   const clearSearch = () => {
     setSearchTerm('');
+  };
+
+  const navigateToEdit = (workflow: WorkflowItem) => {
+    const fileName = workflow.fileName || workflow.path.split('/').pop() || workflow.name;
+    router.push(`/workflows/edit?file=${encodeURIComponent(fileName)}`);
   };
 
   const getStatusIcon = (state: string) => {
@@ -415,14 +423,14 @@ export default function WorkflowsPage() {
                             )}
                             실행
                           </Button>
+                          {/* 실행 기록 버튼 제거 */}
                           <Button
                             size="sm"
-                            variant="outline"
                             className="flex-1"
-                            onClick={() => setSelectedWorkflow(workflow)}
+                            onClick={() => navigateToEdit(workflow)}
                           >
-                            <Info className="w-4 h-4 mr-2" />
-                            실행 기록
+                            <Edit className="w-4 h-4 mr-2" />
+                            편집
                           </Button>
                         </div>
                       </div>

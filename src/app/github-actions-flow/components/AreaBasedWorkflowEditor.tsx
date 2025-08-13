@@ -36,6 +36,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   onEditModeToggle,
   isEditing,
   onBlockUpdate,
+  mode = 'create',
+  initialWorkflowName,
+  onWorkflowNameChange,
 }) => {
   //* ========================================
   //* 커스텀 훅 사용
@@ -218,6 +221,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
    */
   const handleNodeDelete = useCallback(
     (nodeId: string) => {
+      if (!confirm('선택한 노드를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
       deleteNode(nodeId);
       if (selectedNode?.id === nodeId) {
         setSelectedNode(null);
@@ -385,6 +389,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           onBlockUpdate={onBlockUpdate}
           hasNodes={hasNodes}
           updateNodeData={updateNodeData}
+          mode={mode}
+          initialWorkflowName={initialWorkflowName}
+          onWorkflowNameChange={onWorkflowNameChange}
         />
       </div>
 
