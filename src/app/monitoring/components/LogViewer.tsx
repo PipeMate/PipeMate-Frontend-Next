@@ -65,10 +65,11 @@ function getLineClasses(kind: string) {
 function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'meta')
     return (
-      <span key={idx} className="inline-flex items-center gap-1 text-slate-700">
-        <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[11px] font-semibold">
-          {seg.text}
-        </span>
+      <span
+        key={idx}
+        className="inline-flex items-center px-1.5 py-0.5 rounded-md border border-slate-300 bg-white/80 text-slate-700 text-[11px] font-medium"
+      >
+        {seg.text}
       </span>
     );
   if (seg.type === 'bracket')
@@ -100,7 +101,7 @@ export default function LogViewer({ raw }: { raw: string }) {
   const text = raw || '로그가 없습니다.';
   const [filter, setFilter] = useState<'all' | 'error' | 'warn' | 'meta'>('all');
   const [query, setQuery] = useState<string>('');
-  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(false);
+  // 라인 번호는 기본적으로 표시 (토글 제거)
 
   const items = useMemo(() => {
     const arr = (text.split(/\r?\n/) as string[]).map((line, idx) => {
@@ -121,7 +122,9 @@ export default function LogViewer({ raw }: { raw: string }) {
 
   const highlight = (content: string) => {
     if (!query) return content;
-    const parts = content.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'gi'));
+    const parts = content.split(
+      new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'gi'),
+    );
     return parts.map((p, i) =>
       p.toLowerCase() === query.toLowerCase() ? (
         <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5">
@@ -149,7 +152,9 @@ export default function LogViewer({ raw }: { raw: string }) {
             ).map((f) => (
               <button
                 key={f.k}
-                className={`px-2.5 py-1 text-[12px] ${filter === f.k ? 'bg-slate-100 text-slate-900' : 'text-slate-600'}`}
+                className={`px-2.5 py-1 text-[12px] ${
+                  filter === f.k ? 'bg-slate-100 text-slate-900' : 'text-slate-600'
+                }`}
                 onClick={() => setFilter(f.k as any)}
               >
                 {f.t}
@@ -162,9 +167,6 @@ export default function LogViewer({ raw }: { raw: string }) {
             placeholder="검색"
             className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300"
           />
-          <Button size="sm" variant="outline" onClick={() => setShowLineNumbers((v) => !v)}>
-            Ln
-          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -193,12 +195,16 @@ export default function LogViewer({ raw }: { raw: string }) {
         {visible.map((it, i) => (
           <div key={i} className={getLineClasses(it.kind)}>
             <div className="flex items-start gap-2">
-              {showLineNumbers && (
-                <span className="w-10 text-right text-slate-400 select-none">{it.lineNo}</span>
-              )}
+              <span className="w-12 pr-2 text-right text-slate-400 select-none">{it.lineNo}</span>
               <span className="flex-1">
                 {it.segs.length
-                  ? it.segs.map((s, idx) => (s.type === 'text' ? <span key={idx}>{highlight(s.text)}</span> : renderSegment(s, idx)))
+                  ? it.segs.map((s, idx) =>
+                      s.type === 'text' ? (
+                        <span key={idx}>{highlight(s.text)}</span>
+                      ) : (
+                        renderSegment(s, idx)
+                      ),
+                    )
                   : highlight(it.line)}
               </span>
             </div>
