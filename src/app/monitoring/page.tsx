@@ -46,7 +46,7 @@ interface WorkflowRun {
 }
 
 export default function MonitoringPage() {
-  const { setHeaderExtra } = useLayout();
+  const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const MonitoringIcon = ROUTES.MONITORING.icon;
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
@@ -389,63 +389,61 @@ export default function MonitoringPage() {
     );
   };
 
-  // 헤더 설정(페이지 상단 타이틀/컨트롤을 레이아웃 헤더로 통합)
+  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex w-full items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex items-center justify-center rounded-md bg-emerald-100 text-emerald-700 p-2">
-            <MonitoringIcon size={18} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
-              {ROUTES.MONITORING.label}
-            </div>
-            <div className="text-xs md:text-sm text-slate-500 truncate">
-              {owner && repo ? (
-                <span className="text-slate-700">
-                  {owner}/{repo}
-                </span>
-              ) : (
-                'GitHub Actions 워크플로우 실행 로그 모니터링'
-              )}
-            </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex items-center justify-center rounded-md bg-emerald-100 text-emerald-700 p-2">
+          <MonitoringIcon size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+            {ROUTES.MONITORING.label}
           </div>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Badge variant="outline" className="text-xs py-1 px-2">
-            <Activity className="w-4 h-4 mr-2" />
-            {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
-          </Badge>
-          <Button
-            onClick={() => {
-              refetchWorkflows();
-              refetchRuns();
-            }}
-            disabled={workflowsLoading || runsLoading}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${
-                workflowsLoading || runsLoading ? 'animate-spin' : ''
-              }`}
-            />
-            새로고침
-          </Button>
-          <Button
-            onClick={() => setAutoRefresh((v) => !v)}
-            variant={autoRefresh ? 'default' : 'outline'}
-            size="sm"
-          >
-            {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
-          </Button>
+          <div className="text-xs md:text-sm text-slate-500 truncate">
+            {owner && repo ? (
+              <span className="text-slate-700">{owner}/{repo}</span>
+            ) : (
+              'GitHub Actions 워크플로우 실행 로그 모니터링'
+            )}
+          </div>
         </div>
       </div>,
     );
-    return () => setHeaderExtra(null);
+    setHeaderRight(
+      <div className="flex items-center gap-2.5">
+        <Badge variant="outline" className="text-xs py-1 px-2">
+          <Activity className="w-4 h-4 mr-2" />
+          {autoRefresh && !autoRefreshPausedDueToDetails ? '실시간' : '일시정지'}
+        </Badge>
+        <Button
+          onClick={() => {
+            refetchWorkflows();
+            refetchRuns();
+          }}
+          disabled={workflowsLoading || runsLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading || runsLoading ? 'animate-spin' : ''}`} />
+          새로고침
+        </Button>
+        <Button
+          onClick={() => setAutoRefresh((v) => !v)}
+          variant={autoRefresh ? 'default' : 'outline'}
+          size="sm"
+        >
+          {autoRefresh ? '자동 새로고침 중지' : '자동 새로고침 시작'}
+        </Button>
+      </div>,
+    );
+    return () => {
+      setHeaderExtra(null);
+      setHeaderRight(null);
+    };
   }, [
     setHeaderExtra,
+    setHeaderRight,
     owner,
     repo,
     autoRefresh,

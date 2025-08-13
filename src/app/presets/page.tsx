@@ -29,7 +29,7 @@ import {
 import { ROUTES } from '@/config/appConstants';
 
 export default function PresetsPage() {
-  const { setHeaderExtra } = useLayout();
+  const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner: _owner, repo: _repo, isConfigured: _isConfigured } = useRepository();
   const PresetsIcon = ROUTES.PRESETS.icon;
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,46 +43,47 @@ export default function PresetsPage() {
   } = useBlocks();
   const blocks = blocksData?.data || [];
 
-  // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
+  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex w-full items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex items-center justify-center rounded-md bg-violet-100 text-violet-700 p-2">
-            <PresetsIcon size={18} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
-              {ROUTES.PRESETS.label}
-            </div>
-            <div className="text-xs md:text-sm text-slate-500 truncate">
-              GitHub Actions 워크플로우 프리셋 관리
-            </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex items-center justify-center rounded-md bg-violet-100 text-violet-700 p-2">
+          <PresetsIcon size={18} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+            {ROUTES.PRESETS.label}
           </div>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Badge variant="outline" className="text-xs py-1 px-2">
-            <Settings className="w-4 h-4 mr-2" /> {blocks.length} 프리셋
-          </Badge>
-          <Button
-            onClick={() => refetchBlocks()}
-            disabled={blocksLoading}
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`}
-            />
-            새로고침
-          </Button>
-          <Button size="sm">
-            <Plus className="w-4 h-4 mr-2" />새 프리셋
-          </Button>
+          <div className="text-xs md:text-sm text-slate-500 truncate">
+            GitHub Actions 워크플로우 프리셋 관리
+          </div>
         </div>
       </div>,
     );
-    return () => setHeaderExtra(null);
-  }, [setHeaderExtra, blocks.length, blocksLoading, refetchBlocks]);
+    setHeaderRight(
+      <div className="flex items-center gap-2.5">
+        <Badge variant="outline" className="text-xs py-1 px-2">
+          <Settings className="w-4 h-4 mr-2" /> {blocks.length} 프리셋
+        </Badge>
+        <Button
+          onClick={() => refetchBlocks()}
+          disabled={blocksLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
+          새로고침
+        </Button>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />새 프리셋
+        </Button>
+      </div>,
+    );
+    return () => {
+      setHeaderExtra(null);
+      setHeaderRight(null);
+    };
+  }, [setHeaderExtra, setHeaderRight, blocks.length, blocksLoading, refetchBlocks]);
 
   // 프리셋 필터링
   const filteredBlocks = blocks.filter((block) => {
