@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useBlocks } from '@/api/hooks';
+import { usePresetBlocks } from '@/api/hooks';
 import { BlockResponse } from '@/api/types';
 import {
   Settings,
@@ -27,6 +27,13 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
+import {
+  getDomainColor,
+  getNodeIcon,
+  NODE_COLORS,
+} from '@/app/github-actions-flow/constants/nodeConstants';
+import { useRouter } from 'next/navigation';
+import type { ServerBlock } from '@/app/github-actions-flow/types';
 
 export default function PresetsPage() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
@@ -34,14 +41,18 @@ export default function PresetsPage() {
   const PresetsIcon = ROUTES.PRESETS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
+  const router = useRouter();
 
   // 훅 사용
   const {
     data: blocksData,
     isLoading: blocksLoading,
     refetch: refetchBlocks,
-  } = useBlocks();
-  const blocks = blocksData?.data || [];
+  } = usePresetBlocks();
+  const blocks = blocksData || [];
+  const [activeType, setActiveType] = useState<'all' | 'trigger' | 'job' | 'step'>('all');
+  const [selectedDomain, setSelectedDomain] = useState<string>('all');
+  const [selectedTask, setSelectedTask] = useState<string>('all');
 
   // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
   useEffect(() => {
@@ -85,18 +96,41 @@ export default function PresetsPage() {
     };
   }, [setHeaderExtra, setHeaderRight, blocks.length, blocksLoading, refetchBlocks]);
 
+  // 도메인/태스크 후보 계산 (step 전용)
+  const stepBlocks = blocks.filter((b) => b.type === 'step');
+  const domains = Array.from(
+    new Set(stepBlocks.map((b) => b.domain).filter(Boolean)),
+  ) as string[];
+  const tasks = (
+    selectedDomain === 'all'
+      ? Array.from(new Set(stepBlocks.flatMap((b) => b.task || []).filter(Boolean)))
+      : Array.from(
+          new Set(
+            stepBlocks
+              .filter((b) => b.domain === selectedDomain)
+              .flatMap((b) => b.task || [])
+              .filter(Boolean),
+          ),
+        )
+  ) as string[];
+
   // 프리셋 필터링
   const filteredBlocks = blocks.filter((block) => {
     const matchesSearch =
       searchTerm === '' ||
       block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      block.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (block.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       block.type.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // activeTab 상태가 제거되었으므로, 모든 타입을 포함하도록 변경
-    const matchesTab = true;
+    const matchesType = activeType === 'all' || block.type === activeType;
 
-    return matchesSearch && matchesTab;
+    // step 추가 필터
+    const matchesStepFilters =
+      block.type !== 'step' ||
+      ((selectedDomain === 'all' || block.domain === selectedDomain) &&
+        (selectedTask === 'all' || (block.task || []).includes(selectedTask)));
+
+    return matchesSearch && matchesType && matchesStepFilters;
   });
 
   const handleCopyBlock = async (block: BlockResponse) => {
@@ -124,8 +158,18 @@ export default function PresetsPage() {
   };
 
   const handleEditBlock = (block: BlockResponse) => {
-    // 편집 기능은 별도 모달이나 페이지로 이동
-    console.log('편집할 블록:', block);
+    // 워크플로우 에디터로 이동하여 해당 블록을 초기 배치로 편집
+    const serverBlock: ServerBlock = {
+      name: block.name,
+      type: block.type as 'trigger' | 'job' | 'step',
+      description: block.description || '',
+      'job-name': (block as unknown as { jobName?: string })?.jobName || '',
+      domain: (block as unknown as { domain?: string })?.domain,
+      task: (block as unknown as { task?: string[] })?.task,
+      config: (block.config ?? block.content) as Record<string, unknown>,
+    };
+    const payload = encodeURIComponent(JSON.stringify([serverBlock]));
+    router.push(`/github-actions-flow?blocks=${payload}`);
   };
 
   const handleDeleteBlock = (block: BlockResponse) => {
@@ -210,15 +254,65 @@ export default function PresetsPage() {
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <Tabs defaultValue="all" className="w-auto">
+                <Tabs defaultValue={activeType} className="w-auto">
                   <TabsList>
-                    <TabsTrigger value="all">전체</TabsTrigger>
-                    <TabsTrigger value="trigger">트리거</TabsTrigger>
-                    <TabsTrigger value="job">잡</TabsTrigger>
-                    <TabsTrigger value="step">스텝</TabsTrigger>
+                    <TabsTrigger value="all" onClick={() => setActiveType('all')}>
+                      전체
+                    </TabsTrigger>
+                    <TabsTrigger value="trigger" onClick={() => setActiveType('trigger')}>
+                      트리거
+                    </TabsTrigger>
+                    <TabsTrigger value="job" onClick={() => setActiveType('job')}>
+                      잡
+                    </TabsTrigger>
+                    <TabsTrigger value="step" onClick={() => setActiveType('step')}>
+                      스텝
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
+
+              {activeType === 'step' && (
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-gray-600 min-w-[48px]">
+                      도메인
+                    </label>
+                    <select
+                      value={selectedDomain}
+                      onChange={(e) => {
+                        setSelectedDomain(e.target.value);
+                        setSelectedTask('all');
+                      }}
+                      className="flex-1 px-2 py-2 text-xs border border-gray-300 rounded-md"
+                    >
+                      <option value="all">전체</option>
+                      {domains.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-gray-600 min-w-[48px]">
+                      태스크
+                    </label>
+                    <select
+                      value={selectedTask}
+                      onChange={(e) => setSelectedTask(e.target.value)}
+                      className="flex-1 px-2 py-2 text-xs border border-gray-300 rounded-md"
+                    >
+                      <option value="all">전체</option>
+                      {tasks.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -256,82 +350,123 @@ export default function PresetsPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredBlocks.map((block) => (
-                  <Card
-                    key={block.id}
-                    className="hover:shadow-lg transition-all duration-200 group"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon(block.type)}
-                          <h3 className="font-semibold text-gray-900">{block.name}</h3>
+                {filteredBlocks.map((block, index) => {
+                  const colors = (() => {
+                    if (block.type === 'trigger') return NODE_COLORS.TRIGGER;
+                    if (block.type === 'job') return NODE_COLORS.JOB;
+                    if (block.type === 'step' && (block as any).domain)
+                      return getDomainColor((block as any).domain as string);
+                    return {
+                      bg: '#f3f4f6',
+                      border: '#6b7280',
+                      text: '#374151',
+                      hover: '#e5e7eb',
+                    };
+                  })();
+                  const icon = getNodeIcon(
+                    block.type === 'trigger'
+                      ? 'TRIGGER'
+                      : block.type === 'job'
+                      ? 'JOB'
+                      : 'STEP',
+                  );
+                  return (
+                    <div key={index} className="group">
+                      <div
+                        style={{
+                          backgroundColor: colors.bg,
+                          border: `2px solid ${colors.border}`,
+                          color: colors.text,
+                        }}
+                        className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02]"
+                      >
+                        <div className="flex items-start gap-2 mb-2 w-full">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0">
+                            {icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                style={{ color: colors.text }}
+                                className="text-sm font-bold truncate"
+                              >
+                                {block.name}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${getTypeColor(block.type)}`}
+                              >
+                                {block.type}
+                              </Badge>
+                            </div>
+                            {/* 도메인/태스크 요약 */}
+                            <div className="flex items-center gap-1 text-xs">
+                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/50">
+                                <span className="truncate">
+                                  {block.type === 'step' && (block as any).domain
+                                    ? `${(block as any).domain}${
+                                        ((block as any).task || []).length > 0
+                                          ? ` • ${(block as any).task!.join(', ')}`
+                                          : ''
+                                      }`
+                                    : block.type}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        {getTypeBadge(block.type)}
+                        {block.description && (
+                          <div
+                            style={{ color: colors.text, opacity: 0.8 }}
+                            className="text-xs leading-relaxed w-full mb-2 line-clamp-2"
+                          >
+                            {block.description}
+                          </div>
+                        )}
+                        <div
+                          style={{ backgroundColor: colors.border, color: '#ffffff' }}
+                          className="px-2 py-0.5 text-[10px] rounded-full font-semibold inline-block w-auto shadow-sm"
+                        >
+                          {block.type.toUpperCase()}
+                        </div>
                       </div>
-                      {block.description && (
-                        <p className="text-sm text-gray-600 mt-2">{block.description}</p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>타입</span>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${getTypeColor(block.type)}`}
-                          >
-                            {block.type}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center justify-between text-sm text-gray-500">
-                          <span>생성일</span>
-                          <span>
-                            {block.createdAt
-                              ? new Date(block.createdAt).toLocaleDateString()
-                              : '-'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => handleCopyBlock(block)}
-                            disabled={copiedBlock === block.id.toString()}
-                          >
-                            {copiedBlock === block.id.toString() ? (
-                              <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                            ) : (
-                              <Copy className="w-4 h-4 mr-2" />
-                            )}
-                            {copiedBlock === block.id.toString() ? '복사됨' : '복사'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => handleEditBlock(block)}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            편집
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => handleDeleteBlock(block)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            삭제
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => handleCopyBlock(block)}
+                          disabled={copiedBlock === block.id.toString()}
+                        >
+                          {copiedBlock === block.id.toString() ? (
+                            <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 mr-2" />
+                          )}
+                          {copiedBlock === block.id.toString() ? '복사됨' : '복사'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => handleEditBlock(block)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          에디터에서 열기
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => handleDeleteBlock(block)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          삭제
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

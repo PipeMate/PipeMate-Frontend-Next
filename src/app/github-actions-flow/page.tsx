@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 
 import { ServerBlock } from './types';
@@ -41,6 +42,7 @@ export default function GitHubActionsFlowPage() {
   const { owner, repo, isConfigured } = useRepository();
   const createPipeline = useCreatePipeline();
   const [workflowName, setWorkflowName] = useState<string>('');
+  const searchParams = useSearchParams();
 
   //* ========================================
   //* 헤더 UI 설정
@@ -173,6 +175,24 @@ export default function GitHubActionsFlowPage() {
     },
     [selectedBlock, blocks],
   );
+
+  // Presets 페이지에서 넘어온 blocks 쿼리 파라미터 파싱 → 초기 블록 주입
+  useEffect(() => {
+    const raw = searchParams.get('blocks');
+    if (!raw) return;
+    try {
+      const decoded = decodeURIComponent(raw);
+      const parsed = JSON.parse(decoded);
+      if (Array.isArray(parsed)) {
+        setBlocks(parsed as ServerBlock[]);
+        toast.success('프리셋 블록이 워크스페이스에 추가되었습니다.');
+      }
+    } catch (e) {
+      console.error('프리셋 블록 파싱 실패:', e);
+      toast.error('프리셋 블록을 불러오지 못했습니다.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   //* ========================================
   //* UI 컴포넌트
