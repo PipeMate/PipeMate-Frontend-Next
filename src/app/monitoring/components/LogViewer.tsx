@@ -47,46 +47,43 @@ function classifyLine(line: string, segments: Segment[]) {
 
 function getLineClasses(kind: string) {
   const base =
-    'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words';
+    'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words text-slate-100';
   switch (kind) {
     case 'error':
-      return `${base} bg-red-50 text-red-700`;
+      return `${base} text-red-300`;
     case 'warn':
-      return `${base} bg-amber-50 text-amber-800`;
+      return `${base} text-amber-300`;
     case 'success':
-      return `${base} bg-green-50 text-green-700`;
+      return `${base} text-green-300`;
     case 'meta':
-      return `${base} bg-slate-100 text-slate-700 mt-2`;
+      return `${base} text-slate-300`;
     default:
-      return `${base} text-slate-700`;
+      return `${base}`;
   }
 }
 
 function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'meta')
     return (
-      <span key={idx} className="text-slate-600 font-medium">
+      <span key={idx} className="text-slate-300 font-medium">
         {seg.text}
       </span>
     );
   if (seg.type === 'bracket')
     return (
-      <span key={idx} className="px-1 rounded bg-slate-100 text-slate-700">
+      <span key={idx} className="px-1 rounded bg-white/10 text-slate-100">
         {seg.text}
       </span>
     );
   if (seg.type === 'gha') {
     const color =
       seg.level === 'error'
-        ? 'bg-red-100 text-red-700'
+        ? 'text-red-300'
         : seg.level === 'warning'
-        ? 'bg-amber-100 text-amber-800'
-        : 'bg-blue-100 text-blue-700';
+        ? 'text-amber-300'
+        : 'text-blue-300';
     return (
-      <span
-        key={idx}
-        className={`px-1.5 py-0.5 rounded ${color} text-[11px] font-semibold`}
-      >
+      <span key={idx} className={`${color} text-[11px] font-semibold`}>
         {seg.text}
       </span>
     );
@@ -134,9 +131,9 @@ export default function LogViewer({ raw }: { raw: string }) {
   };
 
   return (
-    <div className="bg-white rounded border p-3">
+    <div className="bg-slate-900 rounded border border-slate-800 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="font-medium text-slate-900">Logs</div>
+        <div className="font-medium text-slate-200">Logs</div>
         <div className="flex items-center gap-1.5">
           <div className="hidden sm:flex items-center rounded border bg-white overflow-hidden">
             {(
@@ -162,7 +159,7 @@ export default function LogViewer({ raw }: { raw: string }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="검색"
-            className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300"
+            className="h-8 px-2 text-[12px] rounded border bg-slate-800 text-slate-100 outline-none focus:ring-1 focus:ring-slate-600 border-slate-700 placeholder:text-slate-400"
           />
           <Button
             size="sm"
@@ -188,7 +185,7 @@ export default function LogViewer({ raw }: { raw: string }) {
           </Button>
         </div>
       </div>
-      <div className="max-h-[520px] overflow-auto rounded border bg-slate-50 p-2">
+      <div className="max-h-[520px] overflow-auto rounded border border-slate-800 bg-slate-950 p-2">
         {visible.map((it, i) => (
           <div key={i} className={getLineClasses(it.kind)}>
             <div className="flex items-start gap-1.5">
