@@ -30,7 +30,7 @@ export default function StepsList({ steps }: { steps: Step[] }) {
         return (
           <div
             key={idx}
-            className={`flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded border ${tone.border}`}
+            className={`flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded ${tone.bg}`}
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className={`w-2 h-2 rounded-full ${tone.dot}`} />
@@ -49,5 +49,3 @@ export default function StepsList({ steps }: { steps: Step[] }) {
     </div>
   );
 }
-
-

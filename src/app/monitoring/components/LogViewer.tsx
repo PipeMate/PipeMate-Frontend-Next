@@ -27,7 +27,11 @@ export default function LogViewer({ raw }: { raw: string }) {
           >
             복사
           </Button>
-          <Button size="sm" variant="outline" onClick={() => openInNewWindow('Workflow Run Logs', snippet)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
+          >
             새 창
           </Button>
         </div>
@@ -38,5 +42,3 @@ export default function LogViewer({ raw }: { raw: string }) {
     </div>
   );
 }
-
-

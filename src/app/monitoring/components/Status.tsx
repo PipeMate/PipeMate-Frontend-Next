@@ -109,17 +109,14 @@ export const getStepBadge = (status?: string, conclusion?: string) => {
 };
 
 export const getStepTone = (status?: string, conclusion?: string) => {
-  if (conclusion === 'success')
-    return { dot: 'bg-green-500', border: 'border-l-2 border-green-400' };
+  const neutralBorder = '';
+  if (conclusion === 'success') return { dot: 'bg-green-500', border: neutralBorder, bg: '' } as const;
   if (conclusion === 'failure' || conclusion === 'failed')
-    return { dot: 'bg-red-500', border: 'border-l-2 border-red-400' };
-  if (conclusion === 'cancelled')
-    return { dot: 'bg-gray-400', border: 'border-l-2 border-gray-300' };
-  if (conclusion === 'skipped')
-    return { dot: 'bg-slate-400', border: 'border-l-2 border-slate-300' };
-  if (status === 'in_progress')
-    return { dot: 'bg-blue-500', border: 'border-l-2 border-blue-400' };
+    return { dot: 'bg-red-500', border: neutralBorder, bg: 'bg-red-50' } as const;
+  if (conclusion === 'cancelled') return { dot: 'bg-gray-400', border: neutralBorder, bg: '' } as const;
+  if (conclusion === 'skipped') return { dot: 'bg-slate-400', border: neutralBorder, bg: '' } as const;
+  if (status === 'in_progress') return { dot: 'bg-blue-500', border: neutralBorder, bg: '' } as const;
   if (status === 'queued' || status === 'waiting')
-    return { dot: 'bg-amber-500', border: 'border-l-2 border-amber-400' };
-  return { dot: 'bg-slate-300', border: 'border-l-2 border-slate-200' };
+    return { dot: 'bg-amber-500', border: neutralBorder, bg: '' } as const;
+  return { dot: 'bg-slate-300', border: neutralBorder, bg: '' } as const;
 };
