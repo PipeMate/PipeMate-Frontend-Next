@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
@@ -214,7 +214,7 @@ export default function MonitoringPage() {
     return lines.slice(start, end).join('\n');
   };
 
-  const RunDetail = () => {
+  const RunDetail = ({ compact = false }: { compact?: boolean }) => {
     if (!selectedRun) return null;
     const meta = runDetailData?.data || {};
     const metaRows = [
@@ -233,25 +233,27 @@ export default function MonitoringPage() {
     ];
     return (
       <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="pb-4 border-b">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-sm text-slate-500">실행 상세</div>
-              <CardTitle className="text-lg mt-1">
-                {selectedRun.name}{' '}
-                <span className="text-slate-400">#{selectedRun.run_number}</span>
-              </CardTitle>
+        {!compact && (
+          <CardHeader className="pb-4 border-b">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm text-slate-500">실행 상세</div>
+                <CardTitle className="text-lg mt-1">
+                  {selectedRun.name}{' '}
+                  <span className="text-slate-400">#{selectedRun.run_number}</span>
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
+                {!isMobile && (
+                  <Button size="sm" variant="outline" onClick={() => setSelectedRun(null)}>
+                    닫기
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {getStatusBadge(selectedRun.status, selectedRun.conclusion)}
-              {!isMobile && (
-                <Button size="sm" variant="outline" onClick={() => setSelectedRun(null)}>
-                  닫기
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
+        )}
         <CardContent>
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px]">
             {metaRows.map((row) => (
@@ -867,21 +869,21 @@ export default function MonitoringPage() {
         {/* 태블릿 전용(768~1023px): 상세를 우측 시트로 표시하여 스크롤 왕복 최소화 */}
         <div className="hidden md:block lg:hidden">
           <Sheet open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
-            <SheetContent side="right" className="w-[88vw] sm:max-w-none">
-              <SheetHeader className="px-2 pt-6">
-                <SheetTitle>실행 상세</SheetTitle>
-              </SheetHeader>
-              <div className="p-2">
-                {selectedRun ? (
-                  <RunDetail />
-                ) : (
-                  <Card className="border-dashed">
-                    <CardContent className="p-10 text-center text-gray-500">
-                      <div className="text-lg font-medium mb-2">실행 상세</div>
-                      <div className="text-sm">좌측에서 실행을 선택하세요.</div>
-                    </CardContent>
-                  </Card>
-                )}
+            <SheetContent side="right" className="w-[88vw] sm:max-w-none p-0">
+              <div className="px-6 pt-6 pb-0 border-b">
+                <div className="text-sm text-slate-500">실행 상세</div>
+                <div className="text-lg font-semibold text-slate-900">
+                  {selectedRun ? (
+                    <>
+                      {selectedRun.name} <span className="text-slate-400">#{selectedRun.run_number}</span>
+                    </>
+                  ) : (
+                    '실행 상세'
+                  )}
+                </div>
+              </div>
+              <div className="p-4 max-h-[85vh] overflow-y-auto">
+                {selectedRun ? <RunDetail compact /> : null}
               </div>
             </SheetContent>
           </Sheet>
@@ -894,8 +896,8 @@ export default function MonitoringPage() {
               <DialogHeader className="px-6 pt-6">
                 <DialogTitle>실행 상세</DialogTitle>
               </DialogHeader>
-              <div className="p-6">
-                <RunDetail />
+              <div className="p-6 max-h-[85vh] overflow-y-auto">
+                <RunDetail compact />
               </div>
             </DialogContent>
           </Dialog>
