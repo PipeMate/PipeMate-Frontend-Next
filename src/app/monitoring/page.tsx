@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
@@ -21,7 +21,7 @@ import {
   Monitor,
   Play,
   Clock,
-  GitBranch,
+  // GitBranch,
   RefreshCw,
   Activity,
   TrendingUp,
@@ -593,13 +593,7 @@ export default function MonitoringPage() {
         {/* 2열 레이아웃: 좌측 목록 / 우측 상세 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div>
-            <Tabs defaultValue="recent" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="recent">최근 실행</TabsTrigger>
-                <TabsTrigger value="workflows">워크플로우별</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="recent" className="space-y-4">
+            <div className="w-full space-y-4">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -676,96 +670,7 @@ export default function MonitoringPage() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="workflows" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <GitBranch className="w-5 h-5" />
-                      워크플로우별 상태
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {workflowsLoading ? (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">워크플로우를 불러오는 중...</p>
-                      </div>
-                    ) : workflows.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Monitor className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          워크플로우가 없습니다
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                          이 레포지토리에 워크플로우가 없습니다.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {workflows.map((workflow) => {
-                          const workflowRuns = getWorkflowRuns(workflow.id);
-                          const recentRun = workflowRuns[0];
-
-                          return (
-                            <Card
-                              key={workflow.id}
-                              className="hover:shadow-md transition-shadow"
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    {getStatusIcon(workflow.state)}
-                                    <h4 className="font-semibold text-gray-900">
-                                      {workflow.name}
-                                    </h4>
-                                  </div>
-                                  {getStatusBadge(workflow.state)}
-                                </div>
-                                <p className="text-sm text-gray-600 mb-3">
-                                  {workflow.path}
-                                </p>
-
-                                {recentRun && (
-                                  <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-gray-600">최근 실행:</span>
-                                      <span className="text-gray-700">
-                                        #{recentRun.run_number} •{' '}
-                                        {getTimeAgo(recentRun.created_at)}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                      <span className="text-gray-600">상태:</span>
-                                      {getStatusBadge(
-                                        recentRun.status,
-                                        recentRun.conclusion,
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-gray-500">
-                                    마지막 업데이트:{' '}
-                                    {new Date(workflow.updatedAt).toLocaleDateString()}
-                                  </span>
-                                  <Button size="sm" variant="outline">
-                                    <Play className="w-4 h-4 mr-2" />
-                                    실행
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            </div>
           </div>
 
           <div className="hidden lg:block sticky top-4 self-start">
