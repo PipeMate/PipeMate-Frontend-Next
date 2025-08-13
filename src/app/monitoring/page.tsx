@@ -274,25 +274,42 @@ export default function MonitoringPage() {
         <CardContent>
           {/* 개요 요약 */}
           {Array.isArray(runJobsData) && runJobsData.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px]">
+            <div className="mb-4 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[12px]">
               {(() => {
                 const jobs = runJobsData as any[];
                 const totalJobs = jobs.length;
                 const stepsAll = jobs.flatMap((j: any) => j.steps || []);
                 const totalSteps = stepsAll.length;
-                const successSteps = stepsAll.filter((s: any) => s.conclusion === 'success').length;
-                const failedSteps = stepsAll.filter((s: any) => s.conclusion === 'failure' || s.conclusion === 'failed').length;
-                const skippedSteps = stepsAll.filter((s: any) => s.conclusion === 'skipped').length;
+                const successSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'success',
+                ).length;
+                const failedSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'failure' || s.conclusion === 'failed',
+                ).length;
+                const skippedSteps = stepsAll.filter(
+                  (s: any) => s.conclusion === 'skipped',
+                ).length;
+                const statusBadge = getStatusBadge(selectedRun.status, selectedRun.conclusion);
                 const items = [
                   { k: '잡 수', v: totalJobs, cls: 'bg-slate-50' },
                   { k: '스텝 수', v: totalSteps, cls: 'bg-slate-50' },
                   { k: '성공', v: successSteps, cls: 'bg-green-50' },
-                  { k: '실패/스킵', v: `${failedSteps}/${skippedSteps}`, cls: 'bg-red-50' },
+                  {
+                    k: '실패/스킵',
+                    v: `${failedSteps}/${skippedSteps}`,
+                    cls: 'bg-red-50',
+                  },
+                  { k: '결론', v: statusBadge, cls: 'bg-slate-50' },
                 ];
                 return items.map((it) => (
-                  <div key={it.k} className={`px-2.5 py-1.5 rounded border border-slate-200 ${it.cls} flex items-center justify-between`}>
+                  <div
+                    key={it.k}
+                    className={`px-2.5 py-1.5 rounded border border-slate-200 ${it.cls} flex items-center justify-between`}
+                  >
                     <span className="text-slate-500">{it.k}</span>
-                    <span className="text-slate-900 font-semibold">{it.v}</span>
+                    <span className="text-slate-900 font-semibold flex items-center gap-1">
+                      {typeof it.v === 'string' ? it.v : it.v}
+                    </span>
                   </div>
                 ));
               })()}
@@ -337,34 +354,25 @@ export default function MonitoringPage() {
                           {getStatusBadge(job.status, job.conclusion)}
                         </div>
                       </div>
-                      <div className="mt-2 grid gap-2">
+                      <div className="mt-2 grid gap-1.5">
                         {(job.steps || []).map((st: any, idx: number) => (
-                          <button
+                          <div
                             key={idx}
-                            className={`flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded hover:bg-slate-50 border ${
-                              focusedJobId === job.id && focusedStepName === st.name
-                                ? 'border-blue-300 bg-blue-50'
-                                : 'border-transparent'
-                            }`}
-                            onClick={() => {
-                              setFocusedJobId(job.id);
-                              setFocusedStepName(st.name);
-                              setActiveTab('details');
-                            }}
+                            className="flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded border border-transparent hover:bg-slate-50"
                           >
                             <div className="text-slate-700 flex items-center gap-3 min-w-0">
-                              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold ${
-                                focusedJobId === job.id && focusedStepName === st.name ? 'bg-blue-200 text-blue-800' : 'bg-slate-100 text-slate-700'
-                              }`}>
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
                                 {idx + 1}
                               </span>
                               <span className="truncate">{st.name}</span>
-                              <span className="text-xs text-slate-400 flex-shrink-0">{formatDuration(st.startedAt, st.completedAt)}</span>
+                              <span className="text-xs text-slate-400 flex-shrink-0">
+                                {formatDuration(st.startedAt, st.completedAt)}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-500">
                               {getStepBadge?.(st.status, st.conclusion) || null}
                             </div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -380,10 +388,7 @@ export default function MonitoringPage() {
                 (() => {
                   const rawLog: string =
                     typeof runLogsData === 'string' ? runLogsData : '';
-                  const snippet =
-                    focusedStepName && rawLog
-                      ? extractSnippetByKeyword(rawLog, focusedStepName)
-                      : rawLog || '로그가 없습니다.';
+                  const snippet = rawLog || '로그가 없습니다.';
                   const jobName = (() => {
                     const jobs = Array.isArray(runJobsData) ? (runJobsData as any[]) : [];
                     const j = jobs.find((j) => j.id === focusedJobId);
@@ -392,16 +397,7 @@ export default function MonitoringPage() {
                   return (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-xs text-slate-500 truncate">
-                          {focusedStepName ? (
-                            <>
-                              {jobName ? `${jobName} › ` : ''}
-                              <span className="font-medium text-slate-600">{focusedStepName}</span>
-                            </>
-                          ) : (
-                            '전체 로그'
-                          )}
-                        </div>
+                        <div className="text-xs text-slate-600 truncate">전체 로그</div>
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
@@ -545,34 +541,40 @@ export default function MonitoringPage() {
     const base = 'border px-2 py-0.5 rounded text-xs font-medium';
     if (status === 'completed') {
       return conclusion === 'success' ? (
-        <span className={`${base} bg-green-100 text-green-800 border-green-200`}>
-          성공
+        <span className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}>
+          <CheckCircle className="w-3.5 h-3.5" /> 성공
         </span>
       ) : (
-        <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>
+        <span className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}>
+          <XCircle className="w-3.5 h-3.5" /> 실패
+        </span>
       );
     }
     if (status === 'in_progress') {
       return (
-        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>
-          실행 중
+        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}>
+          <Activity className="w-3.5 h-3.5" /> 실행 중
         </span>
       );
     }
     if (status === 'waiting') {
       return (
-        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>
-          대기 중
+        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}>
+          <Clock className="w-3.5 h-3.5" /> 대기 중
         </span>
       );
     }
     if (status === 'cancelled') {
       return (
-        <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>취소</span>
+        <span className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}>
+          <XCircle className="w-3.5 h-3.5" /> 취소
+        </span>
       );
     }
     return (
-      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>기타</span>
+      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+        <AlertTriangle className="w-3.5 h-3.5" /> 기타
+      </span>
     );
   };
   const getStepBadge = (status?: string, conclusion?: string) => {
@@ -580,42 +582,44 @@ export default function MonitoringPage() {
     if (conclusion) {
       if (conclusion === 'success')
         return (
-          <span className={`${base} bg-green-100 text-green-800 border-green-200`}>
-            성공
+          <span className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}>
+            <CheckCircle className="w-3.5 h-3.5" /> 성공
           </span>
         );
       if (conclusion === 'failure' || conclusion === 'failed')
         return (
-          <span className={`${base} bg-red-100 text-red-800 border-red-200`}>실패</span>
+          <span className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}>
+            <XCircle className="w-3.5 h-3.5" /> 실패
+          </span>
         );
       if (conclusion === 'cancelled')
         return (
-          <span className={`${base} bg-gray-100 text-gray-700 border-gray-200`}>
-            취소
+          <span className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}>
+            <XCircle className="w-3.5 h-3.5" /> 취소
           </span>
         );
       if (conclusion === 'skipped')
         return (
-          <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>
-            건너뜀
+          <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+            <AlertTriangle className="w-3.5 h-3.5" /> 건너뜀
           </span>
         );
     }
     if (status === 'in_progress')
       return (
-        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200`}>
-          실행 중
+        <span className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}>
+          <Activity className="w-3.5 h-3.5" /> 실행 중
         </span>
       );
     if (status === 'queued' || status === 'waiting')
       return (
-        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200`}>
-          대기 중
+        <span className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}>
+          <Clock className="w-3.5 h-3.5" /> 대기 중
         </span>
       );
     return (
-      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200`}>
-        {status || '기타'}
+      <span className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}>
+        <AlertTriangle className="w-3.5 h-3.5" /> {status || '기타'}
       </span>
     );
   };
