@@ -50,27 +50,29 @@ export default function WorkflowsPage() {
   // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
     setHeaderExtra(
-      <div className="flex w-full items-center justify-between gap-3">
+      <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-1.5">
-            <Workflow size={16} />
+          <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
+            <Workflow size={18} />
           </span>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-900 leading-tight">
+            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
               {ROUTES.WORKFLOWS.label}
             </div>
-            <div className="text-xs text-slate-500 truncate">
+            <div className="text-xs md:text-sm text-slate-500 truncate">
               {owner && repo ? (
-                <span className="text-slate-700">{owner}/{repo}</span>
+                <span className="text-slate-700">
+                  {owner}/{repo}
+                </span>
               ) : (
                 'GitHub Actions 워크플로우 관리 및 실행'
               )}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[11px]">
-            <GitBranch className="w-3.5 h-3.5 mr-1" /> {workflows.length} 워크플로우
+        <div className="flex items-center gap-2.5">
+          <Badge variant="outline" className="text-xs py-1 px-2">
+            <GitBranch className="w-4 h-4 mr-2" /> {workflows.length} 워크플로우
           </Badge>
           <Button
             onClick={() => refetchWorkflows()}
@@ -78,9 +80,7 @@ export default function WorkflowsPage() {
             variant="outline"
             size="sm"
           >
-            <RefreshCw
-              className={`w-4 h-4 mr-1.5 ${workflowsLoading ? 'animate-spin' : ''}`}
-            />
+            <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`} />
             새로고침
           </Button>
         </div>
