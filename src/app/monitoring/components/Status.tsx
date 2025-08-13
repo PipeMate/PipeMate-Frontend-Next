@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  XCircle,
-} from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 export const getStatusIcon = (status: string, conclusion?: string) => {
   if (status === 'completed') {
@@ -25,7 +19,8 @@ export const getStatusIcon = (status: string, conclusion?: string) => {
 };
 
 export const getStatusBadge = (status: string, conclusion?: string) => {
-  const base = 'border px-2 py-0.5 rounded text-xs font-medium inline-flex items-center gap-1';
+  const base =
+    'border px-2 py-0.5 rounded text-xs font-medium inline-flex items-center gap-1';
   if (status === 'completed') {
     return conclusion === 'success' ? (
       <span className={`${base} bg-green-100 text-green-800 border-green-200`}>
@@ -66,7 +61,8 @@ export const getStatusBadge = (status: string, conclusion?: string) => {
 };
 
 export const getStepBadge = (status?: string, conclusion?: string) => {
-  const base = 'border px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1';
+  const base =
+    'border px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1';
   if (conclusion) {
     if (conclusion === 'success')
       return (
@@ -113,15 +109,17 @@ export const getStepBadge = (status?: string, conclusion?: string) => {
 };
 
 export const getStepTone = (status?: string, conclusion?: string) => {
-  if (conclusion === 'success') return { dot: 'bg-green-500', border: 'border-l-2 border-green-400' };
+  if (conclusion === 'success')
+    return { dot: 'bg-green-500', border: 'border-l-2 border-green-400' };
   if (conclusion === 'failure' || conclusion === 'failed')
     return { dot: 'bg-red-500', border: 'border-l-2 border-red-400' };
-  if (conclusion === 'cancelled') return { dot: 'bg-gray-400', border: 'border-l-2 border-gray-300' };
-  if (conclusion === 'skipped') return { dot: 'bg-slate-400', border: 'border-l-2 border-slate-300' };
-  if (status === 'in_progress') return { dot: 'bg-blue-500', border: 'border-l-2 border-blue-400' };
+  if (conclusion === 'cancelled')
+    return { dot: 'bg-gray-400', border: 'border-l-2 border-gray-300' };
+  if (conclusion === 'skipped')
+    return { dot: 'bg-slate-400', border: 'border-l-2 border-slate-300' };
+  if (status === 'in_progress')
+    return { dot: 'bg-blue-500', border: 'border-l-2 border-blue-400' };
   if (status === 'queued' || status === 'waiting')
     return { dot: 'bg-amber-500', border: 'border-l-2 border-amber-400' };
   return { dot: 'bg-slate-300', border: 'border-l-2 border-slate-200' };
 };
-
-

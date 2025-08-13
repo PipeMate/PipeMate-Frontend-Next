@@ -12,7 +12,8 @@ type Props = {
 };
 
 export default function RunOverviewChips(props: Props) {
-  const { totalJobs, totalSteps, successSteps, failedSteps, skippedSteps, statusBadge } = props;
+  const { totalJobs, totalSteps, successSteps, failedSteps, skippedSteps, statusBadge } =
+    props;
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 text-[12px]">
       <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
@@ -25,7 +26,10 @@ export default function RunOverviewChips(props: Props) {
         Success: <span className="font-semibold">{successSteps}</span>
       </div>
       <div className="px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-red-700">
-        Fail/Skip: <span className="font-semibold">{failedSteps}/{skippedSteps}</span>
+        Fail/Skip:{' '}
+        <span className="font-semibold">
+          {failedSteps}/{skippedSteps}
+        </span>
       </div>
       <div className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-slate-700 flex items-center gap-1">
         {statusBadge}
@@ -33,5 +37,3 @@ export default function RunOverviewChips(props: Props) {
     </div>
   );
 }
-
-

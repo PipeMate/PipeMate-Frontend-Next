@@ -17,9 +17,28 @@ import {
   useWorkflowRunLogs,
   useWorkflowRunDetail,
 } from '@/api/hooks';
-import { Monitor, Play, Clock, GitBranch, RefreshCw, Activity, TrendingUp, AlertTriangle, Info, Loader2, X } from 'lucide-react';
-import { getStatusIcon, getStatusBadge, getStepBadge, getStepTone } from './components/Status';
+import {
+  Monitor,
+  Play,
+  Clock,
+  GitBranch,
+  RefreshCw,
+  Activity,
+  TrendingUp,
+  AlertTriangle,
+  Info,
+  Loader2,
+  X,
+} from 'lucide-react';
+import {
+  getStatusIcon,
+  getStatusBadge,
+  getStepBadge,
+  getStepTone,
+} from './components/Status';
 import RunOverviewChips from './components/RunOverviewChips';
+import StepsList from './components/StepsList';
+import LogViewer from './components/LogViewer';
 import { ROUTES } from '@/config/appConstants';
 
 interface WorkflowRun {
@@ -346,51 +365,7 @@ export default function MonitoringPage() {
                           {getStatusBadge(job.status, job.conclusion)}
                         </div>
                       </div>
-                      <div className="mt-2 grid gap-1.5">
-                        {(job.steps || []).map((st: any, idx: number) => {
-                          const tone = getStepTone(st.status, st.conclusion);
-                          const iconOnly =
-                            st.conclusion === 'success' ? (
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                            ) : st.conclusion === 'failure' ||
-                              st.conclusion === 'failed' ? (
-                              <XCircle className="w-4 h-4 text-red-600" />
-                            ) : st.conclusion === 'skipped' ? (
-                              <AlertTriangle className="w-4 h-4 text-slate-500" />
-                            ) : st.status === 'in_progress' ? (
-                              <Activity className="w-4 h-4 text-blue-600" />
-                            ) : st.status === 'queued' || st.status === 'waiting' ? (
-                              <Clock className="w-4 h-4 text-amber-600" />
-                            ) : (
-                              <AlertTriangle className="w-4 h-4 text-slate-500" />
-                            );
-                          return (
-                            <div
-                              key={idx}
-                              className={`group flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded border border-transparent hover:bg-slate-50 ${tone.border}`}
-                            >
-                              <div className="text-slate-700 flex items-center gap-3 min-w-0">
-                                <span
-                                  className={`inline-block w-2.5 h-2.5 rounded-full ${tone.dot}`}
-                                />
-                                <span className="text-[10px] text-slate-400 w-6 text-center">
-                                  #{idx + 1}
-                                </span>
-                                <span className="truncate">{st.name}</span>
-                                <span className="text-xs text-slate-400 flex-shrink-0">
-                                  {formatDuration(st.startedAt, st.completedAt)}
-                                </span>
-                              </div>
-                              <div
-                                className="flex items-center gap-2 text-slate-500"
-                                title={st.conclusion || st.status}
-                              >
-                                {iconOnly}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <StepsList steps={job.steps || []} />
                     </div>
                   ))}
                 </div>
@@ -401,46 +376,7 @@ export default function MonitoringPage() {
               {logsLoading ? (
                 <div className="text-center py-6 text-gray-500">로그 불러오는 중...</div>
               ) : (
-                (() => {
-                  const rawLog: string =
-                    typeof runLogsData === 'string' ? runLogsData : '';
-                  const snippet = rawLog || '로그가 없습니다.';
-                  return (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-slate-600 truncate">전체 로그</div>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => copyText(snippet)}
-                          >
-                            복사
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              downloadText(`run-${selectedRun?.id}.log`, snippet)
-                            }
-                          >
-                            다운로드
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openInNewWindow('Workflow Run Logs', snippet)}
-                          >
-                            새 창
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-[480px] overflow-auto border border-slate-800 shadow-inner">
-                        <pre className="whitespace-pre-wrap break-words">{snippet}</pre>
-                      </div>
-                    </div>
-                  );
-                })()
+                <LogViewer raw={typeof runLogsData === 'string' ? runLogsData : ''} />
               )}
             </TabsContent>
           </Tabs>
@@ -530,150 +466,6 @@ export default function MonitoringPage() {
     } catch (error) {
       console.error('워크플로우 실행 취소 실패:', error);
     }
-  };
-
-  const getStatusIcon = (status: string, conclusion?: string) => {
-    if (status === 'completed') {
-      return conclusion === 'success' ? (
-        <CheckCircle className="w-4 h-4 text-green-600" />
-      ) : (
-        <XCircle className="w-4 h-4 text-red-600" />
-      );
-    } else if (status === 'in_progress') {
-      return <Activity className="w-4 h-4 text-blue-600 animate-pulse" />;
-    } else if (status === 'waiting') {
-      return <Clock className="w-4 h-4 text-yellow-600" />;
-    } else {
-      return <AlertTriangle className="w-4 h-4 text-gray-600" />;
-    }
-  };
-
-  const getStatusBadge = (status: string, conclusion?: string) => {
-    const base = 'border px-2 py-0.5 rounded text-xs font-medium';
-    if (status === 'completed') {
-      return conclusion === 'success' ? (
-        <span
-          className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}
-        >
-          <CheckCircle className="w-3.5 h-3.5" /> 성공
-        </span>
-      ) : (
-        <span
-          className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}
-        >
-          <XCircle className="w-3.5 h-3.5" /> 실패
-        </span>
-      );
-    }
-    if (status === 'in_progress') {
-      return (
-        <span
-          className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}
-        >
-          <Activity className="w-3.5 h-3.5" /> 실행 중
-        </span>
-      );
-    }
-    if (status === 'waiting') {
-      return (
-        <span
-          className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}
-        >
-          <Clock className="w-3.5 h-3.5" /> 대기 중
-        </span>
-      );
-    }
-    if (status === 'cancelled') {
-      return (
-        <span
-          className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}
-        >
-          <XCircle className="w-3.5 h-3.5" /> 취소
-        </span>
-      );
-    }
-    return (
-      <span
-        className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
-      >
-        <AlertTriangle className="w-3.5 h-3.5" /> 기타
-      </span>
-    );
-  };
-  const getStepBadge = (status?: string, conclusion?: string) => {
-    const base = 'border px-2 py-0.5 rounded text-[11px] font-medium';
-    if (conclusion) {
-      if (conclusion === 'success')
-        return (
-          <span
-            className={`${base} bg-green-100 text-green-800 border-green-200 inline-flex items-center gap-1`}
-          >
-            <CheckCircle className="w-3.5 h-3.5" /> 성공
-          </span>
-        );
-      if (conclusion === 'failure' || conclusion === 'failed')
-        return (
-          <span
-            className={`${base} bg-red-100 text-red-800 border-red-200 inline-flex items-center gap-1`}
-          >
-            <XCircle className="w-3.5 h-3.5" /> 실패
-          </span>
-        );
-      if (conclusion === 'cancelled')
-        return (
-          <span
-            className={`${base} bg-gray-100 text-gray-700 border-gray-200 inline-flex items-center gap-1`}
-          >
-            <XCircle className="w-3.5 h-3.5" /> 취소
-          </span>
-        );
-      if (conclusion === 'skipped')
-        return (
-          <span
-            className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" /> 건너뜀
-          </span>
-        );
-    }
-    if (status === 'in_progress')
-      return (
-        <span
-          className={`${base} bg-blue-100 text-blue-800 border-blue-200 inline-flex items-center gap-1`}
-        >
-          <Activity className="w-3.5 h-3.5" /> 실행 중
-        </span>
-      );
-    if (status === 'queued' || status === 'waiting')
-      return (
-        <span
-          className={`${base} bg-amber-100 text-amber-800 border-amber-200 inline-flex items-center gap-1`}
-        >
-          <Clock className="w-3.5 h-3.5" /> 대기 중
-        </span>
-      );
-    return (
-      <span
-        className={`${base} bg-slate-100 text-slate-700 border-slate-200 inline-flex items-center gap-1`}
-      >
-        <AlertTriangle className="w-3.5 h-3.5" /> {status || '기타'}
-      </span>
-    );
-  };
-  const getStepTone = (status?: string, conclusion?: string) => {
-    if (conclusion === 'success')
-      return { dot: 'bg-green-500', border: 'border-l-2 border-green-400' };
-    if (conclusion === 'failure' || conclusion === 'failed')
-      return { dot: 'bg-red-500', border: 'border-l-2 border-red-400' };
-    if (conclusion === 'cancelled')
-      return { dot: 'bg-gray-400', border: 'border-l-2 border-gray-300' };
-    if (conclusion === 'skipped')
-      return { dot: 'bg-slate-400', border: 'border-l-2 border-slate-300' };
-    if (status === 'in_progress')
-      return { dot: 'bg-blue-500', border: 'border-l-2 border-blue-400' };
-    if (status === 'queued' || status === 'waiting')
-      return { dot: 'bg-amber-500', border: 'border-l-2 border-amber-400' };
-    return { dot: 'bg-slate-300', border: 'border-l-2 border-slate-200' };
   };
 
   const _getStatusText = (status: string, conclusion?: string) => {
