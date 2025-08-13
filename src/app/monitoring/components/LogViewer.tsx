@@ -50,13 +50,13 @@ function getLineClasses(kind: string) {
     'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words text-slate-100';
   switch (kind) {
     case 'error':
-      return `${base} text-red-300`;
+      return `${base} bg-red-900/20 text-red-300`;
     case 'warn':
-      return `${base} text-amber-300`;
+      return `${base} bg-amber-900/20 text-amber-300`;
     case 'success':
-      return `${base} text-green-300`;
+      return `${base} bg-green-900/20 text-green-300`;
     case 'meta':
-      return `${base} text-slate-300`;
+      return `${base} bg-slate-800/50 text-slate-300`;
     default:
       return `${base}`;
   }
@@ -78,12 +78,12 @@ function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'gha') {
     const color =
       seg.level === 'error'
-        ? 'text-red-300'
+        ? 'bg-red-900/40 text-red-200'
         : seg.level === 'warning'
-        ? 'text-amber-300'
-        : 'text-blue-300';
+        ? 'bg-amber-900/40 text-amber-200'
+        : 'bg-blue-900/40 text-blue-200';
     return (
-      <span key={idx} className={`${color} text-[11px] font-semibold`}>
+      <span key={idx} className={`px-1 rounded ${color} text-[11px] font-semibold`}>
         {seg.text}
       </span>
     );
@@ -131,9 +131,9 @@ export default function LogViewer({ raw }: { raw: string }) {
   };
 
   return (
-    <div className="bg-slate-900 rounded border border-slate-800 p-3">
+    <div className="bg-white rounded border border-slate-200 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="font-medium text-slate-200">Logs</div>
+        <div className="font-medium text-slate-900">Logs</div>
         <div className="flex items-center gap-1.5">
           <div className="hidden sm:flex items-center rounded border bg-white overflow-hidden">
             {(
@@ -159,7 +159,7 @@ export default function LogViewer({ raw }: { raw: string }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="검색"
-            className="h-8 px-2 text-[12px] rounded border bg-slate-800 text-slate-100 outline-none focus:ring-1 focus:ring-slate-600 border-slate-700 placeholder:text-slate-400"
+            className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
           />
           <Button
             size="sm"
