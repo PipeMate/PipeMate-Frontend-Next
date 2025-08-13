@@ -47,7 +47,7 @@ function classifyLine(line: string, segments: Segment[]) {
 
 function getLineClasses(kind: string) {
   const base =
-    'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words text-slate-200 border-l';
+    'font-mono text-[12px] leading-5 px-2 py-0.5 whitespace-pre-wrap break-words text-slate-200 border-l-2 transition-colors duration-150 hover:bg-slate-900/40';
   switch (kind) {
     case 'error':
       return `${base} text-red-400 font-semibold border-red-500`;
@@ -62,10 +62,13 @@ function getLineClasses(kind: string) {
   }
 }
 
-function renderSegment(seg: Segment, idx: number) {
+function renderSegment(seg: Segment, idx: number, lineKind?: string) {
   if (seg.type === 'meta') {
     const t = seg.text.toLowerCase();
-    const color = /error|fail/.test(t)
+    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const color = strongLine
+      ? 'text-inherit'
+      : /error|fail/.test(t)
       ? 'text-red-400'
       : /warn/.test(t)
       ? 'text-amber-300'
@@ -83,13 +86,16 @@ function renderSegment(seg: Segment, idx: number) {
   }
   if (seg.type === 'bracket') {
     const t = seg.text.toLowerCase();
-    const color = /error|fail/.test(t)
+    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const color = strongLine
+      ? 'text-inherit'
+      : /error|fail/.test(t)
       ? 'text-red-400'
       : /warn/.test(t)
       ? 'text-amber-300'
       : /success|completed|ok/.test(t)
       ? 'text-green-400'
-      : 'text-slate-100';
+      : 'text-inherit';
     return (
       <span key={idx} className={`px-1 ${color} font-medium`}>
         {seg.text}
@@ -97,12 +103,14 @@ function renderSegment(seg: Segment, idx: number) {
     );
   }
   if (seg.type === 'gha') {
-    const color =
-      seg.level === 'error'
-        ? 'text-red-300'
-        : seg.level === 'warning'
-        ? 'text-amber-300'
-        : 'text-blue-300';
+    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const color = strongLine
+      ? 'text-inherit'
+      : seg.level === 'error'
+      ? 'text-red-300'
+      : seg.level === 'warning'
+      ? 'text-amber-300'
+      : 'text-blue-300';
     return (
       <span key={idx} className={`${color} text-[11px] font-semibold`}>
         {seg.text}
@@ -184,7 +192,7 @@ export default function LogViewer({ raw }: { raw: string }) {
       </div>
       <div className="max-h-[520px] overflow-auto rounded border border-slate-800 bg-slate-950 p-2">
         {visible.map((it, i) => (
-          <div key={i} className={getLineClasses(it.kind)}>
+          <div key={i} className={getLineClasses(it.kind)} title={it.kind}>
             <div className="flex items-start gap-1.5">
               <span className="w-9 pr-1 text-right text-slate-400 select-none">
                 {it.lineNo}
@@ -195,7 +203,7 @@ export default function LogViewer({ raw }: { raw: string }) {
                       s.type === 'text' ? (
                         <span key={idx}>{highlight(s.text)}</span>
                       ) : (
-                        renderSegment(s, idx)
+                        renderSegment(s, idx, it.kind)
                       ),
                     )
                   : highlight(it.line)}
