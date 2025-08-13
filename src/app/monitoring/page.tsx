@@ -17,21 +17,9 @@ import {
   useWorkflowRunLogs,
   useWorkflowRunDetail,
 } from '@/api/hooks';
-import {
-  Monitor,
-  Play,
-  Clock,
-  CheckCircle,
-  XCircle,
-  GitBranch,
-  RefreshCw,
-  Activity,
-  TrendingUp,
-  AlertTriangle,
-  Info,
-  Loader2,
-  X,
-} from 'lucide-react';
+import { Monitor, Play, Clock, GitBranch, RefreshCw, Activity, TrendingUp, AlertTriangle, Info, Loader2, X } from 'lucide-react';
+import { getStatusIcon, getStatusBadge, getStepBadge, getStepTone } from './components/Status';
+import RunOverviewChips from './components/RunOverviewChips';
 import { ROUTES } from '@/config/appConstants';
 
 interface WorkflowRun {
@@ -245,29 +233,29 @@ export default function MonitoringPage() {
       <Card className="border-slate-200 shadow-sm">
         {!compact && (
           <CardHeader className="pb-3 border-b">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm text-slate-500">실행 상세</div>
-                  <CardTitle className="text-lg mt-1 flex items-center gap-2">
-                    {getStatusIcon(selectedRun.status, selectedRun.conclusion)}
-                    <span className="truncate">
-                      {selectedRun.name}{' '}
-                      <span className="text-slate-400">#{selectedRun.run_number}</span>
-                    </span>
-                  </CardTitle>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!isMobile && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedRun(null)}
-                    >
-                      닫기
-                    </Button>
-                  )}
-                </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm text-slate-500">실행 상세</div>
+                <CardTitle className="text-lg mt-1 flex items-center gap-2">
+                  {getStatusIcon(selectedRun.status, selectedRun.conclusion)}
+                  <span className="truncate">
+                    {selectedRun.name}{' '}
+                    <span className="text-slate-400">#{selectedRun.run_number}</span>
+                  </span>
+                </CardTitle>
               </div>
+              <div className="flex items-center gap-2">
+                {!isMobile && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedRun(null)}
+                  >
+                    닫기
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
         )}
         <CardContent className="pt-5">
