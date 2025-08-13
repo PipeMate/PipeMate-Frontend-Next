@@ -65,7 +65,8 @@ function getLineClasses(kind: string) {
 function renderSegment(seg: Segment, idx: number, lineKind?: string) {
   if (seg.type === 'meta') {
     const t = seg.text.toLowerCase();
-    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine =
+      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
       ? 'text-inherit'
       : /error|fail/.test(t)
@@ -86,7 +87,8 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
   }
   if (seg.type === 'bracket') {
     const t = seg.text.toLowerCase();
-    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine =
+      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
       ? 'text-inherit'
       : /error|fail/.test(t)
@@ -103,7 +105,8 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
     );
   }
   if (seg.type === 'gha') {
-    const strongLine = lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
+    const strongLine =
+      lineKind === 'error' || lineKind === 'warn' || lineKind === 'success';
     const color = strongLine
       ? 'text-inherit'
       : seg.level === 'error'
@@ -139,14 +142,16 @@ export default function LogViewer({ raw }: { raw: string }) {
     );
   }, [items, query]);
 
-  const highlight = (content: string) => {
+  const highlight = (content: string, strongLine: boolean) => {
     if (!query) return content;
-    // 사용자가 입력한 쿼리를 안전하게 이스케이프
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const parts = content.split(new RegExp(`(${escaped})`, 'gi'));
     return parts.map((p, i) =>
       p.toLowerCase() === query.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5">
+        <mark
+          key={i}
+          className={`${strongLine ? 'text-inherit' : 'text-yellow-900'} bg-yellow-200 rounded px-0.5`}
+        >
           {p}
         </mark>
       ) : (
@@ -201,12 +206,12 @@ export default function LogViewer({ raw }: { raw: string }) {
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
                       s.type === 'text' ? (
-                        <span key={idx}>{highlight(s.text)}</span>
+                        <span key={idx}>{highlight(s.text, it.kind === 'error' || it.kind === 'warn' || it.kind === 'success')}</span>
                       ) : (
                         renderSegment(s, idx, it.kind)
                       ),
                     )
-                  : highlight(it.line)}
+                  : highlight(it.line, it.kind === 'error' || it.kind === 'warn' || it.kind === 'success')}
               </span>
             </div>
           </div>
