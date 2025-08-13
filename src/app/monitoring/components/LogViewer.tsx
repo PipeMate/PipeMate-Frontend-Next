@@ -65,10 +65,7 @@ function getLineClasses(kind: string) {
 function renderSegment(seg: Segment, idx: number) {
   if (seg.type === 'meta')
     return (
-      <span
-        key={idx}
-        className="inline-flex items-center px-1.5 py-0.5 rounded-md border border-slate-300 bg-white/80 text-slate-700 text-[11px] font-medium"
-      >
+      <span key={idx} className="text-slate-600 font-medium">
         {seg.text}
       </span>
     );
@@ -194,8 +191,10 @@ export default function LogViewer({ raw }: { raw: string }) {
       <div className="max-h-[520px] overflow-auto rounded border bg-slate-50 p-2">
         {visible.map((it, i) => (
           <div key={i} className={getLineClasses(it.kind)}>
-            <div className="flex items-start gap-2">
-              <span className="w-12 pr-2 text-right text-slate-400 select-none">{it.lineNo}</span>
+            <div className="flex items-start gap-1.5">
+              <span className="w-9 pr-1 text-right text-slate-400 select-none">
+                {it.lineNo}
+              </span>
               <span className="flex-1">
                 {it.segs.length
                   ? it.segs.map((s, idx) =>
