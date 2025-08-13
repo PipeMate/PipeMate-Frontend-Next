@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
@@ -54,6 +55,7 @@ export default function MonitoringPage() {
   );
   const [activeTab, setActiveTab] = useState<'execution' | 'details'>('execution');
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [focusedJobId, setFocusedJobId] = useState<number | null>(null);
   const [focusedStepName, setFocusedStepName] = useState<string | null>(null);
@@ -102,15 +104,26 @@ export default function MonitoringPage() {
   );
   const { data: runDetailData } = useWorkflowRunDetail(owner || '', repo || '', runId);
 
-  // 반응형: 모바일 여부
+  // 반응형: 모바일/태블릿 여부
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 767px)');
-    const handler = (e: MediaQueryListEvent | MediaQueryList) =>
-      setIsMobile('matches' in e ? e.matches : (e as MediaQueryList).matches);
-    handler(mql);
-    const listener = (e: MediaQueryListEvent) => handler(e);
-    mql.addEventListener?.('change', listener);
-    return () => mql.removeEventListener?.('change', listener);
+    const mobileMql = window.matchMedia('(max-width: 767px)');
+    const tabletMql = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+
+    const setStates = () => {
+      setIsMobile(mobileMql.matches);
+      setIsTablet(tabletMql.matches);
+    };
+    setStates();
+
+    const mobileListener = () => setStates();
+    const tabletListener = () => setStates();
+
+    mobileMql.addEventListener?.('change', mobileListener);
+    tabletMql.addEventListener?.('change', tabletListener);
+    return () => {
+      mobileMql.removeEventListener?.('change', mobileListener);
+      tabletMql.removeEventListener?.('change', tabletListener);
+    };
   }, []);
 
   const handleShowDetails = (run: WorkflowRun) => {
@@ -120,7 +133,7 @@ export default function MonitoringPage() {
     setActiveTab('execution');
     setFocusedJobId(null);
     setFocusedStepName(null);
-    if (isMobile) setIsDetailOpen(true);
+    if (isMobile || isTablet) setIsDetailOpen(true);
     // 데스크톱에서 데이터 리페치로 인한 잠깐의 selectedRun undefined 방지
     // 선택되었을 때는 모달/우측 패널이 유지되도록 상세 오픈 상태는 건드리지 않음
   };
@@ -140,10 +153,10 @@ export default function MonitoringPage() {
     }
   }, [workflowRunsData, selectedRunId]);
 
-  // 반응형 전환 시 모바일에서는 선택되어 있으면 모달 자동 오픈
+  // 반응형 전환 시 모바일/태블릿에서는 선택되어 있으면 상세 자동 오픈
   useEffect(() => {
-    if (isMobile && selectedRunId) setIsDetailOpen(true);
-  }, [isMobile, selectedRunId]);
+    if ((isMobile || isTablet) && selectedRunId) setIsDetailOpen(true);
+  }, [isMobile, isTablet, selectedRunId]);
 
   const copyText = async (text: string) => {
     try {
@@ -851,20 +864,27 @@ export default function MonitoringPage() {
           </div>
         </div>
 
-        {/* 태블릿 전용(768~1023px): 상세 패널을 리스트 아래에 인라인 렌더링 */}
+        {/* 태블릿 전용(768~1023px): 상세를 우측 시트로 표시하여 스크롤 왕복 최소화 */}
         <div className="hidden md:block lg:hidden">
-          {selectedRun ? (
-            <RunDetail />
-          ) : (
-            <Card className="border-dashed mt-4">
-              <CardContent className="p-10 text-center text-gray-500">
-                <div className="text-lg font-medium mb-2">실행 상세</div>
-                <div className="text-sm">
-                  좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Sheet open={isDetailOpen} onOpenChange={(open) => setIsDetailOpen(open)}>
+            <SheetContent side="right" className="w-[88vw] sm:max-w-none">
+              <SheetHeader className="px-2 pt-6">
+                <SheetTitle>실행 상세</SheetTitle>
+              </SheetHeader>
+              <div className="p-2">
+                {selectedRun ? (
+                  <RunDetail />
+                ) : (
+                  <Card className="border-dashed">
+                    <CardContent className="p-10 text-center text-gray-500">
+                      <div className="text-lg font-medium mb-2">실행 상세</div>
+                      <div className="text-sm">좌측에서 실행을 선택하세요.</div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
 
         {/* 모바일 상세: 모달 */}
