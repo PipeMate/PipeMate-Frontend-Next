@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
-type Segment = { type: 'text' | 'meta' | 'bracket' | 'gha'; text: string; level?: 'error' | 'warning' | 'notice' };
+type Segment = {
+  type: 'text' | 'meta' | 'bracket' | 'gha';
+  text: string;
+  level?: 'error' | 'warning' | 'notice';
+};
 const TOKEN_REGEX = /(##\[[^\]]*\]|\[[^\]]*\]|::(error|warning|notice)::)/gi;
 
 function splitSegments(line: string): Segment[] {
@@ -12,7 +16,8 @@ function splitSegments(line: string): Segment[] {
   for (const match of line.matchAll(TOKEN_REGEX)) {
     const m = match[0];
     const start = match.index ?? 0;
-    if (start > lastIndex) segments.push({ type: 'text', text: line.slice(lastIndex, start) });
+    if (start > lastIndex)
+      segments.push({ type: 'text', text: line.slice(lastIndex, start) });
     if (m.startsWith('::')) {
       const lvl = (match[2] as Segment['level']) || 'notice';
       segments.push({ type: 'gha', text: m, level: lvl });
@@ -23,7 +28,8 @@ function splitSegments(line: string): Segment[] {
     }
     lastIndex = start + m.length;
   }
-  if (lastIndex < line.length) segments.push({ type: 'text', text: line.slice(lastIndex) });
+  if (lastIndex < line.length)
+    segments.push({ type: 'text', text: line.slice(lastIndex) });
   return segments;
 }
 
@@ -40,7 +46,8 @@ function classifyLine(line: string, segments: Segment[]) {
 }
 
 function getLineClasses(kind: string) {
-  const base = 'font-mono text-[12px] leading-6 px-2 py-1 rounded whitespace-pre-wrap break-words';
+  const base =
+    'font-mono text-[12px] leading-5 px-2 py-0.5 rounded whitespace-pre-wrap break-words';
   switch (kind) {
     case 'error':
       return `${base} bg-red-50 text-red-700`;
@@ -71,9 +78,17 @@ function renderSegment(seg: Segment, idx: number) {
       </span>
     );
   if (seg.type === 'gha') {
-    const color = seg.level === 'error' ? 'bg-red-100 text-red-700' : seg.level === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700';
+    const color =
+      seg.level === 'error'
+        ? 'bg-red-100 text-red-700'
+        : seg.level === 'warning'
+        ? 'bg-amber-100 text-amber-800'
+        : 'bg-blue-100 text-blue-700';
     return (
-      <span key={idx} className={`px-1.5 py-0.5 rounded ${color} text-[11px] font-semibold`}>
+      <span
+        key={idx}
+        className={`px-1.5 py-0.5 rounded ${color} text-[11px] font-semibold`}
+      >
         {seg.text}
       </span>
     );
@@ -83,13 +98,78 @@ function renderSegment(seg: Segment, idx: number) {
 
 export default function LogViewer({ raw }: { raw: string }) {
   const text = raw || '로그가 없습니다.';
-  const lines = useMemo(() => text.split(/\r?\n/), [text]);
+  const [filter, setFilter] = useState<'all' | 'error' | 'warn' | 'meta'>('all');
+  const [query, setQuery] = useState<string>('');
+  const [showLineNumbers, setShowLineNumbers] = useState<boolean>(false);
+
+  const items = useMemo(() => {
+    const arr = (text.split(/\r?\n/) as string[]).map((line, idx) => {
+      const segs = splitSegments(line);
+      const kind = classifyLine(line, segs);
+      return { line, segs, kind, lineNo: idx + 1 } as const;
+    });
+    return arr;
+  }, [text]);
+
+  const visible = useMemo(() => {
+    return items.filter((it) => {
+      if (filter !== 'all' && it.kind !== filter) return false;
+      if (query && !it.line.toLowerCase().includes(query.toLowerCase())) return false;
+      return true;
+    });
+  }, [items, filter, query]);
+
+  const highlight = (content: string) => {
+    if (!query) return content;
+    const parts = content.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((p, i) =>
+      p.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5">
+          {p}
+        </mark>
+      ) : (
+        <span key={i}>{p}</span>
+      ),
+    );
+  };
+
   return (
     <div className="bg-white rounded border p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div className="font-medium text-slate-900">Logs</div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(text)}>
+        <div className="flex items-center gap-1.5">
+          <div className="hidden sm:flex items-center rounded border bg-white overflow-hidden">
+            {(
+              [
+                { k: 'all', t: '전체' },
+                { k: 'error', t: '에러' },
+                { k: 'warn', t: '워닝' },
+                { k: 'meta', t: '메타' },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.k}
+                className={`px-2.5 py-1 text-[12px] ${filter === f.k ? 'bg-slate-100 text-slate-900' : 'text-slate-600'}`}
+                onClick={() => setFilter(f.k as any)}
+              >
+                {f.t}
+              </button>
+            ))}
+          </div>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="검색"
+            className="h-8 px-2 text-[12px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300"
+          />
+          <Button size="sm" variant="outline" onClick={() => setShowLineNumbers((v) => !v)}>
+            Ln
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigator.clipboard.writeText(text)}
+          >
             복사
           </Button>
           <Button
@@ -98,7 +178,9 @@ export default function LogViewer({ raw }: { raw: string }) {
             onClick={() => {
               const w = window.open('', '_blank');
               if (w) {
-                w.document.write(`<pre style=\"white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; padding: 16px;\">${text}</pre>`);
+                w.document.write(
+                  `<pre style=\"white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; padding: 16px;\">${text}</pre>`,
+                );
                 w.document.close();
               }
             }}
@@ -108,15 +190,20 @@ export default function LogViewer({ raw }: { raw: string }) {
         </div>
       </div>
       <div className="max-h-[520px] overflow-auto rounded border bg-slate-50 p-2">
-        {lines.map((line, i) => {
-          const segs = splitSegments(line);
-          const kind = classifyLine(line, segs);
-          return (
-            <div key={i} className={getLineClasses(kind)}>
-              {segs.length ? segs.map(renderSegment) : line}
+        {visible.map((it, i) => (
+          <div key={i} className={getLineClasses(it.kind)}>
+            <div className="flex items-start gap-2">
+              {showLineNumbers && (
+                <span className="w-10 text-right text-slate-400 select-none">{it.lineNo}</span>
+              )}
+              <span className="flex-1">
+                {it.segs.length
+                  ? it.segs.map((s, idx) => (s.type === 'text' ? <span key={idx}>{highlight(s.text)}</span> : renderSegment(s, idx)))
+                  : highlight(it.line)}
+              </span>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
