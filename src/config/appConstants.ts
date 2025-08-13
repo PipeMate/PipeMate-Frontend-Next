@@ -13,7 +13,7 @@ import {
 // * 브랜드 정보
 export const BRAND = {
   name: "PipeMate",
-  description: "GitHub Actions Flow",
+  description: "워크플로우 에디터",
   logo: {
     icon: Workflow,
     color: "text-blue-600",
@@ -24,7 +24,7 @@ export const BRAND = {
 export const ROUTES = {
   HOME: {
     url: "/",
-    label: "Home",
+    label: "대시보드",
     icon: Home,
   },
   WORKFLOWS: {
@@ -44,7 +44,7 @@ export const ROUTES = {
   },
   ACTION_FLOW: {
     url: "/github-actions-flow",
-    label: "GitHub Actions Flow",
+    label: "워크플로우 에디터",
     icon: Github,
   },
 } as const;

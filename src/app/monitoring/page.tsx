@@ -48,6 +48,7 @@ interface WorkflowRun {
 export default function MonitoringPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
+  const MonitoringIcon = ROUTES.MONITORING.icon;
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [selectedRunSnapshot, setSelectedRunSnapshot] = useState<WorkflowRun | null>(
@@ -394,7 +395,7 @@ export default function MonitoringPage() {
       <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex items-center justify-center rounded-md bg-emerald-100 text-emerald-700 p-2">
-            <Monitor size={18} />
+            <MonitoringIcon size={18} />
           </span>
           <div className="min-w-0">
             <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -425,7 +426,11 @@ export default function MonitoringPage() {
             variant="outline"
             size="sm"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading || runsLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${
+                workflowsLoading || runsLoading ? 'animate-spin' : ''
+              }`}
+            />
             새로고침
           </Button>
           <Button

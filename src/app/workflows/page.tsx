@@ -29,6 +29,7 @@ import { ROUTES } from '@/config/appConstants';
 export default function WorkflowsPage() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
+  const WorkflowsIcon = ROUTES.WORKFLOWS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [_selectedWorkflow, setSelectedWorkflow] = useState<WorkflowItem | null>(null);
 
@@ -45,7 +46,12 @@ export default function WorkflowsPage() {
   const dispatchWorkflow = useDispatchWorkflow();
 
   const workflows = workflowsData?.workflows || [];
-  const workflowRuns = workflowRunsData?.workflow_runs || [];
+  const runsResponse = workflowRunsData as unknown as
+    | { workflow_runs?: any[] }
+    | undefined;
+  const workflowRuns = Array.isArray(runsResponse?.workflow_runs)
+    ? (runsResponse!.workflow_runs as any[])
+    : [];
 
   // 헤더 설정(페이지 타이틀/컨트롤을 레이아웃 헤더로 통합)
   useEffect(() => {
@@ -53,7 +59,7 @@ export default function WorkflowsPage() {
       <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
-            <Workflow size={18} />
+            <WorkflowsIcon size={18} />
           </span>
           <div className="min-w-0">
             <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -80,7 +86,9 @@ export default function WorkflowsPage() {
             variant="outline"
             size="sm"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${workflowsLoading ? 'animate-spin' : ''}`}
+            />
             새로고침
           </Button>
         </div>

@@ -6,7 +6,7 @@ import { AreaBasedWorkflowEditor } from "./components/AreaBasedWorkflowEditor";
 import { ServerBlock } from "./types";
 import { useLayout } from "@/components/layout/LayoutContext";
 import { ROUTES } from "@/config/appConstants";
-import { Blocks, Github } from "lucide-react";
+import { Blocks } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
@@ -33,6 +33,7 @@ export default function GitHubActionsFlowPage() {
 
   //* 레이아웃 컨텍스트에서 헤더 slot setter 가져오기
   const { setHeaderRight, setHeaderExtra } = useLayout();
+  const FlowIcon = ROUTES.ACTION_FLOW.icon;
 
   //* ========================================
   //* 헤더 UI 설정
@@ -42,35 +43,29 @@ export default function GitHubActionsFlowPage() {
   useEffect(() => {
     //* 클라이언트에서만 헤더 설정 (hydration 에러 방지)
     if (typeof window !== "undefined") {
-      //* 헤더 우측에 블록 개수 표시
+      // 헤더 우측: 블록 수 배지
       setHeaderRight(
-        <div
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#f3f4f6",
-            borderRadius: "8px",
-            fontSize: "14px",
-            color: "#374151",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <Blocks size={16} style={{ marginRight: 6 }} />총 {blocks.length}개
-          블록
+        <div className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-700 px-3 py-2 text-sm">
+          <Blocks size={16} /> 총 {blocks.length}개 블록
         </div>
       );
 
-      //* 헤더 추가 영역에 페이지 제목과 설명
+      // 헤더 좌측 확장: 타이틀/서브텍스트 + 아이콘
       setHeaderExtra(
-        <div className="flex flex-col gap-0 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 m-0 flex items-center gap-2">
-            <Github size={20} />
-            {ROUTES.ACTION_FLOW.label}
-          </h1>
-          <p className="text-sm text-gray-500 m-0">
-            블록 기반 GitHub Actions 워크플로우 에디터
-          </p>
+        <div className="flex w-full items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
+              <FlowIcon size={18} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+                {ROUTES.ACTION_FLOW.label}
+              </div>
+              <div className="text-xs md:text-sm text-slate-500 truncate">
+                블록 기반 워크플로우 에디터
+              </div>
+            </div>
+          </div>
         </div>
       );
     }

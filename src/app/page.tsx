@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useWorkflows, useDispatchWorkflow } from '@/api/hooks';
+import { ROUTES } from '@/config/appConstants';
 import {
   Workflow,
   GitBranch,
@@ -21,6 +22,7 @@ import Link from 'next/link';
 export default function Home() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
+  const HomeIcon = ROUTES.HOME.icon;
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -118,12 +120,16 @@ export default function Home() {
     setHeaderExtra(
       <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white px-2 py-1.5">
-            <span className="text-[11px] font-bold leading-none">PM</span>
+          <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
+            <HomeIcon size={18} />
           </span>
           <div className="min-w-0">
-            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">PipeMate</div>
-            <div className="text-xs md:text-sm text-slate-500 truncate">GitHub Actions 워크플로우 대시보드</div>
+            <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
+              PipeMate
+            </div>
+            <div className="text-xs md:text-sm text-slate-500 truncate">
+              GitHub Actions 워크플로우 대시보드
+            </div>
           </div>
         </div>
       </div>,

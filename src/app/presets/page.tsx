@@ -31,6 +31,7 @@ import { ROUTES } from '@/config/appConstants';
 export default function PresetsPage() {
   const { setHeaderExtra } = useLayout();
   const { owner: _owner, repo: _repo, isConfigured: _isConfigured } = useRepository();
+  const PresetsIcon = ROUTES.PRESETS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
 
@@ -48,7 +49,7 @@ export default function PresetsPage() {
       <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex items-center justify-center rounded-md bg-violet-100 text-violet-700 p-2">
-            <Settings size={18} />
+            <PresetsIcon size={18} />
           </span>
           <div className="min-w-0">
             <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -69,7 +70,9 @@ export default function PresetsPage() {
             variant="outline"
             size="sm"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`}
+            />
             새로고침
           </Button>
           <Button size="sm">
@@ -283,7 +286,11 @@ export default function PresetsPage() {
 
                         <div className="flex items-center justify-between text-sm text-gray-500">
                           <span>생성일</span>
-                          <span>{new Date(block.createdAt).toLocaleDateString()}</span>
+                          <span>
+                            {block.createdAt
+                              ? new Date(block.createdAt).toLocaleDateString()
+                              : '-'}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
