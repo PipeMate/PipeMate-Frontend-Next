@@ -78,11 +78,15 @@ function renderSegment(seg: Segment, idx: number, lineKind?: string) {
       : /success|completed|ok/.test(t)
       ? 'text-green-400'
       : 'text-slate-300';
+    const accent = strongLine ? 'decoration-slate-400/60' : 'decoration-slate-500/60';
     const weight = /error|warn|success|completed|ok|fail/.test(t)
       ? 'font-semibold'
       : 'font-medium';
     return (
-      <span key={idx} className={`${color} ${weight}`}>
+      <span
+        key={idx}
+        className={`${color} ${weight} underline decoration-dotted underline-offset-2 ${accent}`}
+      >
         {seg.text}
       </span>
     );
@@ -150,7 +154,9 @@ export default function LogViewer({ raw }: { raw: string }) {
       p.toLowerCase() === query.toLowerCase() ? (
         <mark
           key={i}
-          className={`${strongLine ? 'text-current' : 'text-yellow-900'} bg-yellow-200 rounded px-0.5`}
+          className={`${
+            strongLine ? 'text-current' : 'text-yellow-900'
+          } bg-yellow-200 rounded px-0.5`}
         >
           {p}
         </mark>
