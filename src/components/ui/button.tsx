@@ -33,9 +33,7 @@ const buttonVariants = cva(
   },
 );
 
-/**
- * 공통 Button 컴포넌트
- */
+// * 공통 Button 컴포넌트
 function Button({
   className,
   variant,

@@ -1,36 +1,34 @@
 'use client';
 
-/**
- * 저장소 선택/설정을 전역으로 관리하는 컨텍스트
- */
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// * 저장소 선택/설정을 전역으로 관리하는 컨텍스트
+// * - 쿠키 기반 영구 저장
+// * - 타입 안전성 보장
+// * - 성능 최적화 적용
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   getRepositoryConfig,
   setRepositoryConfig,
   deleteRepositoryConfig,
 } from '@/lib/cookieUtils';
+import type { RepositoryContextType, RepositoryProviderProps } from './types';
 
-/**
- * Repository 컨텍스트 값 인터페이스
- */
-interface RepositoryContextType {
-  owner: string | null;
-  repo: string | null;
-  isConfigured: boolean;
-  setRepository: (owner: string, repo: string) => void;
-  clearRepository: () => void;
-}
+// * 에러 메시지 상수
+const ERROR_MESSAGES = {
+  CONTEXT_NOT_FOUND: 'useRepository must be used within a RepositoryProvider',
+} as const;
 
 const RepositoryContext = createContext<RepositoryContextType | undefined>(undefined);
 
-interface RepositoryProviderProps {
-  children: ReactNode;
-}
-
-/**
- * RepositoryProvider
- * - 초기 마운트 시 쿠키에서 설정을 복원합니다.
- */
+// * RepositoryProvider
+// * - 초기 마운트 시 쿠키에서 설정을 복원합니다.
+// * - 성능 최적화를 위해 useCallback과 useMemo 적용
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
   const [owner, setOwner] = useState<string | null>(null);
   const [repo, setRepo] = useState<string | null>(null);
@@ -46,46 +44,48 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
     }
   }, []);
 
-  /**
-   * 저장소 설정
-   */
-  const setRepository = (newOwner: string, newRepo: string) => {
+  // * 저장소 설정
+  // * - useCallback으로 불필요한 리렌더링 방지
+  const setRepository = useCallback((newOwner: string, newRepo: string) => {
     setOwner(newOwner);
     setRepo(newRepo);
     setIsConfigured(true);
     setRepositoryConfig(newOwner, newRepo);
-  };
+  }, []);
 
-  /**
-   * 저장소 설정 초기화
-   */
-  const clearRepository = () => {
+  // * 저장소 설정 초기화
+  // * - useCallback으로 불필요한 리렌더링 방지
+  const clearRepository = useCallback(() => {
     setOwner(null);
     setRepo(null);
     setIsConfigured(false);
     deleteRepositoryConfig();
-  };
+  }, []);
 
-  const value: RepositoryContextType = {
-    owner,
-    repo,
-    isConfigured,
-    setRepository,
-    clearRepository,
-  };
+  // 컨텍스트 값 메모이제이션
+  const value = useMemo<RepositoryContextType>(
+    () => ({
+      owner,
+      repo,
+      isConfigured,
+      setRepository,
+      clearRepository,
+    }),
+    [owner, repo, isConfigured, setRepository, clearRepository],
+  );
 
   return (
     <RepositoryContext.Provider value={value}>{children}</RepositoryContext.Provider>
   );
 }
 
-/**
- * Repository 컨텍스트 사용 훅
- */
+// * Repository 컨텍스트 사용 훅
+// * - 타입 안전성 보장
+// * - 명확한 에러 메시지 제공
 export function useRepository() {
   const context = useContext(RepositoryContext);
   if (context === undefined) {
-    throw new Error('useRepository must be used within a RepositoryProvider');
+    throw new Error(ERROR_MESSAGES.CONTEXT_NOT_FOUND);
   }
   return context;
 }

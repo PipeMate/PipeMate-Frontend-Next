@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner, InlineErrorMessage, TabIconBadge } from '@/components/ui';
 import {
   Github,
   GitBranch,
@@ -114,7 +115,7 @@ export function GithubTokenDialog({
       setTokenError('토큰을 입력해주세요.');
       return;
     }
-    setCookie(STORAGES.GITHUB_TOKEN, token.trim(), 30); // 30일간 저장
+    setCookie(STORAGES.GITHUB_TOKEN, token.trim(), { days: 30 }); // 30일간 저장
     setSavedToken(token.trim());
     setTokenError('');
     onTokenChange?.(token.trim());
@@ -235,22 +236,16 @@ export function GithubTokenDialog({
 
         <Tabs defaultValue="token" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="token" className="flex items-center gap-2">
-              <Github size={16} />
-              토큰
+            <TabsTrigger value="token">
+              <TabIconBadge icon={<Github size={16} />}>토큰</TabIconBadge>
             </TabsTrigger>
-            <TabsTrigger value="repository" className="flex items-center gap-2">
-              <GitBranch size={16} />
-              레포지토리
+            <TabsTrigger value="repository">
+              <TabIconBadge icon={<GitBranch size={16} />}>레포지토리</TabIconBadge>
             </TabsTrigger>
-            <TabsTrigger value="secrets" className="flex items-center gap-2">
-              <Lock size={16} />
-              Secrets
-              {missingSecrets.length > 0 && (
-                <Badge variant="destructive" className="ml-1">
-                  {missingSecrets.length}
-                </Badge>
-              )}
+            <TabsTrigger value="secrets">
+              <TabIconBadge icon={<Lock size={16} />} count={missingSecrets.length}>
+                Secrets
+              </TabIconBadge>
             </TabsTrigger>
           </TabsList>
 
@@ -264,7 +259,7 @@ export function GithubTokenDialog({
                 onChange={(e) => setToken(e.target.value)}
                 autoFocus
               />
-              {tokenError && <div className="text-destructive text-xs">{tokenError}</div>}
+              {tokenError && <InlineErrorMessage message={tokenError} />}
             </div>
 
             <DialogFooter>
@@ -297,7 +292,7 @@ export function GithubTokenDialog({
                   onChange={(e) => setRepo(e.target.value)}
                 />
               </div>
-              {repoError && <div className="text-destructive text-xs">{repoError}</div>}
+              {repoError && <InlineErrorMessage message={repoError} />}
             </div>
 
             <DialogFooter>
@@ -335,10 +330,7 @@ export function GithubTokenDialog({
 
               <TabsContent value="existing" className="space-y-4">
                 {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Secrets를 불러오는 중...</p>
-                  </div>
+                  <LoadingSpinner message="Secrets를 불러오는 중..." />
                 ) : (
                   <>
                     {/* 새 Secret 추가 */}

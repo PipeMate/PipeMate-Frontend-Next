@@ -1,51 +1,92 @@
 'use client';
 
 import React from 'react';
-import { getStepBadge, getStepTone, getStatusIcon } from './Status';
+import { CheckCircle, XCircle, Clock, SkipForward, AlertTriangle } from 'lucide-react';
+import type { JobStep } from '../types';
+import { formatDuration } from '../utils';
 
-type Step = {
-  name: string;
-  status?: string;
-  conclusion?: string;
-  startedAt?: string;
-  completedAt?: string;
-};
+// * Step 상태별 아이콘 반환
+function getStepIcon(status?: string, conclusion?: string) {
+  const finalStatus = conclusion || status;
 
-function formatDuration(start?: string, end?: string) {
-  if (!start || !end) return '';
-  const s = new Date(start).getTime();
-  const e = new Date(end).getTime();
-  const sec = Math.max(0, Math.floor((e - s) / 1000));
-  const m = Math.floor(sec / 60);
-  const r = sec % 60;
-  return r ? `${m}m ${r}s` : `${m}m`;
+  switch (finalStatus) {
+    case 'success':
+    case 'completed':
+      return <CheckCircle className="w-4 h-4 text-green-600" />;
+    case 'failure':
+    case 'cancelled':
+    case 'timed_out':
+      return <XCircle className="w-4 h-4 text-red-600" />;
+    case 'in_progress':
+    case 'queued':
+    case 'requested':
+    case 'waiting':
+      return <Clock className="w-4 h-4 text-blue-600 animate-pulse" />;
+    case 'skipped':
+      return <SkipForward className="w-4 h-4 text-gray-500" />;
+    case 'action_required':
+      return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+    default:
+      return <Clock className="w-4 h-4 text-gray-400" />;
+  }
 }
 
-export default function StepsList({ steps }: { steps: Step[] }) {
+// * Step 컴포넌트 Props 타입
+interface StepsListProps {
+  // * Step 목록
+  steps: JobStep[];
+  // * 컴팩트 모드 (시간 정보 숨김)
+  compact?: boolean;
+}
+
+// * Step 목록 컴포넌트
+export default function StepsList({ steps, compact = false }: StepsListProps) {
+  if (!steps || steps.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+        <p className="text-sm">실행된 단계가 없습니다</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-2 grid gap-1.5">
-      {steps.map((st, idx) => {
-        const tone = getStepTone(st.status, st.conclusion);
-        const iconOnly = getStatusIcon(st.status || '', st.conclusion);
-        return (
-          <div
-            key={idx}
-            className={`flex items-center justify-between text-[13px] text-left w-full px-2.5 py-1.5 rounded ${tone.bg}`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className={`w-2 h-2 rounded-full ${tone.dot}`} />
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
-                {idx + 1}
-              </span>
-              <span className="truncate text-slate-700">{st.name}</span>
-              <span className="text-xs text-slate-400 flex-shrink-0">
-                {formatDuration(st.startedAt, st.completedAt)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500">{iconOnly}</div>
+    <div className="mt-4 space-y-1">
+      {steps.map((step, index) => (
+        <div
+          key={`${step.name}-${index}`}
+          className="flex items-center py-3 hover:bg-gray-50 transition-colors duration-150 rounded-md"
+        >
+          {/* Step 번호 */}
+          <div className="w-8 h-8 flex items-center justify-center text-sm font-medium text-gray-500 mr-3">
+            {index + 1}
           </div>
-        );
-      })}
+
+          {/* 상태 아이콘 */}
+          <div className="mr-3">{getStepIcon(step.status, step.conclusion)}</div>
+
+          {/* Step 내용 */}
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-gray-900 truncate">{step.name}</div>
+
+            {/* 시간 정보 (compact 모드가 아닐 때만 표시) */}
+            {!compact && step.startedAt && (
+              <div className="text-xs text-gray-500 mt-1">
+                {new Date(step.startedAt).toLocaleTimeString()}
+                {step.completedAt && (
+                  <>
+                    {' - '}
+                    {new Date(step.completedAt).toLocaleTimeString()}
+                    {' ('}
+                    {formatDuration(step.startedAt, step.completedAt)}
+                    {')'}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

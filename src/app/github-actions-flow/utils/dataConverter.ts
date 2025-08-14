@@ -5,8 +5,8 @@
 //* 서버에서 받은 블록 데이터를 React Flow 노드로 변환하고,
 //* React Flow 노드를 서버로 보낼 블록 데이터로 변환합니다.
 
-import { Node, Edge, MarkerType } from "@xyflow/react";
-import { ServerBlock, WorkflowNodeData } from "../types";
+import { CustomNode as Node, CustomEdge as Edge, MarkerType } from '../types/customTypes';
+import { ServerBlock, WorkflowNodeData } from '../types';
 
 //* ========================================
 //* 서버 → React Flow 변환
@@ -15,7 +15,7 @@ import { ServerBlock, WorkflowNodeData } from "../types";
 //* 서버 블록 데이터를 React Flow 노드로 변환
 //? 서버에서 받은 블록 배열을 React Flow에서 사용할 수 있는 노드와 엣지로 변환
 export const convertServerBlocksToNodes = (
-  blocks: ServerBlock[]
+  blocks: ServerBlock[],
 ): { nodes: Node[]; edges: Edge[] } => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -24,15 +24,15 @@ export const convertServerBlocksToNodes = (
   //* ========================================
   //* 트리거 블록 처리
   //* ========================================
-  const triggerBlocks = blocks.filter((block) => block.type === "trigger");
+  const triggerBlocks = blocks.filter((block) => block.type === 'trigger');
   triggerBlocks.forEach((triggerBlock, index) => {
     const triggerNode: Node = {
       id: triggerBlock.id || `trigger-${nodeIdCounter++}`,
-      type: "workflowTrigger",
+      type: 'workflowTrigger',
       position: { x: 300 + index * 350, y: 150 }, // 트리거 간격 넓힘
       data: {
         label: triggerBlock.name,
-        type: "workflow_trigger",
+        type: 'workflow_trigger',
         domain: triggerBlock.domain,
         task: triggerBlock.task,
         description: triggerBlock.description,
@@ -45,17 +45,17 @@ export const convertServerBlocksToNodes = (
   //* ========================================
   //* Job 블록들 처리 + SubFlow 생성
   //* ========================================
-  const jobBlocks = blocks.filter((block) => block.type === "job");
+  const jobBlocks = blocks.filter((block) => block.type === 'job');
   const jobIdToSubflowId: Record<string, string> = {};
   jobBlocks.forEach((jobBlock, index) => {
     const jobNodeId = jobBlock.id || `job-${nodeIdCounter++}`;
     const jobNode: Node = {
       id: jobNodeId,
-      type: "job",
+      type: 'job',
       position: { x: 300 + index * 350, y: 350 },
       data: {
         label: jobBlock.name,
-        type: "job",
+        type: 'job',
         domain: jobBlock.domain,
         task: jobBlock.task,
         description: jobBlock.description,
@@ -68,12 +68,12 @@ export const convertServerBlocksToNodes = (
     jobIdToSubflowId[jobNodeId] = subflowId;
     const subflowNode: Node = {
       id: subflowId,
-      type: "subflow",
+      type: 'subflow',
       position: { x: jobNode.position.x, y: jobNode.position.y + 100 },
       parentId: jobNodeId,
       data: {
         label: `${jobBlock.name} Steps`,
-        type: "subflow",
+        type: 'subflow',
         jobId: jobNodeId,
         stepCount: 0,
         height: 120,
@@ -82,20 +82,19 @@ export const convertServerBlocksToNodes = (
     nodes.push(subflowNode);
     // 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
     if (blocks.length > 1) {
-      const firstTrigger = nodes.find(
-        (node) => node.data.type === "workflow_trigger"
-      );
+      const firstTrigger = nodes.find((node) => node.data.type === 'workflow_trigger');
       if (firstTrigger) {
         edges.push({
           id: `trigger-to-job-${jobNode.id}`,
           source: firstTrigger.id,
           target: jobNode.id,
-          type: "straight",
+          type: 'straight',
+          style: { zIndex: 10 },
           markerEnd: {
             type: MarkerType.ArrowClosed,
             width: 16,
             height: 16,
-            color: "#64748b",
+            color: '#64748b',
           },
         });
       }
@@ -105,12 +104,13 @@ export const convertServerBlocksToNodes = (
       id: `job-to-subflow-${subflowId}`,
       source: jobNodeId,
       target: subflowId,
-      type: "straight",
+      type: 'straight',
+      style: { zIndex: 10 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 16,
         height: 16,
-        color: "#64748b",
+        color: '#64748b',
       },
     });
   });
@@ -118,27 +118,24 @@ export const convertServerBlocksToNodes = (
   //* ========================================
   //* Step 블록들 처리 (subflow의 자식으로)
   //* ========================================
-  const stepBlocks = blocks.filter((block) => block.type === "step");
+  const stepBlocks = blocks.filter((block) => block.type === 'step');
   const subflowStepMap = new Map<string, Node[]>();
   stepBlocks.forEach((stepBlock) => {
     // step이 속할 job 찾기
     let parentJob = null;
-    if (stepBlock["job-name"] && stepBlock["job-name"].trim() !== "") {
-      const jobName = stepBlock["job-name"];
+    if (stepBlock['job-name'] && stepBlock['job-name'].trim() !== '') {
+      const jobName = stepBlock['job-name'];
       parentJob = nodes.find(
         (node) =>
-          node.data.type === "job" &&
+          node.data.type === 'job' &&
           (node.data.config as Record<string, unknown>)?.jobs &&
           Object.keys(
-            (node.data.config as Record<string, unknown>).jobs as Record<
-              string,
-              unknown
-            >
-          ).includes(jobName)
+            (node.data.config as Record<string, unknown>).jobs as Record<string, unknown>,
+          ).includes(jobName),
       );
     }
     if (!parentJob) {
-      parentJob = nodes.find((node) => node.data.type === "job");
+      parentJob = nodes.find((node) => node.data.type === 'job');
     }
     if (parentJob) {
       const subflowId = jobIdToSubflowId[parentJob.id];
@@ -153,17 +150,13 @@ export const convertServerBlocksToNodes = (
       // x: 서브플로우 좌우 패딩 내 중앙 정렬, y: 패딩 아래에서부터 아래로 간격
       const stepX =
         SUBFLOW_PADDING_X +
-        (Math.max(
-          STEP_WIDTH,
-          subflowNode ? (subflowNode.data.width as number) || 0 : 0
-        ) -
+        (Math.max(STEP_WIDTH, subflowNode ? (subflowNode.data.width as number) || 0 : 0) -
           STEP_WIDTH) /
           2;
-      const stepY =
-        SUBFLOW_PADDING_Y + subflowSteps.length * (STEP_HEIGHT + STEP_MARGIN);
+      const stepY = SUBFLOW_PADDING_Y + subflowSteps.length * (STEP_HEIGHT + STEP_MARGIN);
       const stepNode: Node = {
         id: stepBlock.id || `step-${nodeIdCounter++}`,
-        type: "step",
+        type: 'step',
         position: {
           x: stepX,
           y: stepY,
@@ -172,13 +165,13 @@ export const convertServerBlocksToNodes = (
         draggable: true,
         data: {
           label: stepBlock.name,
-          type: "step",
+          type: 'step',
           domain: stepBlock.domain,
           task: stepBlock.task,
           description: stepBlock.description,
           config: stepBlock.config,
           parentId: subflowId,
-          jobName: stepBlock["job-name"] || "job1",
+          jobName: stepBlock['job-name'] || 'job1',
         },
       };
       nodes.push(stepNode);
@@ -222,14 +215,14 @@ export const convertServerBlocksToNodes = (
         id: `step-to-step-${currentStep.id}-${nextStep.id}`,
         source: currentStep.id,
         target: nextStep.id,
-        type: "straight",
+        type: 'straight',
+        style: { zIndex: 10 },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 16,
           height: 16,
-          color: "#64748b",
+          color: '#64748b',
         },
-        style: { zIndex: 10 },
         data: { isParentChild: true },
       });
     }
@@ -246,7 +239,7 @@ export const convertServerBlocksToNodes = (
 //? React Flow의 노드 배열을 서버로 보낼 수 있는 블록 배열로 변환
 export const convertNodesToServerBlocks = (
   nodes: Node[],
-  edges?: Edge[]
+  edges?: Edge[],
 ): ServerBlock[] => {
   const blocks: ServerBlock[] = [];
   const processedNodes = new Set<string>();
@@ -260,7 +253,7 @@ export const convertNodesToServerBlocks = (
     const triggerNodes = nodes.filter(
       (node) =>
         node.data &&
-        (node.data as unknown as WorkflowNodeData).type === "workflow_trigger"
+        (node.data as unknown as WorkflowNodeData).type === 'workflow_trigger',
     );
 
     const traverse = (nodeId: string) => {
@@ -303,32 +296,29 @@ export const convertNodesToServerBlocks = (
     processedNodes.add(nodeId);
 
     //* 노드 타입에 따른 블록 생성
-    if (nodeData.type === "workflow_trigger") {
+    if (nodeData.type === 'workflow_trigger') {
       blocks.push({
         name: nodeData.label,
-        type: "trigger",
+        type: 'trigger',
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
         config: nodeData.config,
       });
-    } else if (nodeData.type === "job") {
+    } else if (nodeData.type === 'job') {
       //* Job의 job-name을 nodeData.jobName에서 추출
-      const jobName = nodeData.jobName || "job1";
+      const jobName = nodeData.jobName || 'job1';
 
       //* Job 간 의존성 (needs) 처리
       const jobDependencies =
-        edges?.filter(
-          (edge) => edge.target === node.id && edge.data?.isDependency
-        ) || [];
+        edges?.filter((edge) => edge.target === node.id && edge.data?.isDependency) || [];
 
       const needs =
         jobDependencies.length > 0
           ? jobDependencies.map((edge) => {
               const sourceJob = nodes.find((n) => n.id === edge.source);
-              const sourceJobData =
-                sourceJob?.data as unknown as WorkflowNodeData;
-              return sourceJobData?.jobName || "unknown";
+              const sourceJobData = sourceJob?.data as unknown as WorkflowNodeData;
+              return sourceJobData?.jobName || 'unknown';
             })
           : undefined;
 
@@ -339,17 +329,17 @@ export const convertNodesToServerBlocks = (
 
       blocks.push({
         name: nodeData.label,
-        type: "job",
+        type: 'job',
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        "job-name": jobName, //* nodeData.jobName 사용
+        'job-name': jobName, //* nodeData.jobName 사용
         config: jobConfig,
       });
-    } else if (nodeData.type === "step") {
+    } else if (nodeData.type === 'step') {
       //* Step의 job-name을 올바르게 설정
       //* 부모 Job 노드를 찾아서 job-name을 가져옴
-      let jobName = nodeData.jobName || "";
+      let jobName = nodeData.jobName || '';
 
       //* 부모 Job이 없는 경우, 부모 Subflow를 통해 Job을 찾음
       if (!jobName && node.parentId) {
@@ -359,18 +349,18 @@ export const convertNodesToServerBlocks = (
           if (parentJob) {
             const jobData = parentJob.data as unknown as WorkflowNodeData;
             const jobsConfig = jobData.config.jobs || {};
-            jobName = Object.keys(jobsConfig)[0] || "job1";
+            jobName = Object.keys(jobsConfig)[0] || 'job1';
           }
         }
       }
 
       blocks.push({
         name: nodeData.label,
-        type: "step",
+        type: 'step',
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        "job-name": jobName,
+        'job-name': jobName,
         config: nodeData.config,
       });
     }

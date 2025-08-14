@@ -1,8 +1,6 @@
-/**
- * API 기본 클라이언트
- * - 앱 전역에서 공통으로 사용하는 axios 인스턴스를 정의합니다.
- * - baseURL은 환경과 설정에 따라 `apiConfig`를 우선 활용합니다.
- */
+// * API 모듈 메인 export
+// * - 앱 전역에서 공통으로 사용하는 axios 인스턴스와 API 모듈들을 관리합니다.
+// * - baseURL은 환경과 설정에 따라 `apiConfig`를 우선 활용합니다.
 import axios from 'axios';
 import { API_CONFIG } from '@/config/apiConfig';
 
@@ -23,13 +21,16 @@ const apiClient = axios.create({
 
 export default apiClient;
 
-// * API 배럴 export
+// * API 모듈 export
 export { default as githubClient } from './githubClient';
+
+// * 기능별 API 모듈들
 export { pipelineAPI } from './pipeline';
 export { workflowAPI } from './workflow';
 export { secretsAPI } from './secrets';
 export { blockAPI } from './blocks';
+export { presetsAPI } from './presets';
 
-// * Hooks, Types 재노출
+// * React Query Hooks 및 Types 재노출
 export * from './hooks';
 export * from './types';

@@ -1,7 +1,5 @@
-/**
- * 파이프라인 관련 React Query 훅 모음
- * - 조회/생성/수정/삭제 뮤테이션을 제공합니다.
- */
+// * 파이프라인 관련 React Query 훅 모음
+// * - 조회/생성/수정/삭제 뮤테이션을 제공합니다.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pipelineAPI } from '@/api';
 

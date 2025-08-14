@@ -1,7 +1,5 @@
-/**
- * 워크플로우 관련 React Query 훅 모음
- * - 목록/실행/로그/잡/실행/취소를 제공합니다.
- */
+// * 워크플로우 관련 React Query 훅 모음
+// * - 목록/실행/로그/잡/실행/취소를 제공합니다.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowAPI } from '@/api';
 import type { WorkflowItem, GithubJobDetailResponse } from '@/api/types';
@@ -22,7 +20,7 @@ export const useWorkflows = (owner: string, repo: string) => {
 type RunsOptions = {
   refetchInterval?: number | false;
   enabled?: boolean;
-  keepPreviousData?: boolean;
+
   refetchOnWindowFocus?: boolean;
 };
 
@@ -35,7 +33,7 @@ export const useWorkflowRuns = (owner: string, repo: string, options?: RunsOptio
     enabled: options?.enabled ?? (!!owner && !!repo),
     staleTime: 30 * 1000, // 30초
     refetchInterval: options?.refetchInterval ?? 10 * 1000, // 기본 10초 폴링
-    keepPreviousData: options?.keepPreviousData ?? true,
+
     refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false,
   });
 };
@@ -57,7 +55,6 @@ export const useWorkflowRunLogs = (owner: string, repo: string, runId: string) =
     queryFn: async () => (await workflowAPI.getRunLogs(owner, repo, runId)).data,
     enabled: !!owner && !!repo && !!runId,
     staleTime: 30 * 1000, // 30초
-    keepPreviousData: true,
   });
 };
 
@@ -68,7 +65,6 @@ export const useWorkflowRunJobs = (owner: string, repo: string, runId: string) =
     queryFn: async () => (await workflowAPI.getRunJobs(owner, repo, runId)).data,
     enabled: !!owner && !!repo && !!runId,
     staleTime: 10 * 1000, // 10초
-    keepPreviousData: true,
   });
 };
 

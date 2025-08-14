@@ -3,12 +3,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ServerBlock, WorkflowNodeData } from '../types';
 import { convertNodesToServerBlocks } from '../utils/dataConverter';
-import { useLayout } from '@/components/layout/LayoutContext';
 import { DragDropSidebar } from './DragDropSidebar';
-import { AreaNode } from './AreaNode';
 import { NodeEditor } from './NodeEditor';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { Save, X } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -21,14 +18,12 @@ import { IntegratedSidePanel } from './IntegratedSidePanel';
 import { DropArea } from './area-editor/components/DropArea';
 import { EmptyState } from './area-editor/components/EmptyState';
 
-/**
- * ========================================
- * 영역 기반 워크플로우 에디터 컴포넌트
- * ========================================
- *
- * 드래그 앤 드롭으로 블록을 추가하고, 영역별로 워크플로우를 구성하는 에디터입니다.
- * Trigger, Job, Step 영역으로 나누어져 있으며, 각 영역에 맞는 블록을 배치할 수 있습니다.
- */
+// * ========================================
+// * 영역 기반 워크플로우 에디터 컴포넌트
+// * ========================================
+// * 
+// * 드래그 앤 드롭으로 블록을 추가하고, 영역별로 워크플로우를 구성하는 에디터입니다.
+// * Trigger, Job, Step 영역으로 나누어져 있으며, 각 영역에 맞는 블록을 배치할 수 있습니다.
 export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = ({
   onWorkflowChange,
   initialBlocks,
@@ -93,32 +88,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   //* 컨트롤 패널 열림/닫힘 상태
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
 
-  //* 레이아웃 컨텍스트에서 사이드바 설정 함수 가져오기
-  const { setSidebarExtra } = useLayout();
-
-  //* ========================================
-  //* 사이드바 설정
-  //* ========================================
-
-  //* 사이드바에 드래그 드롭 패널 설정
-  useEffect(() => {
-    setSidebarExtra(
-      <DragDropSidebar
-        nodePanelOpen={isControlPanelOpen}
-        onRequestCloseNodePanel={() => setIsControlPanelOpen(false)}
-      />,
-    );
-    return () => setSidebarExtra(null);
-  }, [setSidebarExtra, isControlPanelOpen]);
+  //* 글로벌 레이아웃 사이드바 주입 제거: 라이브러리는 에디터 우측 컬럼에 직접 렌더링
 
   //* ========================================
   //* 이벤트 핸들러
   //* ========================================
 
-  /**
-   * 노드 선택 핸들러
-   * 사용자가 노드를 클릭했을 때 호출
-   */
+  // * 노드 선택 핸들러
+  // * 사용자가 노드를 클릭했을 때 호출
   const handleNodeSelect = useCallback(
     (node: AreaNodeData) => {
       setSelectedNode(node);
@@ -142,16 +119,12 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [onNodeSelect],
   );
 
-  /**
-   * 노드 편집 시작
-   */
+  // * 노드 편집 시작
   const handleNodeEdit = useCallback((node: AreaNodeData) => {
     setEditingNode(node);
   }, []);
 
-  /**
-   * 노드 편집 저장
-   */
+  // * 노드 편집 저장
   const handleNodeEditSave = useCallback(
     (updatedData: WorkflowNodeData) => {
       if (editingNode) {
@@ -172,17 +145,13 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [editingNode, updateNodeData, updateStepJobNames],
   );
 
-  /**
-   * 노드 편집 취소
-   */
+  // * 노드 편집 취소
   const handleNodeEditCancel = useCallback(() => {
     setEditingNode(null);
   }, []);
 
-  /**
-   * 워크스페이스 클릭 핸들러
-   * 외부 클릭 시 선택된 노드 해제
-   */
+  // * 워크스페이스 클릭 핸들러
+  // * 외부 클릭 시 선택된 노드 해제
   const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
     // 노드나 컨트롤 패널이 아닌 영역 클릭 시
     if (
@@ -194,9 +163,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     }
   }, []);
 
-  /**
-   * 워크플로우 저장
-   */
+  // * 워크플로우 저장
   const handleSaveWorkflow = useCallback(() => {
     if (onWorkflowChange) {
       //* getServerBlocks 의존성 제거하여 무한 루프 방지
@@ -213,17 +180,13 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     }
   }, [onWorkflowChange, areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
-  /**
-   * 워크스페이스 초기화
-   */
+  // * 워크스페이스 초기화
   const handleClearWorkspace = useCallback(() => {
     clearWorkspace();
     setSelectedNode(null);
   }, [clearWorkspace]);
 
-  /**
-   * 노드 삭제
-   */
+  // * 노드 삭제
   const handleNodeDelete = useCallback(
     (nodeId: string) => {
       if (!confirm('선택한 노드를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
@@ -239,9 +202,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   //* 유틸리티 함수
   //* ========================================
 
-  /**
-   * Job별 Step 그룹핑
-   */
+  // * Job별 Step 그룹핑
   const getStepsByJob = useCallback(() => {
     const jobSteps: Record<string, AreaNodeData[]> = {};
 
@@ -252,9 +213,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     return jobSteps;
   }, [areaNodes]);
 
-  /**
-   * 빈 상태 렌더링
-   */
+  // * 빈 상태 렌더링
   const renderEmptyState = useCallback(
     (
       areaKey: keyof typeof areaNodes,
@@ -276,24 +235,18 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [],
   );
 
-  /**
-   * 노드 드래그 시작 핸들러
-   */
+  // * 노드 드래그 시작 핸들러
   const handleNodeDragStart = useCallback((node: AreaNodeData) => {
     // 드래그 시작 시 필요한 처리
   }, []);
 
-  /**
-   * 노드 드래그 핸들러
-   */
+  // * 노드 드래그 핸들러
   const handleNodeDrag = useCallback((e: React.DragEvent, node: AreaNodeData) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  /**
-   * 키보드 네비게이션 래퍼 (제거됨)
-   */
+  // * 키보드 네비게이션 래퍼 (제거됨)
   const handleKeyNavigationWrapper = useCallback(
     (e: React.KeyboardEvent, nodeId: string) => {
       // 키보드 네비게이션 기능 제거
@@ -426,6 +379,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         closeButton={false}
         limit={3}
       />
+
+      {/* 우측: 블록/파이프라인 라이브러리 컬럼 */}
+      <div className="hidden md:block w-80 xl:w-96 h-full border-l border-gray-200 bg-white overflow-hidden">
+        <DragDropSidebar
+          nodePanelOpen={isControlPanelOpen}
+          onRequestCloseNodePanel={() => setIsControlPanelOpen(false)}
+        />
+      </div>
     </div>
   );
 };

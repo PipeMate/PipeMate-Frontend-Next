@@ -30,9 +30,7 @@ interface DropAreaProps {
   dragOverJobId: string | null;
 }
 
-/**
- * 드롭 영역 컴포넌트
- */
+// * 드롭 영역 컴포넌트
 export const DropArea: React.FC<DropAreaProps> = ({
   areaKey,
   title,

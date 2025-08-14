@@ -10,10 +10,8 @@ interface EmptyStateProps {
   jobId?: string;
 }
 
-/**
- * 빈 상태 컴포넌트
- * 간단하고 일관된 높이를 유지합니다.
- */
+// * 빈 상태 컴포넌트
+// * 간단하고 일관된 높이를 유지합니다.
 export const EmptyState: React.FC<EmptyStateProps> = ({
   areaKey,
   title,
@@ -21,9 +19,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   isJobStep,
   jobId: _jobId,
 }) => {
-  /**
-   * 빈 상태 아이콘 가져오기
-   */
+  // * 빈 상태 아이콘 가져오기
   const getEmptyStateIcon = () => {
     switch (areaKey) {
       case 'trigger':
@@ -37,9 +33,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     }
   };
 
-  /**
-   * 빈 상태 색상 가져오기
-   */
+  // * 빈 상태 색상 가져오기
   const getEmptyStateColors = () => {
     if (isDragOver) {
       switch (areaKey) {
@@ -56,9 +50,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     return 'border-gray-300 bg-gray-50/30';
   };
 
-  /**
-   * 간단한 안내 메시지
-   */
+  // * 간단한 안내 메시지
   const getMessage = () => {
     if (isJobStep) {
       return isDragOver ? 'Step을 여기에 놓으세요' : 'Step을 여기에 드롭하세요';

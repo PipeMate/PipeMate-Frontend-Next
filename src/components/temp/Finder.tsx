@@ -1,11 +1,11 @@
-import * as React from "react";
-import { ChevronRight, File, Folder } from "lucide-react";
+import * as React from 'react';
+import { ChevronRight, File, Folder } from 'lucide-react';
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from '@/components/ui/collapsible';
 import {
   Sidebar,
   SidebarContent,
@@ -18,11 +18,11 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarRail,
-} from "@/components/ui/sidebar";
-import { FILE_LIST } from "@/config/appConstants";
+} from '@/components/ui/sidebar';
+import { FILES } from '@/config/appConstants';
 
 export function Finder({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const menuList = FILE_LIST;
+  const menuList = FILES;
 
   return (
     <Sidebar {...props}>
@@ -67,7 +67,7 @@ function Tree({ item }: { item: TreeItem }) {
   if (!items.length) {
     return (
       <SidebarMenuButton
-        isActive={name === "button.tsx"}
+        isActive={name === 'button.tsx'}
         className="data-[active=true]:bg-transparent"
       >
         <File />
@@ -80,7 +80,7 @@ function Tree({ item }: { item: TreeItem }) {
     <SidebarMenuItem>
       <Collapsible
         className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-        defaultOpen={name === "components" || name === "ui"}
+        defaultOpen={name === 'components' || name === 'ui'}
       >
         <CollapsibleTrigger asChild>
           <SidebarMenuButton>

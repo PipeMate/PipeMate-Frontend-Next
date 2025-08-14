@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { usePipeline, useUpdatePipeline } from '@/api/hooks';
@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Save, RefreshCw, Blocks } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-export default function WorkflowEditPage() {
+function WorkflowEditContent() {
   const searchParams = useSearchParams();
   const file = searchParams.get('file') || '';
   const { owner, repo, isConfigured } = useRepository();
@@ -43,7 +43,7 @@ export default function WorkflowEditPage() {
     setHeaderExtra(
       <div className="flex min-w-0 items-center gap-3">
         <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
-          <Icon size={18} />
+          <Icon className="w-4 h-4" />
         </span>
         <div className="min-w-0">
           <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -90,7 +90,7 @@ export default function WorkflowEditPage() {
                 `워크플로우가 서버에 저장되었습니다: ${workflowName || file}`,
               );
               refetch();
-            } catch (e) {
+            } catch {
               toast.error('서버 저장 중 오류가 발생했습니다.');
             }
           }}
@@ -117,6 +117,7 @@ export default function WorkflowEditPage() {
     file,
     updatePipelineMutation.isPending,
     isConfigured,
+    workflowName,
   ]);
 
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
@@ -139,5 +140,13 @@ export default function WorkflowEditPage() {
         />
       </div>
     </ErrorBoundary>
+  );
+}
+
+export default function WorkflowEditPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WorkflowEditContent />
+    </Suspense>
   );
 }

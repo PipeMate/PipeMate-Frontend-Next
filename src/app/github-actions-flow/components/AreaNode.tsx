@@ -12,9 +12,7 @@ interface AreaNodeProps {
   onDrag: (e: React.DragEvent, node: AreaNodeData) => void;
 }
 
-/**
- * 영역 기반 노드 컴포넌트
- */
+// * 영역 기반 노드 컴포넌트
 export const AreaNode: React.FC<AreaNodeProps> = ({
   node,
   onSelect,

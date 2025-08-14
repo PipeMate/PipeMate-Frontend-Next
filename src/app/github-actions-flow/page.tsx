@@ -15,14 +15,8 @@ import { toast } from 'react-toastify';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
-/**
- * GitHub Actions Flow 페이지
- *
- * 블록 기반 워크플로우 에디터를 제공하는 메인 페이지입니다.
- * 사용자는 드래그 앤 드롭으로 블록을 추가하고, YAML 미리보기를 통해
- * 생성된 GitHub Actions 워크플로우를 확인할 수 있습니다.
- */
-export default function GitHubActionsFlowPage() {
+// * GitHub Actions Flow 페이지 내부 컴포넌트
+function GitHubActionsFlowContent() {
   //* ========================================
   //* 상태 관리
   //* ========================================
@@ -94,7 +88,7 @@ export default function GitHubActionsFlowPage() {
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
-              <FlowIcon size={18} />
+              <FlowIcon className="h-4 w-4" />
             </span>
             <div className="min-w-0">
               <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -120,10 +114,8 @@ export default function GitHubActionsFlowPage() {
   //* 이벤트 핸들러
   //* ========================================
 
-  /**
-   * 워크플로우 변경 핸들러
-   * AreaBasedWorkflowEditor에서 블록이 추가/삭제/수정될 때 호출
-   */
+  // * 워크플로우 변경 핸들러
+  // * AreaBasedWorkflowEditor에서 블록이 추가/삭제/수정될 때 호출
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
     try {
       console.log('저장되는 워크플로우 데이터:', JSON.stringify(newBlocks, null, 2));
@@ -133,11 +125,9 @@ export default function GitHubActionsFlowPage() {
     }
   }, []);
 
-  /**
-   * 노드 선택 핸들러
-   * 사용자가 워크플로우 에디터에서 노드를 선택할 때 호출
-   * YAML 미리보기 패널 표시 여부를 결정
-   */
+  // * 노드 선택 핸들러
+  // * 사용자가 워크플로우 에디터에서 노드를 선택할 때 호출
+  // * YAML 미리보기 패널 표시 여부를 결정
   const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
     setSelectedBlock(selectedBlock);
     //* 블록 선택이 해제되면 편집 모드도 해제
@@ -146,20 +136,16 @@ export default function GitHubActionsFlowPage() {
     }
   }, []);
 
-  /**
-   * 편집 모드 토글 핸들러
-   * YAML 미리보기 패널에서 편집 모드를 토글할 때 호출
-   */
+  // * 편집 모드 토글 핸들러
+  // * YAML 미리보기 패널에서 편집 모드를 토글할 때 호출
   const handleEditModeToggle = useCallback(() => {
     if (selectedBlock) {
       setIsEditing(!isEditing);
     }
   }, [selectedBlock, isEditing]);
 
-  /**
-   * 블록 업데이트 핸들러
-   * YAML 미리보기 패널에서 블록 내용을 수정할 때 호출
-   */
+  // * 블록 업데이트 핸들러
+  // * YAML 미리보기 패널에서 블록 내용을 수정할 때 호출
   const handleBlockUpdate = useCallback(
     (updatedBlock: ServerBlock) => {
       if (selectedBlock) {
@@ -234,5 +220,18 @@ export default function GitHubActionsFlowPage() {
         </Suspense>
       </div>
     </ErrorBoundary>
+  );
+}
+
+// * GitHub Actions Flow 페이지
+// *
+// * 블록 기반 워크플로우 에디터를 제공하는 메인 페이지입니다.
+// * 사용자는 드래그 앤 드롭으로 블록을 추가하고, YAML 미리보기를 통해
+// * 생성된 GitHub Actions 워크플로우를 확인할 수 있습니다.
+export default function GitHubActionsFlowPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GitHubActionsFlowContent />
+    </Suspense>
   );
 }

@@ -3,10 +3,8 @@ import { ServerBlock, WorkflowNodeData } from '../../../types';
 import { AreaNodes, NodeType } from '../types';
 import { toast } from 'react-toastify';
 
-/**
- * 드롭 핸들러 관리 훅
- * 강화된 유효성 검사 및 순서 제약 포함
- */
+// * 드롭 핸들러 관리 훅
+// * 강화된 유효성 검사 및 순서 제약 포함
 export const useDropHandlers = (
   areaNodes: AreaNodes,
   addNode: (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => void,
@@ -102,9 +100,7 @@ export const useDropHandlers = (
   //* 유효성 검사 함수들
   //* ========================================
 
-  /**
-   * 블록 타입별 허용 영역 검사
-   */
+  // * 블록 타입별 허용 영역 검사
   const validateBlockDrop = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -140,9 +136,7 @@ export const useDropHandlers = (
     [showToast],
   );
 
-  /**
-   * 순서 제약 검사
-   */
+  // * 순서 제약 검사
   const validateOrderConstraints = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -164,9 +158,7 @@ export const useDropHandlers = (
     [areaNodes.trigger.length, areaNodes.job.length, showToast],
   );
 
-  /**
-   * 중복 검사 (Trigger만 적용)
-   */
+  // * 중복 검사 (Trigger만 적용)
   const validateDuplicates = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -188,9 +180,7 @@ export const useDropHandlers = (
     [areaNodes.trigger, showToast],
   );
 
-  /**
-   * 종합 유효성 검사
-   */
+  // * 종합 유효성 검사
   const performValidation = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       return (
@@ -202,10 +192,8 @@ export const useDropHandlers = (
     [validateBlockDrop, validateOrderConstraints, validateDuplicates],
   );
 
-  /**
-   * 드롭 이벤트 핸들러
-   * 블록을 특정 영역에 드롭했을 때 호출됩니다.
-   */
+  // * 드롭 이벤트 핸들러
+  // * 블록을 특정 영역에 드롭했을 때 호출됩니다.
   const handleDrop = useCallback(
     (e: React.DragEvent, targetArea: keyof AreaNodes) => {
       e.preventDefault();
@@ -328,9 +316,7 @@ export const useDropHandlers = (
     [addNode, areaNodes.job, performValidation, clearDragState, showToast],
   );
 
-  /**
-   * 드롭 핸들러 - 영역별
-   */
+  // * 드롭 핸들러 - 영역별
   const handleAreaDrop = useCallback(
     (e: React.DragEvent, areaKey: keyof AreaNodes) => {
       e.preventDefault();
@@ -396,9 +382,7 @@ export const useDropHandlers = (
     [addNode, areaNodes.job, handleDrop, performValidation, clearDragState, showToast],
   );
 
-  /**
-   * 드롭 핸들러 - Job 내부 Step 영역
-   */
+  // * 드롭 핸들러 - Job 내부 Step 영역
   const handleJobStepDrop = useCallback(
     (e: React.DragEvent, jobId: string) => {
       e.preventDefault();

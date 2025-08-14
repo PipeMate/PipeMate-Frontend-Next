@@ -5,9 +5,7 @@ import {
   StepConfigDetail,
 } from '../types/areaNode';
 
-/**
- * 트리거 설정 파싱 함수
- */
+// * 트리거 설정 파싱 함수
 export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConfig => {
   const triggers: string[] = [];
   const branches: string[] = [];
@@ -67,9 +65,7 @@ export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConf
   return { triggers, branches, paths, workflowName };
 };
 
-/**
- * Job 설정 파싱 함수
- */
+// * Job 설정 파싱 함수
 export const parseJobConfig = (config: Record<string, unknown>): JobConfig => {
   const runsOn: string[] = [];
   const needs: string[] = [];
@@ -116,9 +112,7 @@ export const parseJobConfig = (config: Record<string, unknown>): JobConfig => {
   return { runsOn, needs, timeout, conditions };
 };
 
-/**
- * Step 설정 파싱 함수
- */
+// * Step 설정 파싱 함수
 export const parseStepConfig = (config: Record<string, unknown>): StepConfig => {
   const uses: string[] = [];
   const run: string[] = [];
@@ -161,9 +155,7 @@ export const parseStepConfig = (config: Record<string, unknown>): StepConfig => 
   return { uses, run, withParams };
 };
 
-/**
- * Step 상세 설정 파싱 함수
- */
+// * Step 상세 설정 파싱 함수
 export const parseStepConfigDetail = (
   config: Record<string, unknown>,
 ): StepConfigDetail => {

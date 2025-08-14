@@ -1,10 +1,10 @@
 //* ========================================
-//* React Flow 노드 정의 및 상수
+//* 커스텀 노드 정의 및 상수
 //* ========================================
-//* 이 파일은 React Flow 기반 GitHub Actions 워크플로우 에디터의
+//* 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
 //* 노드 타입, 템플릿, 초기 설정을 정의합니다.
 
-import { Node, Edge } from "@xyflow/react";
+import { CustomNode as Node, CustomEdge as Edge } from '../types/customTypes';
 
 //* ========================================
 //* 노드 타입 상수
@@ -12,9 +12,9 @@ import { Node, Edge } from "@xyflow/react";
 
 //* React Flow에서 사용하는 노드 타입 정의
 export const NODE_TYPES = {
-  WORKFLOW_TRIGGER: "workflowTrigger", //* 워크플로우 트리거 노드
-  JOB: "job", //* Job 노드
-  STEP: "step", //* Step 노드
+  WORKFLOW_TRIGGER: 'workflowTrigger', //* 워크플로우 트리거 노드
+  JOB: 'job', //* Job 노드
+  STEP: 'step', //* Step 노드
 } as const;
 
 //* ========================================
@@ -26,18 +26,17 @@ export const NODE_TYPES = {
 export const NODE_TEMPLATES = {
   //* 워크플로우 트리거 템플릿
   workflow_trigger: {
-    label: "워크플로우 기본 설정",
+    label: '워크플로우 기본 설정',
     type: NODE_TYPES.WORKFLOW_TRIGGER,
-    domain: "github",
-    task: ["trigger"],
-    description:
-      "GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.",
+    domain: 'github',
+    task: ['trigger'],
+    description: 'GitHub Actions 워크플로우 이름과 트리거 조건을 설정하는 블록입니다.',
     config: {
-      name: "Java CICD",
+      name: 'Java CICD',
       on: {
         workflow_dispatch: {},
         push: {
-          branches: ["main"],
+          branches: ['main'],
         },
       },
     },
@@ -45,15 +44,15 @@ export const NODE_TEMPLATES = {
 
   //* Job 블록 템플릿
   job: {
-    label: "Job 설정",
+    label: 'Job 설정',
     type: NODE_TYPES.JOB,
-    domain: "github",
-    task: ["job"],
-    description: "사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.",
+    domain: 'github',
+    task: ['job'],
+    description: '사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.',
     config: {
       jobs: {
-        "ci-pipeline": {
-          "runs-on": "ubuntu-latest",
+        'ci-pipeline': {
+          'runs-on': 'ubuntu-latest',
         },
       },
     },
@@ -65,114 +64,111 @@ export const NODE_TEMPLATES = {
 
   //* 코드 체크아웃 Step
   checkout_step: {
-    label: "Checkout repository",
+    label: 'Checkout repository',
     type: NODE_TYPES.STEP,
-    domain: "github",
-    task: ["checkout"],
-    description: "GitHub 저장소를 체크아웃하는 단계입니다.",
+    domain: 'github',
+    task: ['checkout'],
+    description: 'GitHub 저장소를 체크아웃하는 단계입니다.',
     config: {
-      name: "Checkout repository",
-      uses: "actions/checkout@v4",
+      name: 'Checkout repository',
+      uses: 'actions/checkout@v4',
     },
   },
 
   //* Java 환경 설정 Step
   java_setup_step: {
-    label: "Set up JDK 21",
+    label: 'Set up JDK 21',
     type: NODE_TYPES.STEP,
-    domain: "java",
-    task: ["setup"],
-    description:
-      "GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.",
+    domain: 'java',
+    task: ['setup'],
+    description: 'GitHub Actions 실행 환경에 AdoptOpenJDK 21을 설치하는 단계입니다.',
     config: {
-      name: "Set up JDK 21",
-      uses: "actions/setup-java@v4",
+      name: 'Set up JDK 21',
+      uses: 'actions/setup-java@v4',
       with: {
-        distribution: "adopt",
-        "java-version": "21",
+        distribution: 'adopt',
+        'java-version': '21',
       },
     },
   },
 
   //* Gradle 빌드 Step
   gradle_build_step: {
-    label: "Gradle 빌드 블록",
+    label: 'Gradle 빌드 블록',
     type: NODE_TYPES.STEP,
-    domain: "gradle",
-    task: ["build"],
-    description:
-      "Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.",
+    domain: 'gradle',
+    task: ['build'],
+    description: 'Gradle Wrapper에 권한을 부여하고, 테스트를 제외한 빌드만 수행합니다.',
     config: {
-      name: "Gradle Build (no test)",
-      run: "chmod +x ./gradlew\n./gradlew clean build -x test",
+      name: 'Gradle Build (no test)',
+      run: 'chmod +x ./gradlew\n./gradlew clean build -x test',
     },
   },
 
   //* Gradle 테스트 Step
   gradle_test_step: {
-    label: "Gradle 테스트 실행 블록",
+    label: 'Gradle 테스트 실행 블록',
     type: NODE_TYPES.STEP,
-    domain: "gradle",
-    task: ["test"],
-    description: "Gradle을 사용하여 테스트를 수행하는 블록입니다.",
+    domain: 'gradle',
+    task: ['test'],
+    description: 'Gradle을 사용하여 테스트를 수행하는 블록입니다.',
     config: {
-      name: "Test with Gradle",
-      run: "./gradlew test",
+      name: 'Test with Gradle',
+      run: './gradlew test',
     },
   },
 
   //* Docker 로그인 Step
   docker_login_step: {
-    label: "Docker 로그인",
+    label: 'Docker 로그인',
     type: NODE_TYPES.STEP,
-    domain: "docker",
-    task: ["login"],
-    description:
-      "Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.",
+    domain: 'docker',
+    task: ['login'],
+    description: 'Docker Hub에 로그인하여 이후 이미지 푸시에 권한을 부여합니다.',
     config: {
-      name: "Docker Login",
-      uses: "docker/login-action@v2.2.0",
+      name: 'Docker Login',
+      uses: 'docker/login-action@v2.2.0',
       with: {
-        username: "${{ secrets.DOCKER_USERNAME }}",
-        password: "${{ secrets.DOCKER_USERNAME }}",
+        username: '${{ secrets.DOCKER_USERNAME }}',
+        password: '${{ secrets.DOCKER_USERNAME }}',
       },
     },
   },
 
   //* Docker 빌드 및 푸시 Step
   docker_build_step: {
-    label: "Docker 이미지 빌드 및 푸시 블록",
+    label: 'Docker 이미지 빌드 및 푸시 블록',
     type: NODE_TYPES.STEP,
-    domain: "docker",
-    task: ["build", "push"],
-    description: "Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.",
+    domain: 'docker',
+    task: ['build', 'push'],
+    description: 'Docker 이미지를 빌드하고 Docker Hub에 푸시하는 단계입니다.',
     config: {
-      name: "image build and push docker images",
-      uses: "docker/build-push-action@v4.1.1",
+      name: 'image build and push docker images',
+      uses: 'docker/build-push-action@v4.1.1',
       with: {
-        context: ".",
+        context: '.',
         push: true,
-        tags: "${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest",
-        "no-cache": true,
+        tags: '${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest',
+        'no-cache': true,
       },
     },
   },
 
   //* SSH 배포 Step
   ssh_deploy_step: {
-    label: "Deploy to AWS EC2",
+    label: 'Deploy to AWS EC2',
     type: NODE_TYPES.STEP,
-    domain: "aws",
-    task: ["deploy"],
-    description: "AWS EC2 서버에 SSH를 통해 배포하는 단계입니다.",
+    domain: 'aws',
+    task: ['deploy'],
+    description: 'AWS EC2 서버에 SSH를 통해 배포하는 단계입니다.',
     config: {
-      name: "Deploy to AWS EC2",
-      uses: "appleboy/ssh-action@v0.1.10",
+      name: 'Deploy to AWS EC2',
+      uses: 'appleboy/ssh-action@v0.1.10',
       with: {
-        host: "${{ secrets.AWS_HOST_IP }}",
-        username: "${{ secrets.REMOTE_USER }}",
-        key: "${{ secrets.AWS_EC2_PRIVATE_KEY }}",
-        port: "${{ secrets.REMOTE_SSH_PORT }}",
+        host: '${{ secrets.AWS_HOST_IP }}',
+        username: '${{ secrets.REMOTE_USER }}',
+        key: '${{ secrets.AWS_EC2_PRIVATE_KEY }}',
+        port: '${{ secrets.REMOTE_SSH_PORT }}',
         script:
           "docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}\ndocker pull ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest\ndocker stop bus-notice-v2\ndocker rm $(docker ps --filter 'status=exited' -a -q)\ndocker run -d --name bus-notice-v2 --log-driver=syslog --network bus-notice -p 8081:8080 --label co.elastic.logs/enabled=true --label co.elastic.logs/module=java ${{ secrets.DOCKER_USERNAME }}/bus-notice-v2:latest",
       },
@@ -191,12 +187,19 @@ export const INITIAL_NODES: Node[] = [];
 //* 초기 노드 간 연결 관계
 export const INITIAL_EDGES: Edge[] = [
   {
-    id: "trigger-to-job",
-    source: "trigger-1",
-    target: "job-1",
-    type: "straight", // 'smoothstep'에서 'straight'로 변경
+    id: 'trigger-to-job',
+    source: 'trigger-1',
+    target: 'job-1',
+    type: 'straight',
     data: {
-      label: "워크플로우 → Job",
+      label: '워크플로우 → Job',
+    },
+    style: { zIndex: 10 },
+    markerEnd: {
+      type: 'arrowclosed',
+      width: 16,
+      height: 16,
+      color: '#64748b',
     },
   },
 ];
@@ -210,7 +213,7 @@ export const INITIAL_EDGES: Edge[] = [
 export const createNode = (
   type: string,
   position: { x: number; y: number },
-  parentId?: string
+  parentId?: string,
 ): Node => {
   const template = NODE_TEMPLATES[type as keyof typeof NODE_TEMPLATES];
   if (!template) {
@@ -226,13 +229,13 @@ export const createNode = (
     parentId: parentId,
     data: {
       label: template.label,
-      type: template.type as "workflow_trigger" | "job" | "step",
-      domain: "domain" in template ? template.domain : undefined,
-      task: "task" in template ? template.task : undefined,
+      type: template.type as 'workflow_trigger' | 'job' | 'step',
+      domain: 'domain' in template ? template.domain : undefined,
+      task: 'task' in template ? template.task : undefined,
       description: template.description,
       config: template.config,
       parentId,
-      jobName: parentId ? "ci-pipeline" : undefined,
+      jobName: parentId ? 'ci-pipeline' : undefined,
     },
   };
 };

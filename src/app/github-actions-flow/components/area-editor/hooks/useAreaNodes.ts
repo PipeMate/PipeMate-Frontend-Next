@@ -4,11 +4,9 @@ import { ServerBlock, WorkflowNodeData } from '../../../types';
 import { AreaNodeData, AreaNodes, NodeType } from '../types';
 import { convertNodesToServerBlocks } from '../../../utils/dataConverter';
 
-/**
- * 영역별 노드 상태 관리 훅
- * @param initialBlocks 최초 마운트 시에만 areaNodes 초기화에 사용
- * @param onWorkflowChange 노드 변경 시 호출할 콜백
- */
+// * 영역별 노드 상태 관리 훅
+// * @param initialBlocks 최초 마운트 시에만 areaNodes 초기화에 사용
+// * @param onWorkflowChange 노드 변경 시 호출할 콜백
 export const useAreaNodes = (
   initialBlocks?: ServerBlock[],
   onWorkflowChange?: (blocks: ServerBlock[]) => void,
@@ -111,16 +109,12 @@ export const useAreaNodes = (
     [onWorkflowChange],
   );
 
-  /**
-   * Job 이름 자동 생성
-   */
+  // * Job 이름 자동 생성
   const generateJobName = useCallback((jobIndex: number) => {
     return `job${jobIndex + 1}`; // 하이픈 제거하여 통일
   }, []);
 
-  /**
-   * 노드 생성
-   */
+  // * 노드 생성
   const createNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string): AreaNodeData => {
       //* Job인 경우 job-name 자동 생성 및 config 업데이트
@@ -154,9 +148,7 @@ export const useAreaNodes = (
     [areaNodes.job.length, generateJobName],
   );
 
-  /**
-   * 노드 추가
-   */
+  // * 노드 추가
   const addNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => {
       //* Trigger는 기존 블록을 교체
@@ -232,9 +224,7 @@ export const useAreaNodes = (
     [areaNodes.trigger.length, createNode, scheduleWorkflowChange],
   );
 
-  /**
-   * 노드 삭제
-   */
+  // * 노드 삭제
   const deleteNode = useCallback(
     (nodeId: string) => {
       setAreaNodes((prev) => {
@@ -322,9 +312,7 @@ export const useAreaNodes = (
     [generateJobName, scheduleWorkflowChange],
   );
 
-  /**
-   * 노드 업데이트
-   */
+  // * 노드 업데이트
   const updateNode = useCallback(
     (
       nodeId: string,
@@ -365,9 +353,7 @@ export const useAreaNodes = (
     [onWorkflowChange],
   );
 
-  /**
-   * 노드 데이터 업데이트
-   */
+  // * 노드 데이터 업데이트
   const updateNodeData = useCallback(
     (nodeId: string, data: WorkflowNodeData) => {
       setAreaNodes((prev) => {
@@ -448,16 +434,12 @@ export const useAreaNodes = (
     [scheduleWorkflowChange],
   );
 
-  /**
-   * 모든 노드 가져오기
-   */
+  // * 모든 노드 가져오기
   const getAllNodes = useCallback(() => {
     return [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
   }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
-  /**
-   * ServerBlock 배열로 변환 (순서 보존)
-   */
+  // * ServerBlock 배열로 변환 (순서 보존)
   const getServerBlocks = useCallback(() => {
     const allNodes = getAllNodes();
     return convertNodesToServerBlocks(
@@ -470,9 +452,7 @@ export const useAreaNodes = (
     );
   }, [getAllNodes]);
 
-  /**
-   * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (job-name 기준 그룹화)
-   */
+  // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (job-name 기준 그룹화)
   const getServerBlocksInOrder = useCallback(() => {
     // 모든 노드를 하나의 배열로 합치기
     const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
@@ -535,9 +515,7 @@ export const useAreaNodes = (
     return groupedBlocks;
   }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
-  /**
-   * 워크스페이스 초기화
-   */
+  // * 워크스페이스 초기화
   const clearWorkspace = useCallback(() => {
     setAreaNodes({
       trigger: [],
@@ -546,9 +524,7 @@ export const useAreaNodes = (
     });
   }, []);
 
-  /**
-   * Job의 job-name 변경 시 하위 Step들의 job-name도 업데이트
-   */
+  // * Job의 job-name 변경 시 하위 Step들의 job-name도 업데이트
   const updateStepJobNames = useCallback((jobId: string, newJobName: string) => {
     setAreaNodes((prev) => {
       const newAreaNodes = { ...prev };
