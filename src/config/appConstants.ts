@@ -37,11 +37,7 @@ export const ROUTES = {
     label: '로그 모니터링',
     icon: Monitor,
   },
-  PRESETS: {
-    url: '/presets',
-    label: '프리셋 관리',
-    icon: Settings,
-  },
+  // PRESETS 라우트 제거: 프리셋은 에디터 사이드바에서 통합 관리
   ACTION_FLOW: {
     url: '/github-actions-flow',
     label: '워크플로우 에디터',

@@ -9,17 +9,17 @@ GitHub Actions 워크플로우를 시각적으로 구성할 수 있는 프론트
 프로젝트 루트에 `.env.local` 파일을 생성하고 다음 환경변수들을 설정하세요:
 
 ```bash
-# API 설정
-NEXT_PUBLIC_USE_REAL_API=false
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+  # API 설정
+  NEXT_PUBLIC_USE_REAL_API=false
+  NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 
-# GitHub 설정
-NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id_here
-GITHUB_CLIENT_SECRET=your_github_client_secret_here
+  # GitHub 설정
+  NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id_here
+  GITHUB_CLIENT_SECRET=your_github_client_secret_here
 
-# 기타 설정
-NODE_ENV=development
-PORT=3000
+  # 기타 설정
+  NODE_ENV=development
+  PORT=3000
 ```
 
 ### 환경변수 설명

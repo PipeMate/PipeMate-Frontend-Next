@@ -71,12 +71,6 @@ export default function Home() {
 
     setLoading(true);
     try {
-      // Assuming workflowAPI.getList is replaced by useWorkflows.getList
-      // For now, we'll simulate loading or remove if not used
-      // const response = await workflowAPI.getList(owner, repo);
-      // const workflowsData = response.data.workflows || [];
-
-      // Placeholder for actual data fetching
       const workflowsData = [
         {
           id: 1,

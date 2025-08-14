@@ -449,9 +449,9 @@ export const YamlPreviewPanel = ({
       </div>
 
       {/* ========================================
-          블록 편집 영역 (블록 모드일 때만)
+          블록 편집 영역 (isEditing=true && 블록 모드일 때만)
           ======================================== */}
-      {viewMode === 'block' && selectedBlock && (
+      {isEditing && viewMode === 'block' && selectedBlock && (
         <div className="px-4 py-3 border-t border-gray-200">
           <div className="text-sm font-semibold text-gray-900 mb-3">블록 편집</div>
 

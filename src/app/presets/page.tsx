@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,18 +13,13 @@ import { BlockResponse } from '@/api/types';
 import {
   Settings,
   Search,
-  Plus,
-  Edit,
-  Trash2,
   Copy,
   CheckCircle,
   GitBranch,
   Workflow,
   Code,
-  Database,
-  Server,
-  Globe,
   RefreshCw,
+  Eye,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 import {
@@ -32,8 +27,10 @@ import {
   getNodeIcon,
   NODE_COLORS,
 } from '@/app/github-actions-flow/constants/nodeConstants';
-import { useRouter } from 'next/navigation';
 import type { ServerBlock } from '@/app/github-actions-flow/types';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { generateBlockYaml } from '@/app/github-actions-flow/utils/yamlGenerator';
+import YamlViewer from '@/components/ui/YamlViewer';
 
 export default function PresetsPage() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
@@ -41,7 +38,10 @@ export default function PresetsPage() {
   const PresetsIcon = ROUTES.PRESETS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
-  const router = useRouter();
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [selectedServerBlock, setSelectedServerBlock] = useState<ServerBlock | null>(
+    null,
+  );
 
   // 훅 사용
   const {
@@ -85,16 +85,20 @@ export default function PresetsPage() {
           <RefreshCw className={`w-4 h-4 mr-2 ${blocksLoading ? 'animate-spin' : ''}`} />
           새로고침
         </Button>
-        <Button size="sm">
-          <Plus className="w-4 h-4 mr-2" />새 프리셋
-        </Button>
       </div>,
     );
     return () => {
       setHeaderExtra(null);
       setHeaderRight(null);
     };
-  }, [setHeaderExtra, setHeaderRight, blocks.length, blocksLoading, refetchBlocks]);
+  }, [
+    setHeaderExtra,
+    setHeaderRight,
+    blocks.length,
+    blocksLoading,
+    refetchBlocks,
+    PresetsIcon,
+  ]);
 
   // 도메인/태스크 후보 계산 (step 전용)
   const stepBlocks = blocks.filter((b) => b.type === 'step');
@@ -157,8 +161,7 @@ export default function PresetsPage() {
     }
   };
 
-  const handleEditBlock = (block: BlockResponse) => {
-    // 워크플로우 에디터로 이동하여 해당 블록을 초기 배치로 편집
+  const openViewer = (block: BlockResponse) => {
     const serverBlock: ServerBlock = {
       name: block.name,
       type: block.type as 'trigger' | 'job' | 'step',
@@ -168,53 +171,11 @@ export default function PresetsPage() {
       task: (block as unknown as { task?: string[] })?.task,
       config: (block.config ?? block.content) as Record<string, unknown>,
     };
-    const payload = encodeURIComponent(JSON.stringify([serverBlock]));
-    router.push(`/github-actions-flow?blocks=${payload}`);
+    setSelectedServerBlock(serverBlock);
+    setIsViewerOpen(true);
   };
 
-  const handleDeleteBlock = (block: BlockResponse) => {
-    // 삭제 확인 후 API 호출
-    if (confirm(`"${block.name}" 프리셋을 삭제하시겠습니까?`)) {
-      console.log('삭제할 블록:', block);
-      // TODO: 삭제 API 호출
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'trigger':
-        return <GitBranch className="w-4 h-4 text-blue-600" />;
-      case 'job':
-        return <Workflow className="w-4 h-4 text-green-600" />;
-      case 'step':
-        return <Code className="w-4 h-4 text-purple-600" />;
-      case 'database':
-        return <Database className="w-4 h-4 text-orange-600" />;
-      case 'server':
-        return <Server className="w-4 h-4 text-red-600" />;
-      case 'api':
-        return <Globe className="w-4 h-4 text-indigo-600" />;
-      default:
-        return <Settings className="w-4 h-4 text-gray-600" />;
-    }
-  };
-
-  const getTypeBadge = (type: string) => {
-    const typeLabels: Record<string, string> = {
-      trigger: '트리거',
-      job: '잡',
-      step: '스텝',
-      database: '데이터베이스',
-      server: '서버',
-      api: 'API',
-    };
-
-    return (
-      <Badge variant="outline" className="text-xs">
-        {typeLabels[type] || type}
-      </Badge>
-    );
-  };
+  // (미사용) 타입 아이콘/배지 유틸 제거
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -342,9 +303,6 @@ export default function PresetsPage() {
                         ? '검색 결과가 없습니다.'
                         : '아직 프리셋이 생성되지 않았습니다.'}
                     </p>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />첫 프리셋 생성
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -354,8 +312,8 @@ export default function PresetsPage() {
                   const colors = (() => {
                     if (block.type === 'trigger') return NODE_COLORS.TRIGGER;
                     if (block.type === 'job') return NODE_COLORS.JOB;
-                    if (block.type === 'step' && (block as any).domain)
-                      return getDomainColor((block as any).domain as string);
+                    if (block.type === 'step' && block.domain)
+                      return getDomainColor(block.domain as string);
                     return {
                       bg: '#f3f4f6',
                       border: '#6b7280',
@@ -403,10 +361,10 @@ export default function PresetsPage() {
                             <div className="flex items-center gap-1 text-xs">
                               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/50">
                                 <span className="truncate">
-                                  {block.type === 'step' && (block as any).domain
-                                    ? `${(block as any).domain}${
-                                        ((block as any).task || []).length > 0
-                                          ? ` • ${(block as any).task!.join(', ')}`
+                                  {block.type === 'step' && block.domain
+                                    ? `${block.domain}${
+                                        (block.task || []).length > 0
+                                          ? ` • ${(block.task || []).join(', ')}`
                                           : ''
                                       }`
                                     : block.type}
@@ -449,19 +407,10 @@ export default function PresetsPage() {
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => handleEditBlock(block)}
+                          onClick={() => openViewer(block)}
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          에디터에서 열기
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => handleDeleteBlock(block)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          삭제
+                          <Eye className="w-4 h-4 mr-2" />
+                          자세히
                         </Button>
                       </div>
                     </div>
@@ -528,6 +477,250 @@ export default function PresetsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* 읽기 전용 상세 시트 */}
+        <Sheet open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg">
+            <SheetHeader>
+              <SheetTitle>프리셋 상세</SheetTitle>
+            </SheetHeader>
+            {selectedServerBlock ? (
+              <div className="space-y-4 p-4 pt-0">
+                {/* 컬러 헤더 (노드 스타일) */}
+                {(() => {
+                  const colors = (() => {
+                    if (selectedServerBlock.type === 'trigger')
+                      return NODE_COLORS.TRIGGER;
+                    if (selectedServerBlock.type === 'job') return NODE_COLORS.JOB;
+                    if (selectedServerBlock.type === 'step' && selectedServerBlock.domain)
+                      return getDomainColor(selectedServerBlock.domain as string);
+                    return {
+                      bg: '#f3f4f6',
+                      border: '#6b7280',
+                      text: '#374151',
+                      hover: '#e5e7eb',
+                    };
+                  })();
+                  const iconEl = (() => {
+                    if (selectedServerBlock.type === 'trigger')
+                      return <GitBranch className="w-5 h-5" />;
+                    if (selectedServerBlock.type === 'job')
+                      return <Workflow className="w-5 h-5" />;
+                    return <Code className="w-5 h-5" />;
+                  })();
+                  return (
+                    <div
+                      className="rounded-lg border p-4"
+                      style={{
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: '#ffffffaa' }}
+                        >
+                          {iconEl}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div
+                              className="font-semibold truncate"
+                              style={{ color: colors.text }}
+                            >
+                              {selectedServerBlock.name}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px]"
+                              style={{ borderColor: colors.border, color: colors.text }}
+                            >
+                              {selectedServerBlock.type}
+                            </Badge>
+                            {selectedServerBlock.domain && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px]"
+                                style={{ borderColor: colors.border, color: colors.text }}
+                              >
+                                {selectedServerBlock.domain}
+                              </Badge>
+                            )}
+                            {selectedServerBlock.task &&
+                              selectedServerBlock.task.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {selectedServerBlock.task.map((t, i) => (
+                                    <Badge
+                                      key={`${t}-${i}`}
+                                      variant="outline"
+                                      className="text-[10px]"
+                                      style={{
+                                        borderColor: colors.border,
+                                        color: colors.text,
+                                      }}
+                                    >
+                                      {t}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+                          {selectedServerBlock.description && (
+                            <div
+                              className="text-xs mt-1 opacity-80"
+                              style={{ color: colors.text }}
+                            >
+                              {selectedServerBlock.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 상세 탭: 개요 / YAML */}
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="overview">개요</TabsTrigger>
+                    <TabsTrigger value="yaml">YAML</TabsTrigger>
+                  </TabsList>
+
+                  {/* 개요 */}
+                  <TabsContent value="overview" className="space-y-3">
+                    <Card>
+                      <CardContent className="p-4 space-y-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs text-gray-500">타입</div>
+                            <div className="text-sm font-medium">
+                              {selectedServerBlock.type}
+                            </div>
+                          </div>
+                          {selectedServerBlock['job-name'] && (
+                            <div>
+                              <div className="text-xs text-gray-500">Job 이름</div>
+                              <div className="text-sm font-medium">
+                                {selectedServerBlock['job-name']}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {selectedServerBlock.type === 'trigger' && (
+                          <div className="mt-2">
+                            <div className="text-xs text-gray-500 mb-1">트리거</div>
+                            <div className="text-xs rounded border p-2 bg-gray-50 overflow-auto max-h-48">
+                              {(() => {
+                                const cfg = (selectedServerBlock.config || {}) as Record<
+                                  string,
+                                  unknown
+                                >;
+                                const on = (cfg.on || {}) as Record<string, unknown>;
+                                return Object.entries(on).map(([k, v], idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-start gap-2 py-0.5"
+                                  >
+                                    <span className="min-w-[100px] font-medium">{k}</span>
+                                    <span className="flex-1 text-gray-700">
+                                      {typeof v === 'object'
+                                        ? JSON.stringify(v)
+                                        : String(v)}
+                                    </span>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                        {selectedServerBlock.type === 'step' && (
+                          <div className="mt-2 grid grid-cols-1 gap-2">
+                            {(() => {
+                              const cfg = (selectedServerBlock.config || {}) as Record<
+                                string,
+                                unknown
+                              >;
+                              const uses = cfg.uses as string | undefined;
+                              const run = cfg.run as string | undefined;
+                              return (
+                                <>
+                                  {uses && (
+                                    <div>
+                                      <div className="text-xs text-gray-500 mb-1">
+                                        uses
+                                      </div>
+                                      <div className="text-xs rounded border p-2 bg-gray-50">
+                                        {uses}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {run && (
+                                    <div>
+                                      <div className="text-xs text-gray-500 mb-1">
+                                        run
+                                      </div>
+                                      <pre className="text-xs rounded border p-2 bg-slate-900 text-slate-100 overflow-auto max-h-40 whitespace-pre-wrap break-words">
+                                        {run}
+                                      </pre>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                        {selectedServerBlock.type === 'job' && (
+                          <div className="mt-2 grid grid-cols-2 gap-3">
+                            {(() => {
+                              const cfg = (selectedServerBlock.config || {}) as Record<
+                                string,
+                                unknown
+                              >;
+                              const runsOn = cfg['runs-on'] as string | undefined;
+                              const needs = cfg['needs'] as string[] | undefined;
+                              return (
+                                <>
+                                  <div>
+                                    <div className="text-xs text-gray-500 mb-1">
+                                      runs-on
+                                    </div>
+                                    <div className="text-xs rounded border p-2 bg-gray-50">
+                                      {runsOn || '-'}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500 mb-1">
+                                      needs
+                                    </div>
+                                    <div className="text-xs rounded border p-2 bg-gray-50">
+                                      {needs?.join(', ') || '-'}
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* YAML */}
+                  <TabsContent value="yaml" className="space-y-2">
+                    <YamlViewer
+                      yaml={generateBlockYaml(selectedServerBlock)}
+                      title={selectedServerBlock.name}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            ) : (
+              <div className="p-4 text-sm text-gray-500">선택된 프리셋이 없습니다.</div>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );

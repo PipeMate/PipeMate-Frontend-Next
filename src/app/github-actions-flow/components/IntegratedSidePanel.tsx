@@ -29,11 +29,18 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import 'react-toastify/dist/ReactToastify.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSecrets } from '@/api/hooks';
+import { useSecrets, useCreateOrUpdateSecret } from '@/api/hooks';
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,
@@ -101,6 +108,7 @@ interface NodeEditorProps {
   nodeType: NodeType;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
+  onMissingSecrets?: (missing: string[]) => void;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -108,6 +116,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   nodeType,
   onSave,
   onCancel: _onCancel,
+  onMissingSecrets,
 }) => {
   const { owner, repo } = useRepository();
   const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
@@ -385,6 +394,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       };
       onSave(updatedData);
       toast.success('노드가 저장되었습니다.');
+
+      // 저장 시 시크릿 누락 확인 후, 별도 편집창 열기
+      if (canNodeUseSecrets(nodeType)) {
+        const required = detectSecretsInConfig(config);
+        const existing = (secretsData?.data?.secrets || []).map(
+          (s: { name: string }) => s.name,
+        );
+        const missing = findMissingSecrets(required, existing);
+        if (missing.length > 0 && onMissingSecrets) {
+          onMissingSecrets(missing);
+        }
+      }
     } catch {
       setConfigError('설정 저장 중 오류가 발생했습니다.');
     }
@@ -683,6 +704,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 }) => {
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
+  const createOrUpdateSecret = useCreateOrUpdateSecret();
   const [workflowName, setWorkflowName] = useState<string>(initialWorkflowName || '');
   const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
@@ -692,6 +714,9 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const [, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [isYamlEditing, setIsYamlEditing] = useState<boolean>(false);
   const [yamlError, setYamlError] = useState<string>('');
+  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
+  const [missingSecretsState, setMissingSecretsState] = useState<string[]>([]);
+  const [newSecretValues, setNewSecretValues] = useState<Record<string, string>>({});
 
   // Secrets 관리 상태
   const [missingSecrets] = useState<string[]>([]);
@@ -1225,6 +1250,13 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                           toast.success('노드가 저장되었습니다.');
                         }}
                         onCancel={() => {}}
+                        onMissingSecrets={(missing) => {
+                          setMissingSecretsState(missing);
+                          const init: Record<string, string> = {};
+                          missing.forEach((m) => (init[m] = ''));
+                          setNewSecretValues(init);
+                          setSecretDialogOpen(true);
+                        }}
                       />
                       <div className="mt-3">
                         <Button
@@ -1284,6 +1316,62 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         }
         missingSecrets={missingSecrets}
       />
+      {/* 누락된 Secrets 생성 다이얼로그 */}
+      <Dialog open={secretDialogOpen} onOpenChange={setSecretDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>누락된 Secrets 생성</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {missingSecretsState.length === 0 ? (
+              <div className="text-sm text-gray-600">누락된 Secret이 없습니다.</div>
+            ) : (
+              missingSecretsState.map((name) => (
+                <div key={name} className="space-y-1">
+                  <div className="text-xs font-medium text-gray-700">{name}</div>
+                  <Input
+                    type="password"
+                    placeholder={`${name} 값 입력`}
+                    value={newSecretValues[name] || ''}
+                    onChange={(e) =>
+                      setNewSecretValues((prev) => ({ ...prev, [name]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={async () => {
+                if (!owner || !repo) return;
+                const entries = Object.entries(newSecretValues).filter(
+                  ([, v]) => v && v.trim(),
+                );
+                for (const [secretName, value] of entries) {
+                  try {
+                    await createOrUpdateSecret.mutateAsync({
+                      owner,
+                      repo,
+                      secretName,
+                      data: { value },
+                    });
+                  } catch (e) {
+                    console.error('Secret 생성 실패:', secretName, e);
+                  }
+                }
+                setSecretDialogOpen(false);
+                setMissingSecretsState([]);
+                setNewSecretValues({});
+                toast.success('누락된 Secrets가 저장되었습니다.');
+              }}
+              disabled={!isConfigured || missingSecretsState.length === 0}
+            >
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

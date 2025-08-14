@@ -102,9 +102,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
 
   //* 사이드바에 드래그 드롭 패널 설정
   useEffect(() => {
-    setSidebarExtra(<DragDropSidebar />);
+    setSidebarExtra(
+      <DragDropSidebar
+        nodePanelOpen={isControlPanelOpen}
+        onRequestCloseNodePanel={() => setIsControlPanelOpen(false)}
+      />,
+    );
     return () => setSidebarExtra(null);
-  }, [setSidebarExtra]);
+  }, [setSidebarExtra, isControlPanelOpen]);
 
   //* ========================================
   //* 이벤트 핸들러
