@@ -4,7 +4,16 @@
 
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import { ServerBlock, Pipeline } from '../types';
-import { Lightbulb, Filter, Blocks, GitBranch, Info, Eye, Maximize2, Minimize2 } from 'lucide-react';
+import {
+  Lightbulb,
+  Filter,
+  Blocks,
+  GitBranch,
+  Info,
+  Eye,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import React from 'react';
 import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
 import { NODE_COLORS } from '../constants/nodeConstants';
@@ -59,6 +68,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailBlock, setDetailBlock] = useState<ServerBlock | null>(null);
   const [libraryExpanded, setLibraryExpanded] = useState(false);
+  // 시트 오버레이 포인터 이벤트 복원용 ref
+  const overlayPointerPrev = React.useRef<string | null>(null);
   // 블록 검색(타입별)
   const [blockSearchByType, setBlockSearchByType] = useState<Record<TabType, string>>({
     trigger: '',
@@ -94,6 +105,26 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
 
   //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
   const onDragStart = useCallback((event: React.DragEvent, block: ServerBlock) => {
+    // 확장 시트의 오버레이가 드래그를 막지 않도록 임시로 pointer-events 비활성화
+    const overlay = document.querySelector(
+      '[data-slot="sheet-overlay"]',
+    ) as HTMLElement | null;
+    if (overlay) {
+      if (overlayPointerPrev.current === null) {
+        overlayPointerPrev.current = overlay.style.pointerEvents || '';
+      }
+      overlay.style.pointerEvents = 'none';
+      const handleRestore = () => {
+        if (overlayPointerPrev.current !== null) {
+          overlay.style.pointerEvents = overlayPointerPrev.current;
+          overlayPointerPrev.current = null;
+        }
+        window.removeEventListener('dragend', handleRestore);
+        window.removeEventListener('drop', handleRestore);
+      };
+      window.addEventListener('dragend', handleRestore);
+      window.addEventListener('drop', handleRestore);
+    }
     //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
     event.dataTransfer.setData('application/reactflow', JSON.stringify(block));
     event.dataTransfer.effectAllowed = 'move';
@@ -102,6 +133,25 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   //* 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
   const onPipelineDragStart = useCallback(
     (event: React.DragEvent, pipeline: Pipeline) => {
+      const overlay = document.querySelector(
+        '[data-slot="sheet-overlay"]',
+      ) as HTMLElement | null;
+      if (overlay) {
+        if (overlayPointerPrev.current === null) {
+          overlayPointerPrev.current = overlay.style.pointerEvents || '';
+        }
+        overlay.style.pointerEvents = 'none';
+        const handleRestore = () => {
+          if (overlayPointerPrev.current !== null) {
+            overlay.style.pointerEvents = overlayPointerPrev.current;
+            overlayPointerPrev.current = null;
+          }
+          window.removeEventListener('dragend', handleRestore);
+          window.removeEventListener('drop', handleRestore);
+        };
+        window.addEventListener('dragend', handleRestore);
+        window.addEventListener('drop', handleRestore);
+      }
       //* 파이프라인의 모든 블록들을 드래그 데이터로 설정
       event.dataTransfer.setData(
         'application/reactflow',
@@ -719,13 +769,22 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
           side="right"
           className="border-l !w-[95vw] sm:!w-[90vw] lg:!w-[70vw] xl:!w-[60vw] !max-w-none sm:!max-w-[90vw] lg:!max-w-[70vw] xl:!max-w-[60vw] p-0"
         >
+          {/* 접근성: DialogTitle 요구 충족 (시각적으로 숨김) */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>라이브러리 확장 시트</SheetTitle>
+          </SheetHeader>
           <div className="w-full flex flex-col h-full">
             {/* 헤더 */}
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {libraryMode === 'blocks' ? <Blocks size={16} /> : <GitBranch size={16} />}
+                {libraryMode === 'blocks' ? (
+                  <Blocks size={16} />
+                ) : (
+                  <GitBranch size={16} />
+                )}
                 <span className="text-base font-semibold">
-                  {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'} (확장)
+                  {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}{' '}
+                  (확장)
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -733,7 +792,9 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   <button
                     onClick={() => setLibraryMode('blocks')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
-                      libraryMode === 'blocks' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'
+                      libraryMode === 'blocks'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
                     }`}
                   >
                     <Blocks size={12} /> 블록
@@ -741,7 +802,9 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   <button
                     onClick={() => setLibraryMode('pipelines')}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
-                      libraryMode === 'pipelines' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'
+                      libraryMode === 'pipelines'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
                     }`}
                   >
                     <GitBranch size={12} /> 파이프라인
@@ -788,7 +851,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                     <input
                       value={blockSearchByType[activeTab] || ''}
                       onChange={(e) =>
-                        setBlockSearchByType((prev) => ({ ...prev, [activeTab]: e.target.value }))
+                        setBlockSearchByType((prev) => ({
+                          ...prev,
+                          [activeTab]: e.target.value,
+                        }))
                       }
                       placeholder={`${activeTab.toUpperCase()} 검색 (이름/설명)`}
                       className="w-full h-9 px-3 text-sm rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
@@ -796,7 +862,9 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                     {activeTab === 'step' && (
                       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">도메인:</label>
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                            도메인:
+                          </label>
                           <select
                             value={selectedDomain}
                             onChange={(e) => {
@@ -814,10 +882,14 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                           </select>
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">태스크:</label>
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                            태스크:
+                          </label>
                           <select
                             value={selectedTask}
-                            onChange={(e) => setSelectedTask(e.target.value as FilterType)}
+                            onChange={(e) =>
+                              setSelectedTask(e.target.value as FilterType)
+                            }
                             className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             disabled={selectedDomain === 'all' && tasks.length === 0}
                           >
@@ -837,14 +909,22 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   <div className="p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {isLoadingBlocks ? (
-                        <div className="col-span-full text-sm text-gray-500 py-8 text-center">프리셋 블록을 불러오는 중...</div>
+                        <div className="col-span-full text-sm text-gray-500 py-8 text-center">
+                          프리셋 블록을 불러오는 중...
+                        </div>
                       ) : (
                         filteredBlocks.map((block, index) => {
                           const colors = (() => {
                             if (block.type === 'trigger') return NODE_COLORS.TRIGGER;
                             if (block.type === 'job') return NODE_COLORS.JOB;
-                            if (block.type === 'step' && block.domain) return getDomainColor(block.domain);
-                            return { bg: '#f3f4f6', border: '#6b7280', text: '#374151', hover: '#e5e7eb' };
+                            if (block.type === 'step' && block.domain)
+                              return getDomainColor(block.domain);
+                            return {
+                              bg: '#f3f4f6',
+                              border: '#6b7280',
+                              text: '#374151',
+                              hover: '#e5e7eb',
+                            };
                           })();
                           const icon = getBlockIcon(block.type);
                           return (
@@ -852,14 +932,24 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                               key={index}
                               draggable
                               onDragStart={(e) => onDragStart(e, block)}
-                              style={{ backgroundColor: colors.bg, border: `2px solid ${colors.border}`, color: colors.text }}
+                              style={{
+                                backgroundColor: colors.bg,
+                                border: `2px solid ${colors.border}`,
+                                color: colors.text,
+                              }}
                               className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
                             >
                               <div className="flex items-start gap-3 mb-2">
-                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">{icon}</div>
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">
+                                  {icon}
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span style={{ color: colors.text }} className="text-sm font-bold truncate" title={block.name}>
+                                    <span
+                                      style={{ color: colors.text }}
+                                      className="text-sm font-bold truncate"
+                                      title={block.name}
+                                    >
                                       {block.name}
                                     </span>
                                   </div>
@@ -867,7 +957,11 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                                     <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
                                       <span className="truncate text-xs">
                                         {block.type === 'step' && block.domain
-                                          ? `${block.domain}${block.task && block.task.length > 0 ? ` • ${block.task.join(', ')}` : ''}`
+                                          ? `${block.domain}${
+                                              block.task && block.task.length > 0
+                                                ? ` • ${block.task.join(', ')}`
+                                                : ''
+                                            }`
                                           : block.type}
                                       </span>
                                     </div>
@@ -875,12 +969,22 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                                 </div>
                               </div>
                               {block.description && (
-                                <div style={{ color: colors.text, opacity: 0.85 }} className="text-xs leading-relaxed mb-2 line-clamp-2" title={block.description}>
+                                <div
+                                  style={{ color: colors.text, opacity: 0.85 }}
+                                  className="text-xs leading-relaxed mb-2 line-clamp-2"
+                                  title={block.description}
+                                >
                                   {block.description}
                                 </div>
                               )}
                               <div className="flex items-center justify-between">
-                                <div style={{ backgroundColor: colors.border, color: '#fff' }} className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block">
+                                <div
+                                  style={{
+                                    backgroundColor: colors.border,
+                                    color: '#fff',
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block"
+                                >
                                   {block.type.toUpperCase()}
                                 </div>
                                 <button
@@ -888,7 +992,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    if (onRequestCloseNodePanel) onRequestCloseNodePanel();
+                                    if (onRequestCloseNodePanel)
+                                      onRequestCloseNodePanel();
                                     setDetailBlock(block);
                                     setDetailOpen(true);
                                     setLibraryExpanded(false);
@@ -920,9 +1025,13 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   </div>
                   <div className="p-4">
                     {isLoadingPipelines ? (
-                      <div className="text-sm text-gray-500 py-8 text-center">프리셋 파이프라인을 불러오는 중...</div>
+                      <div className="text-sm text-gray-500 py-8 text-center">
+                        프리셋 파이프라인을 불러오는 중...
+                      </div>
                     ) : filteredPipelines.length === 0 ? (
-                      <div className="text-sm text-gray-400 py-8 text-center">일치하는 파이프라인이 없습니다.</div>
+                      <div className="text-sm text-gray-400 py-8 text-center">
+                        일치하는 파이프라인이 없습니다.
+                      </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredPipelines.map((pipeline, index) => {
@@ -933,22 +1042,36 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                               key={index}
                               draggable
                               onDragStart={(e) => onPipelineDragStart(e, pipeline)}
-                              style={{ backgroundColor: colors.bg, border: `2px solid ${colors.border}`, color: colors.text }}
+                              style={{
+                                backgroundColor: colors.bg,
+                                border: `2px solid ${colors.border}`,
+                                color: colors.text,
+                              }}
                               className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
                             >
                               <div className="flex items-start gap-3 mb-2">
-                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">{icon}</div>
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">
+                                  {icon}
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span style={{ color: colors.text }} className="text-sm font-bold truncate" title={pipeline.name}>
+                                    <span
+                                      style={{ color: colors.text }}
+                                      className="text-sm font-bold truncate"
+                                      title={pipeline.name}
+                                    >
                                       {pipeline.name}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
                                       <span className="truncate text-xs">
-                                        {pipeline.domain && pipeline.task && pipeline.task.length > 0
-                                          ? `${pipeline.domain} • ${pipeline.task.join(', ')}`
+                                        {pipeline.domain &&
+                                        pipeline.task &&
+                                        pipeline.task.length > 0
+                                          ? `${pipeline.domain} • ${pipeline.task.join(
+                                              ', ',
+                                            )}`
                                           : pipeline.type}
                                       </span>
                                     </div>
@@ -956,15 +1079,27 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                                 </div>
                               </div>
                               {pipeline.description && (
-                                <div style={{ color: colors.text, opacity: 0.85 }} className="text-xs leading-relaxed mb-2 line-clamp-2" title={pipeline.description}>
+                                <div
+                                  style={{ color: colors.text, opacity: 0.85 }}
+                                  className="text-xs leading-relaxed mb-2 line-clamp-2"
+                                  title={pipeline.description}
+                                >
                                   {pipeline.description}
                                 </div>
                               )}
                               <div className="flex items-center justify-between">
-                                <div style={{ backgroundColor: colors.border, color: '#fff' }} className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block">
+                                <div
+                                  style={{
+                                    backgroundColor: colors.border,
+                                    color: '#fff',
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block"
+                                >
                                   {pipeline.type.toUpperCase()}
                                 </div>
-                                <div className="text-[11px] text-gray-600">{pipeline.blocks.length}개 블록</div>
+                                <div className="text-[11px] text-gray-600">
+                                  {pipeline.blocks.length}개 블록
+                                </div>
                               </div>
                             </div>
                           );
