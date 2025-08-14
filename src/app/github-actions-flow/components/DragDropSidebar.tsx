@@ -4,7 +4,7 @@
 
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import { ServerBlock, Pipeline } from '../types';
-import { Lightbulb, Filter, Blocks, GitBranch, Info, Eye } from 'lucide-react';
+import { Lightbulb, Filter, Blocks, GitBranch, Info, Eye, Maximize2, Minimize2 } from 'lucide-react';
 import React from 'react';
 import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
 import { NODE_COLORS } from '../constants/nodeConstants';
@@ -79,6 +79,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     if (nodePanelOpen && (detailOpen || detailBlock)) {
       setDetailOpen(false);
       setDetailBlock(null);
+    }
+    // 노드 패널이 열리면 확장 시트도 닫기 (상호 배타)
+    if (nodePanelOpen && libraryExpanded) {
+      setLibraryExpanded(false);
     }
   }, [nodePanelOpen]);
   // 라이브러리 모드 변경 시 블록 탭 초기화
@@ -361,6 +365,19 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
           <span className="truncate">
             {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}
           </span>
+          {/* 확장 버튼 */}
+          <button
+            className="absolute right-4 top-4 inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100"
+            onClick={() => {
+              if (onRequestCloseNodePanel) onRequestCloseNodePanel();
+              setDetailOpen(false);
+              setDetailBlock(null);
+              setLibraryExpanded(true);
+            }}
+            title="확장 보기"
+          >
+            <Maximize2 size={12} /> 확장
+          </button>
         </h3>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-2">
           <button
@@ -696,6 +713,271 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
           </div>
         </div>
       )}
+      {/* 확장 보기 시트 */}
+      <Sheet open={libraryExpanded} onOpenChange={setLibraryExpanded}>
+        <SheetContent
+          side="right"
+          className="border-l !w-[95vw] sm:!w-[90vw] lg:!w-[70vw] xl:!w-[60vw] !max-w-none sm:!max-w-[90vw] lg:!max-w-[70vw] xl:!max-w-[60vw] p-0"
+        >
+          <div className="w-full flex flex-col h-full">
+            {/* 헤더 */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {libraryMode === 'blocks' ? <Blocks size={16} /> : <GitBranch size={16} />}
+                <span className="text-base font-semibold">
+                  {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'} (확장)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setLibraryMode('blocks')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+                      libraryMode === 'blocks' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <Blocks size={12} /> 블록
+                  </button>
+                  <button
+                    onClick={() => setLibraryMode('pipelines')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+                      libraryMode === 'pipelines' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <GitBranch size={12} /> 파이프라인
+                  </button>
+                </div>
+                <button
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100"
+                  onClick={() => setLibraryExpanded(false)}
+                  title="축소"
+                >
+                  <Minimize2 size={12} /> 축소
+                </button>
+              </div>
+            </div>
+
+            {/* 콘텐츠 */}
+            <div className="flex-1 overflow-auto">
+              {/* 블록 모드 */}
+              {libraryMode === 'blocks' && (
+                <div className="w-full">
+                  {/* 탭 */}
+                  <div className="flex border-b border-gray-200 w-full bg-gray-50">
+                    {blockTabs.map((tab) => (
+                      <button
+                        key={tab.type}
+                        onClick={() => setActiveTab(tab.type)}
+                        className={`flex-1 px-3 py-3 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 ${
+                          activeTab === tab.type
+                            ? tab.type === 'trigger'
+                              ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
+                              : tab.type === 'job'
+                              ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                              : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                            : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                        }`}
+                      >
+                        <span className="text-sm">{tab.icon}</span>
+                        <span className="truncate">{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* 검색/필터 */}
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
+                    <input
+                      value={blockSearchByType[activeTab] || ''}
+                      onChange={(e) =>
+                        setBlockSearchByType((prev) => ({ ...prev, [activeTab]: e.target.value }))
+                      }
+                      placeholder={`${activeTab.toUpperCase()} 검색 (이름/설명)`}
+                      className="w-full h-9 px-3 text-sm rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+                    />
+                    {activeTab === 'step' && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">도메인:</label>
+                          <select
+                            value={selectedDomain}
+                            onChange={(e) => {
+                              setSelectedDomain(e.target.value as FilterType);
+                              setSelectedTask('all');
+                            }}
+                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="all">전체</option>
+                            {domains.map((domain) => (
+                              <option key={domain} value={domain}>
+                                {domain}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">태스크:</label>
+                          <select
+                            value={selectedTask}
+                            onChange={(e) => setSelectedTask(e.target.value as FilterType)}
+                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={selectedDomain === 'all' && tasks.length === 0}
+                          >
+                            <option value="all">전체</option>
+                            {tasks.map((task) => (
+                              <option key={task} value={task}>
+                                {task}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 블록 그리드 */}
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {isLoadingBlocks ? (
+                        <div className="col-span-full text-sm text-gray-500 py-8 text-center">프리셋 블록을 불러오는 중...</div>
+                      ) : (
+                        filteredBlocks.map((block, index) => {
+                          const colors = (() => {
+                            if (block.type === 'trigger') return NODE_COLORS.TRIGGER;
+                            if (block.type === 'job') return NODE_COLORS.JOB;
+                            if (block.type === 'step' && block.domain) return getDomainColor(block.domain);
+                            return { bg: '#f3f4f6', border: '#6b7280', text: '#374151', hover: '#e5e7eb' };
+                          })();
+                          const icon = getBlockIcon(block.type);
+                          return (
+                            <div
+                              key={index}
+                              draggable
+                              onDragStart={(e) => onDragStart(e, block)}
+                              style={{ backgroundColor: colors.bg, border: `2px solid ${colors.border}`, color: colors.text }}
+                              className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="flex items-start gap-3 mb-2">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">{icon}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span style={{ color: colors.text }} className="text-sm font-bold truncate" title={block.name}>
+                                      {block.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                                      <span className="truncate text-xs">
+                                        {block.type === 'step' && block.domain
+                                          ? `${block.domain}${block.task && block.task.length > 0 ? ` • ${block.task.join(', ')}` : ''}`
+                                          : block.type}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              {block.description && (
+                                <div style={{ color: colors.text, opacity: 0.85 }} className="text-xs leading-relaxed mb-2 line-clamp-2" title={block.description}>
+                                  {block.description}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <div style={{ backgroundColor: colors.border, color: '#fff' }} className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block">
+                                  {block.type.toUpperCase()}
+                                </div>
+                                <button
+                                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (onRequestCloseNodePanel) onRequestCloseNodePanel();
+                                    setDetailBlock(block);
+                                    setDetailOpen(true);
+                                    setLibraryExpanded(false);
+                                  }}
+                                  title="자세히 보기"
+                                >
+                                  <Eye size={12} /> 자세히
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 파이프라인 모드 */}
+              {libraryMode === 'pipelines' && (
+                <div className="w-full">
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
+                    <input
+                      value={pipelineSearch}
+                      onChange={(e) => setPipelineSearch(e.target.value)}
+                      placeholder="파이프라인 검색 (이름/설명)"
+                      className="w-full h-9 px-3 text-sm rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="p-4">
+                    {isLoadingPipelines ? (
+                      <div className="text-sm text-gray-500 py-8 text-center">프리셋 파이프라인을 불러오는 중...</div>
+                    ) : filteredPipelines.length === 0 ? (
+                      <div className="text-sm text-gray-400 py-8 text-center">일치하는 파이프라인이 없습니다.</div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredPipelines.map((pipeline, index) => {
+                          const colors = getPipelineColors(pipeline.type);
+                          const icon = getPipelineIcon(pipeline.type);
+                          return (
+                            <div
+                              key={index}
+                              draggable
+                              onDragStart={(e) => onPipelineDragStart(e, pipeline)}
+                              style={{ backgroundColor: colors.bg, border: `2px solid ${colors.border}`, color: colors.text }}
+                              className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="flex items-start gap-3 mb-2">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">{icon}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span style={{ color: colors.text }} className="text-sm font-bold truncate" title={pipeline.name}>
+                                      {pipeline.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                                      <span className="truncate text-xs">
+                                        {pipeline.domain && pipeline.task && pipeline.task.length > 0
+                                          ? `${pipeline.domain} • ${pipeline.task.join(', ')}`
+                                          : pipeline.type}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              {pipeline.description && (
+                                <div style={{ color: colors.text, opacity: 0.85 }} className="text-xs leading-relaxed mb-2 line-clamp-2" title={pipeline.description}>
+                                  {pipeline.description}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <div style={{ backgroundColor: colors.border, color: '#fff' }} className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block">
+                                  {pipeline.type.toUpperCase()}
+                                </div>
+                                <div className="text-[11px] text-gray-600">{pipeline.blocks.length}개 블록</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
       {/* 파이프라인 라이브러리 (검색 기반) */}
       {libraryMode === 'pipelines' && (
         <div className="p-3 border-t border-gray-200 bg-white">
