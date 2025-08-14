@@ -18,7 +18,6 @@ import React from 'react';
 import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
 import { NODE_COLORS } from '../constants/nodeConstants';
 import { usePresetBlocks, usePresetPipelines } from '@/api/hooks/usePresets';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import YamlViewer from '@/components/ui/YamlViewer';
 import { generateBlockYaml } from '../utils/yamlGenerator';
 
@@ -68,8 +67,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailBlock, setDetailBlock] = useState<ServerBlock | null>(null);
   const [libraryExpanded, setLibraryExpanded] = useState(false);
-  // 시트 오버레이 포인터 이벤트 복원용 ref
-  const overlayPointerPrev = React.useRef<string | null>(null);
+  const [isDraggingFromLibrary, setIsDraggingFromLibrary] = useState(false);
   // 블록 검색(타입별)
   const [blockSearchByType, setBlockSearchByType] = useState<Record<TabType, string>>({
     trigger: '',
@@ -105,47 +103,28 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
 
   //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
   const onDragStart = useCallback((event: React.DragEvent, block: ServerBlock) => {
-    // 확장 시트의 오버레이가 드래그를 막지 않도록 임시로 pointer-events 비활성화
-    const overlay = document.querySelector(
-      '[data-slot="sheet-overlay"]',
-    ) as HTMLElement | null;
-    if (overlay) {
-      if (overlayPointerPrev.current === null) {
-        overlayPointerPrev.current = overlay.style.pointerEvents || '';
-      }
-      overlay.style.pointerEvents = 'none';
+    if (libraryExpanded) {
+      setIsDraggingFromLibrary(true);
       const handleRestore = () => {
-        if (overlayPointerPrev.current !== null) {
-          overlay.style.pointerEvents = overlayPointerPrev.current;
-          overlayPointerPrev.current = null;
-        }
+        setIsDraggingFromLibrary(false);
         window.removeEventListener('dragend', handleRestore);
         window.removeEventListener('drop', handleRestore);
       };
       window.addEventListener('dragend', handleRestore);
       window.addEventListener('drop', handleRestore);
     }
-    //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
+    // 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
     event.dataTransfer.setData('application/reactflow', JSON.stringify(block));
     event.dataTransfer.effectAllowed = 'move';
-  }, []);
+  }, [libraryExpanded]);
 
   //* 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
   const onPipelineDragStart = useCallback(
     (event: React.DragEvent, pipeline: Pipeline) => {
-      const overlay = document.querySelector(
-        '[data-slot="sheet-overlay"]',
-      ) as HTMLElement | null;
-      if (overlay) {
-        if (overlayPointerPrev.current === null) {
-          overlayPointerPrev.current = overlay.style.pointerEvents || '';
-        }
-        overlay.style.pointerEvents = 'none';
+      if (libraryExpanded) {
+        setIsDraggingFromLibrary(true);
         const handleRestore = () => {
-          if (overlayPointerPrev.current !== null) {
-            overlay.style.pointerEvents = overlayPointerPrev.current;
-            overlayPointerPrev.current = null;
-          }
+          setIsDraggingFromLibrary(false);
           window.removeEventListener('dragend', handleRestore);
           window.removeEventListener('drop', handleRestore);
         };
@@ -163,7 +142,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
       );
       event.dataTransfer.effectAllowed = 'move';
     },
-    [],
+    [libraryExpanded],
   );
 
   // 프리셋 블록/파이프라인 실제 API 연동
@@ -763,16 +742,13 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
           </div>
         </div>
       )}
-      {/* 확장 보기 시트 */}
-      <Sheet open={libraryExpanded} onOpenChange={setLibraryExpanded}>
-        <SheetContent
-          side="right"
-          className="border-l !w-[95vw] sm:!w-[90vw] lg:!w-[70vw] xl:!w-[60vw] !max-w-none sm:!max-w-[90vw] lg:!max-w-[70vw] xl:!max-w-[60vw] p-0"
+      {/* 확장 보기 패널: 사이드바와 상호 배타 렌더링 */}
+      {libraryExpanded && (
+        <div
+          className={`fixed inset-y-0 right-0 z-40 bg-white border-l border-gray-200 shadow-xl w-[95vw] sm:w-[90vw] lg:w-[70vw] xl:w-[60vw] flex flex-col ${
+            isDraggingFromLibrary ? 'pointer-events-none' : ''
+          }`}
         >
-          {/* 접근성: DialogTitle 요구 충족 (시각적으로 숨김) */}
-          <SheetHeader className="sr-only">
-            <SheetTitle>라이브러리 확장 시트</SheetTitle>
-          </SheetHeader>
           <div className="w-full flex flex-col h-full">
             {/* 헤더 */}
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
@@ -1111,8 +1087,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
               )}
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
       {/* 파이프라인 라이브러리 (검색 기반) */}
       {libraryMode === 'pipelines' && (
         <div className="p-3 border-t border-gray-200 bg-white">
