@@ -10,6 +10,7 @@ interface AreaNodeProps {
   onSelect: (node: AreaNodeData) => void;
   onDragStart: (node: AreaNodeData) => void;
   onDrag: (e: React.DragEvent, node: AreaNodeData) => void;
+  onEdit?: (node: AreaNodeData) => void;
 }
 
 // * 영역 기반 노드 컴포넌트
@@ -18,6 +19,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
   onSelect,
   onDragStart,
   onDrag,
+  onEdit,
 }) => {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -25,6 +27,16 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       onSelect(node);
     },
     [node, onSelect],
+  );
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onEdit) {
+        onEdit(node);
+      }
+    },
+    [node, onEdit],
   );
 
   const handleDragStart = useCallback(
@@ -63,6 +75,7 @@ export const AreaNode: React.FC<AreaNodeProps> = ({
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       {/* 드래그 핸들 */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

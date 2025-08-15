@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { ServerBlock, WorkflowNodeData } from '../types';
 import { convertNodesToServerBlocks } from '../utils/dataConverter';
 import { DragDropSidebar } from './DragDropSidebar';
-import { NodeEditor } from './NodeEditor';
+import { NodeEditorModal } from './NodeEditorModal';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -21,7 +21,7 @@ import { EmptyState } from './area-editor/components/EmptyState';
 // * ========================================
 // * 영역 기반 워크플로우 에디터 컴포넌트
 // * ========================================
-// * 
+// *
 // * 드래그 앤 드롭으로 블록을 추가하고, 영역별로 워크플로우를 구성하는 에디터입니다.
 // * Trigger, Job, Step 영역으로 나누어져 있으며, 각 영역에 맞는 블록을 배치할 수 있습니다.
 export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = ({
@@ -306,6 +306,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
+              onNodeEdit={handleNodeEdit}
             />
           </div>
 
@@ -329,6 +330,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
+              onNodeEdit={handleNodeEdit}
             />
           </div>
         </div>
@@ -353,17 +355,14 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         />
       </div>
 
-      {/* 노드 편집기 */}
-      {editingNode && (
-        <ErrorBoundary>
-          <NodeEditor
-            nodeData={editingNode.data}
-            nodeType={editingNode.type}
-            onSave={handleNodeEditSave}
-            onCancel={handleNodeEditCancel}
-          />
-        </ErrorBoundary>
-      )}
+      {/* 노드 편집기 모달 */}
+      <NodeEditorModal
+        isOpen={!!editingNode}
+        nodeData={editingNode?.data || null}
+        nodeType={editingNode?.type || null}
+        onClose={handleNodeEditCancel}
+        onSave={handleNodeEditSave}
+      />
 
       <ToastContainer
         position="top-right"

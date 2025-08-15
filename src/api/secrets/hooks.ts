@@ -9,12 +9,10 @@ export const useSecrets = (owner: string, repo: string) => {
     queryKey: ['secrets', owner, repo],
     queryFn: () => secretsAPI.getList(owner, repo),
     enabled: !!owner && !!repo,
-    staleTime: 5 * 60 * 1000, // 5분
+    staleTime: 30 * 1000, // 30초로 단축 (시크릿 변경사항 빠르게 반영)
+    refetchOnWindowFocus: true, // 윈도우 포커스 시 새로고침
   });
 };
-
-// * 하위 호환성을 위한 별칭
-export const useGroupedSecrets = useSecrets;
 
 // * Secret 생성/수정 뮤테이션
 export const useCreateOrUpdateSecret = () => {
@@ -36,9 +34,6 @@ export const useCreateOrUpdateSecret = () => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['secrets', variables.owner, variables.repo],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['groupedSecrets', variables.owner, variables.repo],
       });
     },
   });
@@ -62,9 +57,6 @@ export const useDeleteSecret = () => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['secrets', variables.owner, variables.repo],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['groupedSecrets', variables.owner, variables.repo],
       });
     },
   });

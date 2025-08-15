@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { AreaNodeData } from './area-editor/types';
 import { ServerBlock } from '../types';
 import { WorkflowNodeData } from '../types';
@@ -11,6 +11,8 @@ import { useCreatePipeline } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+
+import { SecretManagementPanel } from './SecretManagementPanel';
 import {
   Settings,
   Save,
@@ -128,17 +130,24 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // duplicate removed; use the state in the panel scope
 
   // Secrets API 훅
-  const { data: secretsData } = useSecrets(owner || '', repo || '');
+  const { data: secretsData, refetch: refetchSecrets } = useSecrets(
+    owner || '',
+    repo || '',
+  );
 
-  // 초기 데이터 설정
+  // nodeData 변경 감지를 위한 메모이제이션
+  const nodeDataKey = useMemo(() => {
+    return `${JSON.stringify(nodeData)}-${JSON.stringify(nodeData.config)}`;
+  }, [nodeData]);
+
+  // 초기 데이터 설정 (무한 렌더링 방지)
   useEffect(() => {
     setEditedData(nodeData);
     setConfigText(JSON.stringify(nodeData.config, null, 2));
     setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeData]);
+  }, [nodeDataKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 도메인/태스크 자동 추론
   const inferDomainAndTask = useCallback((config: Record<string, unknown>) => {
@@ -182,31 +191,84 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     return result;
   }, []);
 
-  // step 기본 메타 자동완성 (미설정 시에만)
+  // step 기본 메타 자동완성 (미설정 시에만) - 무한 렌더링 방지
   useEffect(() => {
-    if (nodeType === 'step') {
+    if (nodeType === 'step' && editedData.config) {
       const needsDomain = !editedData.domain || editedData.domain.trim() === '';
       const needsTask = !editedData.task || editedData.task.length === 0;
-      if ((needsDomain || needsTask) && editedData.config) {
+
+      if (needsDomain || needsTask) {
         const inferred = inferDomainAndTask(editedData.config);
-        const next: WorkflowNodeData = { ...editedData };
-        if (needsDomain && inferred.domain) next.domain = inferred.domain;
-        if (needsTask && inferred.task) next.task = inferred.task;
-        if (next !== editedData) setEditedData(next);
+        const shouldUpdate =
+          (needsDomain && inferred.domain) || (needsTask && inferred.task);
+
+        if (shouldUpdate) {
+          setEditedData((prev) => ({
+            ...prev,
+            ...(needsDomain && inferred.domain ? { domain: inferred.domain } : {}),
+            ...(needsTask && inferred.task ? { task: inferred.task } : {}),
+          }));
+        }
       }
     }
-  }, [nodeType, editedData, inferDomainAndTask]);
+  }, [
+    nodeType,
+    editedData.label,
+    editedData.domain,
+    editedData.task,
+    JSON.stringify(editedData.config),
+    inferDomainAndTask,
+  ]);
 
-  // Config 변경 시 secrets 감지
+  // Config 변경 시 secrets 감지 (캐시 문제 해결을 위한 개선)
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets =
-        secretsData?.data?.secrets?.map((s: { name: string }) => s.name) || [];
-      const missing = findMissingSecrets(requiredSecrets, userSecrets);
-      // will update panel-level state when panel mounts
+      // API 응답 구조에 맞게 수정 (groupedSecrets 사용)
+      const userSecrets: string[] = [];
+      if (secretsData?.data?.groupedSecrets) {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+          if (Array.isArray(group)) {
+            group.forEach((secret: unknown) => {
+              if (
+                secret &&
+                typeof secret === 'object' &&
+                'name' in secret &&
+                typeof secret.name === 'string'
+              ) {
+                userSecrets.push(secret.name);
+              }
+            });
+          }
+        });
+      }
 
-      // 누락된 secrets가 있으면 토스트 표시
+      // console.log('🔍 시크릿 감지 디버그:', {
+      //   requiredSecrets,
+      //   userSecrets,
+      //   secretsDataStructure: secretsData?.data,
+      //   missing: findMissingSecrets(requiredSecrets, userSecrets),
+      // });
+
+      const missing = findMissingSecrets(requiredSecrets, userSecrets);
+
+      // 누락된 시크릿이 있지만 최근에 생성되었을 가능성이 있으면 재시도
+      if (missing.length > 0 && requiredSecrets.length > 0) {
+        // 2초 후 한 번 더 확인 (시크릿 생성 직후의 캐시 지연 대응)
+        const retryTimer = setTimeout(async () => {
+          try {
+            await refetchSecrets();
+            // console.log('🔄 시크릿 목록 재확인 완료');
+          } catch (error) {
+            console.warn('시크릿 재확인 실패:', error);
+          }
+        }, 2000);
+
+        // 컴포넌트 언마운트 시 타이머 정리
+        return () => clearTimeout(retryTimer);
+      }
+
+      // 누락된 secrets가 있으면 토스트 표시 (첫 번째 감지에서만)
       if (missing.length > 0) {
         toast.warning(
           `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
@@ -221,7 +283,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         );
       }
     }
-  }, [editedData.config, nodeType, secretsData]);
+  }, [JSON.stringify(editedData.config), nodeType, secretsData, refetchSecrets]);
 
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = React.useCallback(
@@ -398,9 +460,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       // 저장 시 시크릿 누락 확인 후, 별도 편집창 열기
       if (canNodeUseSecrets(nodeType)) {
         const required = detectSecretsInConfig(config);
-        const existing = (secretsData?.data?.secrets || []).map(
-          (s: { name: string }) => s.name,
-        );
+        const existing: string[] = [];
+        if (secretsData?.data?.groupedSecrets) {
+          Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+            if (Array.isArray(group)) {
+              group.forEach((secret: unknown) => {
+                if (
+                  secret &&
+                  typeof secret === 'object' &&
+                  'name' in secret &&
+                  typeof secret.name === 'string'
+                ) {
+                  existing.push(secret.name);
+                }
+              });
+            }
+          });
+        }
         const missing = findMissingSecrets(required, existing);
         if (missing.length > 0 && onMissingSecrets) {
           onMissingSecrets(missing);
@@ -705,6 +781,11 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
   const createOrUpdateSecret = useCreateOrUpdateSecret();
+  // Secrets API 훅 (IntegratedSidePanel 전체에서 사용)
+  const { data: secretsData, refetch: refetchSecrets } = useSecrets(
+    owner || '',
+    repo || '',
+  );
   const [workflowName, setWorkflowName] = useState<string>(initialWorkflowName || '');
   const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
@@ -718,8 +799,40 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const [missingSecretsState, setMissingSecretsState] = useState<string[]>([]);
   const [newSecretValues, setNewSecretValues] = useState<Record<string, string>>({});
 
-  // Secrets 관리 상태
-  const [missingSecrets] = useState<string[]>([]);
+  // Secrets 관리 상태 - 실제 누락된 시크릿 계산
+  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+
+  // 선택된 노드의 시크릿 감지
+  useEffect(() => {
+    if (
+      selectedNode &&
+      canNodeUseSecrets(selectedNode.type) &&
+      selectedNode.data.config
+    ) {
+      const requiredSecrets = detectSecretsInConfig(selectedNode.data.config);
+      const userSecrets: string[] = [];
+      if (secretsData?.data?.groupedSecrets) {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+          if (Array.isArray(group)) {
+            group.forEach((secret: unknown) => {
+              if (
+                secret &&
+                typeof secret === 'object' &&
+                'name' in secret &&
+                typeof secret.name === 'string'
+              ) {
+                userSecrets.push(secret.name);
+              }
+            });
+          }
+        });
+      }
+      const missing = findMissingSecrets(requiredSecrets, userSecrets);
+      setMissingSecrets(missing);
+    } else {
+      setMissingSecrets([]);
+    }
+  }, [selectedNode, secretsData]);
 
   // 워크플로우 구조 분석
   // 트리 분석 제거됨
@@ -1250,13 +1363,6 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                           toast.success('노드가 저장되었습니다.');
                         }}
                         onCancel={() => {}}
-                        onMissingSecrets={(missing) => {
-                          setMissingSecretsState(missing);
-                          const init: Record<string, string> = {};
-                          missing.forEach((m) => (init[m] = ''));
-                          setNewSecretValues(init);
-                          setSecretDialogOpen(true);
-                        }}
                       />
                       <div className="mt-3">
                         <Button
@@ -1275,31 +1381,64 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
               </TabsContent>
 
               <TabsContent value="secrets" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      Secrets 관리
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
-                        GitHub Secrets를 생성하고 관리하세요. 워크플로우에서 사용되는
-                        secrets가 누락된 경우 여기서 추가할 수 있습니다.
+                {selectedNode && canNodeUseSecrets(selectedNode.type) ? (
+                  <SecretManagementPanel
+                    requiredSecrets={detectSecretsInConfig(selectedNode.data.config)}
+                    onSecretsUpdated={async () => {
+                      // 시크릿 업데이트 후 새로고침 및 재검증
+                      try {
+                        await refetchSecrets();
+                        // 약간의 지연 후 재검증
+                        setTimeout(() => {
+                          if (
+                            selectedNode &&
+                            canNodeUseSecrets(selectedNode.type) &&
+                            selectedNode.data.config
+                          ) {
+                            const requiredSecrets = detectSecretsInConfig(
+                              selectedNode.data.config,
+                            );
+                            const userSecrets: string[] = [];
+                            if (secretsData?.data?.groupedSecrets) {
+                              Object.values(secretsData.data.groupedSecrets).forEach(
+                                (group: unknown) => {
+                                  if (Array.isArray(group)) {
+                                    group.forEach((secret: unknown) => {
+                                      if (
+                                        secret &&
+                                        typeof secret === 'object' &&
+                                        'name' in secret &&
+                                        typeof secret.name === 'string'
+                                      ) {
+                                        userSecrets.push(secret.name);
+                                      }
+                                    });
+                                  }
+                                },
+                              );
+                            }
+                            const missing = findMissingSecrets(
+                              requiredSecrets,
+                              userSecrets,
+                            );
+                            setMissingSecrets(missing);
+                          }
+                        }, 500);
+                      } catch (error) {
+                        console.error('시크릿 업데이트 후 새로고침 실패:', error);
+                      }
+                    }}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">
+                        이 노드 타입에서는 시크릿을 사용할 수 없습니다.
                       </p>
-                      <GithubTokenDialog
-                        trigger={
-                          <Button className="w-full">
-                            <Lock className="w-4 h-4 mr-2" />
-                            Secrets 관리자 열기
-                          </Button>
-                        }
-                        missingSecrets={missingSecrets}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -1363,6 +1502,8 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                 setSecretDialogOpen(false);
                 setMissingSecretsState([]);
                 setNewSecretValues({});
+                // 시크릿 목록 즉시 새로고침
+                refetchSecrets();
                 toast.success('누락된 Secrets가 저장되었습니다.');
               }}
               disabled={!isConfigured || missingSecretsState.length === 0}

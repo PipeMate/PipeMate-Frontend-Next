@@ -39,12 +39,15 @@ import {
 } from '@/lib/cookieUtils';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api';
+import { SecretCreateDialog } from '@/app/github-actions-flow/components/SecretCreateDialog';
+import { useSecretManager } from '@/app/github-actions-flow/hooks/useSecretManager';
 
-interface Secret {
-  name: string;
-  value: string;
-  isVisible: boolean;
-}
+// 레거시 Secret 인터페이스 (삭제 예정)
+// interface Secret {
+//   name: string;
+//   value: string;
+//   isVisible: boolean;
+// }
 
 interface GithubTokenDialogProps {
   trigger?: React.ReactNode;
@@ -68,19 +71,24 @@ export function GithubTokenDialog({
   const [repoError, setRepoError] = useState('');
   const { setRepository } = useRepository();
 
-  // Secrets 관련 상태
-  const [secrets, setSecrets] = useState<Secret[]>([]);
-  const [_editingSecret, setEditingSecret] = useState<Secret | null>(null);
-  const [newSecret, setNewSecret] = useState({
-    name: '',
-    value: '',
-    isVisible: false,
-  });
+  // 시크릿 다이얼로그 관련 상태
+  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
+  const [selectedMissingSecrets, setSelectedMissingSecrets] = useState<string[]>([]);
 
-  // API 훅 사용
+  // 새로운 시크릿 관리 훅 사용
+  const {
+    secrets: availableSecrets,
+    isLoading: secretsLoading,
+    error: secretsError,
+    createSecret,
+    refreshSecrets,
+  } = useSecretManager();
+
+  // 레거시 API 훅 (삭제용으로만 사용)
+  const deleteSecretMutation = useDeleteSecret();
+
+  // 기존 API 훅 (호환성 유지)
   const { data: secretsData, isLoading } = useSecrets(owner || '', repo || '');
-  const createOrUpdateSecret = useCreateOrUpdateSecret();
-  const deleteSecret = useDeleteSecret();
 
   useEffect(() => {
     if (open) {
@@ -98,17 +106,12 @@ export function GithubTokenDialog({
     }
   }, [open]);
 
-  // 기존 secrets 로드
+  // 시크릿 새로고침 (레포지토리 변경 시)
   useEffect(() => {
-    if (secretsData?.data?.secrets) {
-      const existingSecrets = secretsData.data.secrets.map((secret: any) => ({
-        name: secret.name,
-        value: '', // 보안상 값은 표시하지 않음
-        isVisible: false,
-      }));
-      setSecrets(existingSecrets);
+    if (open && owner && repo) {
+      refreshSecrets();
     }
-  }, [secretsData]);
+  }, [open, owner, repo, refreshSecrets]);
 
   const handleSaveToken = () => {
     if (!token.trim()) {
@@ -156,61 +159,42 @@ export function GithubTokenDialog({
     setRepoError('');
   };
 
-  // Secrets 관련 함수들
-  const handleAddSecret = () => {
-    if (!newSecret.name || !newSecret.value) return;
-
-    setSecrets([...secrets, { ...newSecret }]);
-    setNewSecret({ name: '', value: '', isVisible: false });
-  };
-
-  const handleEditSecret = (index: number) => {
-    setEditingSecret(secrets[index]);
-  };
-
-  const _handleSaveSecret = async (secret: Secret) => {
-    if (!owner || !repo) return;
-
-    try {
-      await createOrUpdateSecret.mutateAsync({
-        owner,
-        repo,
-        secretName: secret.name,
-        data: {
-          value: secret.value,
-        },
-      });
-
-      // 로컬 상태 업데이트
-      const updatedSecrets = secrets.map((s) => (s.name === secret.name ? secret : s));
-      setSecrets(updatedSecrets);
-      setEditingSecret(null);
-    } catch (error) {
-      console.error('Secret 저장 실패:', error);
-    }
-  };
+  // 레거시 함수들 (삭제 예정)
+  // const handleAddSecret = () => { ... };
+  // const handleEditSecret = (index: number) => { ... };
+  // const _handleSaveSecret = async (secret: Secret) => { ... };
 
   const handleDeleteSecret = async (secretName: string) => {
     if (!owner || !repo) return;
 
     try {
-      await deleteSecret.mutateAsync({
+      await deleteSecretMutation.mutateAsync({
         owner,
         repo,
         secretName,
       });
 
-      // 로컬 상태 업데이트
-      setSecrets(secrets.filter((s) => s.name !== secretName));
+      // 시크릿 목록 새로고침
+      refreshSecrets();
     } catch (error) {
       console.error('Secret 삭제 실패:', error);
     }
   };
 
-  const toggleVisibility = (index: number) => {
-    const updatedSecrets = [...secrets];
-    updatedSecrets[index].isVisible = !updatedSecrets[index].isVisible;
-    setSecrets(updatedSecrets);
+  // 레거시 함수 (삭제 예정)
+  // const toggleVisibility = (index: number) => { ... };
+
+  // 새로운 시크릿 관련 핸들러들
+  const handleCreateMissingSecrets = (secretNames: string[]) => {
+    setSelectedMissingSecrets(secretNames);
+    setSecretDialogOpen(true);
+  };
+
+  const handleSecretsCreated = () => {
+    // 시크릿 생성 후 목록 새로고침
+    refreshSecrets();
+    setSecretDialogOpen(false);
+    setSelectedMissingSecrets([]);
   };
 
   return (
@@ -315,9 +299,27 @@ export function GithubTokenDialog({
           </TabsContent>
 
           <TabsContent value="secrets" className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* 시크릿 에러 표시 */}
+            {secretsError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm font-medium text-red-800">
+                    시크릿을 불러오는 중 오류가 발생했습니다
+                  </span>
+                </div>
+                <p className="text-sm text-red-600 mt-1">{secretsError}</p>
+              </div>
+            )}
+
             <Tabs defaultValue="existing">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="existing">기존 Secrets</TabsTrigger>
+                <TabsTrigger value="existing">
+                  기존 Secrets
+                  <Badge variant="secondary" className="ml-2">
+                    {availableSecrets.length}
+                  </Badge>
+                </TabsTrigger>
                 <TabsTrigger value="missing">
                   누락된 Secrets
                   {missingSecrets.length > 0 && (
@@ -329,88 +331,25 @@ export function GithubTokenDialog({
               </TabsList>
 
               <TabsContent value="existing" className="space-y-4">
-                {isLoading ? (
+                {secretsLoading ? (
                   <LoadingSpinner message="Secrets를 불러오는 중..." />
                 ) : (
                   <>
-                    {/* 새 Secret 추가 */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Plus className="w-4 h-4" />새 Secret 추가
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              Secret 이름
-                            </label>
-                            <Input
-                              placeholder="예: AWS_ACCESS_KEY"
-                              value={newSecret.name}
-                              onChange={(e) =>
-                                setNewSecret({
-                                  ...newSecret,
-                                  name: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-700 mb-2 block">
-                              Secret 값
-                            </label>
-                            <div className="relative">
-                              <Input
-                                type={newSecret.isVisible ? 'text' : 'password'}
-                                placeholder="Secret 값을 입력하세요"
-                                value={newSecret.value}
-                                onChange={(e) =>
-                                  setNewSecret({
-                                    ...newSecret,
-                                    value: e.target.value,
-                                  })
-                                }
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                                onClick={() =>
-                                  setNewSecret({
-                                    ...newSecret,
-                                    isVisible: !newSecret.isVisible,
-                                  })
-                                }
-                              >
-                                {newSecret.isVisible ? (
-                                  <EyeOff className="w-4 h-4" />
-                                ) : (
-                                  <Eye className="w-4 h-4" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={handleAddSecret}
-                          disabled={!newSecret.name || !newSecret.value}
-                          className="mt-4"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Secret 추가
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    {/* 새 Secret 추가 버튼 */}
+                    <Button
+                      onClick={() => handleCreateMissingSecrets([])}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />새 Secret 추가
+                    </Button>
 
                     {/* 기존 Secrets 목록 */}
                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        기존 Secrets ({secrets.length})
+                        기존 Secrets ({availableSecrets.length})
                       </h3>
-                      {secrets.length === 0 ? (
+                      {availableSecrets.length === 0 ? (
                         <Card>
                           <CardContent className="p-8 text-center">
                             <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -420,51 +359,27 @@ export function GithubTokenDialog({
                           </CardContent>
                         </Card>
                       ) : (
-                        secrets.map((secret, index) => (
-                          <Card key={secret.name}>
+                        availableSecrets.map((secretName) => (
+                          <Card key={secretName}>
                             <CardContent className="p-4">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-2">
                                     <Key className="w-4 h-4 text-blue-600" />
                                     <span className="font-medium text-gray-900">
-                                      {secret.name}
+                                      {secretName}
                                     </span>
                                   </div>
-                                  <div className="relative">
-                                    <Input
-                                      type={secret.isVisible ? 'text' : 'password'}
-                                      value={secret.value}
-                                      readOnly
-                                      className="bg-gray-50"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                                      onClick={() => toggleVisibility(index)}
-                                    >
-                                      {secret.isVisible ? (
-                                        <EyeOff className="w-4 h-4" />
-                                      ) : (
-                                        <Eye className="w-4 h-4" />
-                                      )}
-                                    </Button>
+                                  <div className="text-sm text-gray-500">
+                                    보안상 시크릿 값은 표시되지 않습니다
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleEditSecret(index)}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDeleteSecret(secret.name)}
+                                    onClick={() => handleDeleteSecret(secretName)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -501,9 +416,19 @@ export function GithubTokenDialog({
                     </div>
 
                     <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        누락된 Secrets ({missingSecrets.length})
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          누락된 Secrets ({missingSecrets.length})
+                        </h3>
+                        <Button
+                          onClick={() => handleCreateMissingSecrets(missingSecrets)}
+                          className="flex items-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          모두 생성
+                        </Button>
+                      </div>
+
                       {missingSecrets.map((secretName) => (
                         <Card key={secretName}>
                           <CardContent className="p-4">
@@ -513,18 +438,11 @@ export function GithubTokenDialog({
                                 <span className="font-medium text-gray-900">
                                   {secretName}
                                 </span>
-                                <Badge variant="secondary">누락됨</Badge>
+                                <Badge variant="destructive">누락됨</Badge>
                               </div>
                               <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setNewSecret({
-                                    name: secretName,
-                                    value: '',
-                                    isVisible: false,
-                                  });
-                                }}
+                                onClick={() => handleCreateMissingSecrets([secretName])}
                               >
                                 <Plus className="w-4 h-4 mr-2" />
                                 생성
@@ -547,6 +465,17 @@ export function GithubTokenDialog({
           </Button>
         </DialogClose>
       </DialogContent>
+
+      {/* 시크릿 생성 다이얼로그 */}
+      <SecretCreateDialog
+        isOpen={secretDialogOpen}
+        onClose={() => {
+          setSecretDialogOpen(false);
+          setSelectedMissingSecrets([]);
+        }}
+        missingSecrets={selectedMissingSecrets}
+        onSecretsCreated={handleSecretsCreated}
+      />
     </Dialog>
   );
 }

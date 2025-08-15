@@ -17,6 +17,9 @@ import {
 } from '../utils/secretsDetector';
 import { toast } from 'react-toastify';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+import { SecretAutocomplete } from './SecretAutocomplete';
+import { SecretCreateDialog } from './SecretCreateDialog';
+import { SecretManagementPanel } from './SecretManagementPanel';
 import {
   Save,
   X,
@@ -28,6 +31,16 @@ import {
   AlertCircle,
   Lock,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface NodeEditorProps {
   nodeData: WorkflowNodeData;
@@ -58,9 +71,14 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   const [configFields, setConfigFields] = useState<ConfigField[]>([]);
   const [activeTab] = useState('fields');
   const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
-  // Secrets API 훅
-  const { data: secretsData } = useSecrets(owner || '', repo || '');
+  // Secrets API 훅 (캐시 최적화 적용)
+  const { data: secretsData, refetch: refetchSecrets } = useSecrets(
+    owner || '',
+    repo || '',
+  );
 
   // 초기 데이터 설정
   useEffect(() => {
@@ -71,15 +89,49 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     setConfigFields(fields);
   }, [nodeData]);
 
-  // Config 변경 시 secrets 감지
+  // Config 변경 시 secrets 감지 (캐시 문제 해결을 위한 개선)
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets = secretsData?.data?.secrets?.map((s: any) => s.name) || [];
+      // API 응답 구조에 맞게 수정 (groupedSecrets 사용)
+      const userSecrets: string[] = [];
+      if (secretsData?.data?.groupedSecrets) {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: any) => {
+          if (Array.isArray(group)) {
+            group.forEach((secret: any) => {
+              if (secret.name) userSecrets.push(secret.name);
+            });
+          }
+        });
+      }
+
+      // console.log('🔍 NodeEditor 시크릿 감지 디버그:', {
+      //   requiredSecrets,
+      //   userSecrets,
+      //   secretsDataStructure: secretsData?.data,
+      //   missing: findMissingSecrets(requiredSecrets, userSecrets),
+      // });
+
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
       setMissingSecrets(missing);
 
-      // 누락된 secrets가 있으면 토스트 표시
+      // 누락된 시크릿이 있지만 최근에 생성되었을 가능성이 있으면 재시도
+      if (missing.length > 0 && requiredSecrets.length > 0) {
+        // 2초 후 한 번 더 확인 (시크릿 생성 직후의 캐시 지연 대응)
+        const retryTimer = setTimeout(async () => {
+          try {
+            await refetchSecrets();
+            // console.log('🔄 NodeEditor 시크릿 목록 재확인 완료');
+          } catch (error) {
+            console.warn('NodeEditor 시크릿 재확인 실패:', error);
+          }
+        }, 2000);
+
+        // 컴포넌트 언마운트 시 타이머 정리
+        return () => clearTimeout(retryTimer);
+      }
+
+      // 누락된 secrets가 있으면 토스트 표시 (첫 번째 감지에서만)
       if (missing.length > 0) {
         toast.warning(
           `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
@@ -94,7 +146,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         );
       }
     }
-  }, [editedData.config, nodeType, secretsData]);
+  }, [JSON.stringify(editedData.config), nodeType, secretsData, refetchSecrets]);
 
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = (
@@ -281,7 +333,11 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       setConfigError('잘못된 JSON 형식입니다.');
       return;
     }
+    setSaveConfirmOpen(true);
+  };
 
+  // 저장 확인
+  const confirmSave = () => {
     try {
       const parsedConfig = JSON.parse(configText);
       const updatedData = {
@@ -289,8 +345,11 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
         config: parsedConfig,
       };
       onSave(updatedData);
+      toast.success('노드가 성공적으로 저장되었습니다.');
+      setSaveConfirmOpen(false);
     } catch (error) {
       setConfigError('Config 저장 중 오류가 발생했습니다.');
+      setSaveConfirmOpen(false);
     }
   };
 
@@ -299,10 +358,24 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
     onCancel();
   };
 
-  // 필드 값 렌더링
+  // 필드 값 렌더링 (시크릿 자동완성 포함)
   const renderFieldValue = (field: ConfigField, index: number, parentIndex?: number) => {
     switch (field.type) {
       case 'string':
+        // Step 노드이고 시크릿을 사용할 수 있는 경우 SecretAutocomplete 사용
+        if (canNodeUseSecrets(nodeType)) {
+          return (
+            <SecretAutocomplete
+              value={field.value as string}
+              onChange={(value) => handleConfigFieldChange(index, value, parentIndex)}
+              placeholder="값을 입력하거나 ${{ secrets.SECRET_NAME }} 형태로 시크릿 사용"
+              onCreateSecret={(secretName) => {
+                setMissingSecrets([secretName]);
+                setSecretDialogOpen(true);
+              }}
+            />
+          );
+        }
         return (
           <Input
             value={field.value as string}
@@ -400,7 +473,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
   const labels = getFixedLabels(nodeType);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="p-6 w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">{labels.name}</h2>
@@ -453,9 +526,17 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
       )}
 
       <Tabs defaultValue={activeTab} className="w-full">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="fields">필드 편집</TabsTrigger>
           <TabsTrigger value="config">Config 편집</TabsTrigger>
+          <TabsTrigger value="secrets" className="relative">
+            시크릿 관리
+            {missingSecrets.length > 0 && (
+              <Badge variant="destructive" className="ml-2 text-xs">
+                {missingSecrets.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields" className="space-y-4">
@@ -545,7 +626,107 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({
             )}
           </div>
         </TabsContent>
+
+        {/* 시크릿 관리 탭 */}
+        {canNodeUseSecrets(nodeType) && (
+          <TabsContent value="secrets" className="space-y-4">
+            <SecretManagementPanel
+              requiredSecrets={detectSecretsInConfig(editedData.config)}
+              onSecretsUpdated={async () => {
+                // 시크릿 업데이트 후 새로고침 및 재검증
+                try {
+                  await refetchSecrets();
+
+                  // 약간의 지연 후 재검증
+                  setTimeout(() => {
+                    const requiredSecrets = detectSecretsInConfig(editedData.config);
+                    const userSecrets: string[] = [];
+                    if (secretsData?.data?.groupedSecrets) {
+                      Object.values(secretsData.data.groupedSecrets).forEach(
+                        (group: any) => {
+                          if (Array.isArray(group)) {
+                            group.forEach((secret: any) => {
+                              if (secret.name) userSecrets.push(secret.name);
+                            });
+                          }
+                        },
+                      );
+                    }
+                    const missing = findMissingSecrets(requiredSecrets, userSecrets);
+                    setMissingSecrets(missing);
+                    // console.log('🔄 시크릿 업데이트 후 재검증:', { missing });
+                  }, 500);
+                } catch (error) {
+                  console.error('시크릿 업데이트 후 새로고침 실패:', error);
+                }
+              }}
+            />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* 시크릿 생성 다이얼로그 */}
+      <SecretCreateDialog
+        isOpen={secretDialogOpen}
+        onClose={() => {
+          setSecretDialogOpen(false);
+          setMissingSecrets([]);
+        }}
+        missingSecrets={missingSecrets}
+        onSecretsCreated={async () => {
+          // 시크릿 생성 후 즉시 새로고침 및 재검증
+          try {
+            await refetchSecrets();
+            // console.log('🔄 NodeEditor 시크릿 생성 후 새로고침 완료');
+
+            // 새로고침 후 재검증
+            if (canNodeUseSecrets(nodeType) && editedData.config) {
+              // 약간의 지연 후 재검증 (API 응답 대기)
+              setTimeout(() => {
+                const requiredSecrets = detectSecretsInConfig(editedData.config);
+                const userSecrets: string[] = [];
+                if (secretsData?.data?.groupedSecrets) {
+                  Object.values(secretsData.data.groupedSecrets).forEach((group: any) => {
+                    if (Array.isArray(group)) {
+                      group.forEach((secret: any) => {
+                        if (secret.name) userSecrets.push(secret.name);
+                      });
+                    }
+                  });
+                }
+                const missing = findMissingSecrets(requiredSecrets, userSecrets);
+                setMissingSecrets(missing);
+                // console.log('🔄 NodeEditor 재검증 완료:', { missing });
+              }, 500);
+            }
+          } catch (error) {
+            console.error('NodeEditor 시크릿 새로고침 실패:', error);
+          }
+        }}
+      />
+
+      {/* 저장 확인 다이얼로그 */}
+      <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Save className="w-5 h-5 text-blue-600" />
+              노드 저장 확인
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              현재 편집 중인 노드를 저장하시겠습니까?
+              <br />
+              <span className="text-gray-600 text-sm">
+                저장하면 워크플로우에 변경사항이 적용됩니다.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSave}>저장</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
