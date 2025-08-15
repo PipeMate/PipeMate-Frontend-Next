@@ -10,7 +10,7 @@ import {
   SetupRequiredEmptyState,
   WorkflowStatusBadge,
 } from '@/components/ui';
-import { useWorkflows, usePipeline, useUpdatePipeline } from '@/api/hooks';
+import { useWorkflows, usePipeline, useUpdatePipeline } from '@/api';
 import { WorkflowItem } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { GithubTokenDialog } from './GithubTokenDialog';

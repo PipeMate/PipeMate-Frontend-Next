@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
@@ -15,7 +14,7 @@ import {
   useWorkflowRunJobs,
   useWorkflowRunLogs,
   useWorkflowRunDetail,
-} from '@/api/hooks';
+} from '@/api';
 import {
   Monitor,
   Play,
@@ -30,7 +29,6 @@ import {
   GitBranch,
   GitCommit,
   Calendar,
-  Settings,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
@@ -41,15 +39,13 @@ import RunOverviewChips from './components/RunOverviewChips';
 import JobsList from './components/JobsList';
 import LogViewer from './components/LogViewer';
 import { ROUTES } from '@/config/appConstants';
-import type { WorkflowRun, WorkflowRunDetail, JobDetail, ActiveTab } from './types';
+import type { WorkflowRun, ActiveTab } from './types';
 import {
   formatDuration,
   formatDateTime,
   formatRelativeTime,
   calculateRunStatistics,
   calculateSuccessRate,
-  copyToClipboard,
-  downloadTextFile,
   isMobile,
   isTablet,
 } from './utils';
@@ -98,13 +94,9 @@ export default function MonitoringPage() {
   const cancelWorkflowRun = useCancelWorkflowRun();
 
   // * 데이터 파싱
-  const workflowsResponse = workflowsData as unknown as { workflows?: any[] } | undefined;
   const runsResponse = workflowRunsData as unknown as
     | { workflow_runs?: WorkflowRun[] }
     | undefined;
-  const workflows = Array.isArray(workflowsResponse?.workflows)
-    ? workflowsResponse!.workflows
-    : [];
   const workflowRuns: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
     ? runsResponse!.workflow_runs
     : [];

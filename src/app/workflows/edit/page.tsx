@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { usePipeline, useUpdatePipeline } from '@/api/hooks';
+import { usePipeline, useUpdatePipeline } from '@/api';
 import { AreaBasedWorkflowEditor } from '@/app/github-actions-flow/components/AreaBasedWorkflowEditor';
 import { ServerBlock } from '@/app/github-actions-flow/types';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';

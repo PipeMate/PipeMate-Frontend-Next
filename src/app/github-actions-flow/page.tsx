@@ -10,7 +10,7 @@ import { ROUTES } from '@/config/appConstants';
 import { Blocks, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useCreatePipeline } from '@/api/hooks/usePipeline';
+import { useCreatePipeline } from '@/api';
 import { toast } from 'react-toastify';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';

@@ -38,7 +38,7 @@ import {
   deleteRepositoryConfig,
 } from '@/lib/cookieUtils';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api/hooks';
+import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api';
 
 interface Secret {
   name: string;

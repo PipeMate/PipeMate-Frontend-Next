@@ -1,8 +1,7 @@
-// * 워크플로우 관련 React Query 훅 모음
-// * - 목록/실행/로그/잡/실행/취소를 제공합니다.
+// * Workflow 관련 React Query 훅
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workflowAPI } from '@/api';
-import type { WorkflowItem, GithubJobDetailResponse } from '@/api/types';
+import { workflowAPI } from './api';
+import type { WorkflowItem, GithubJobDetailResponse } from './types';
 
 // * 워크플로우 목록 조회
 type WorkflowsResponse = { workflows: WorkflowItem[] };
@@ -20,7 +19,6 @@ export const useWorkflows = (owner: string, repo: string) => {
 type RunsOptions = {
   refetchInterval?: number | false;
   enabled?: boolean;
-
   refetchOnWindowFocus?: boolean;
 };
 
@@ -33,7 +31,6 @@ export const useWorkflowRuns = (owner: string, repo: string, options?: RunsOptio
     enabled: options?.enabled ?? (!!owner && !!repo),
     staleTime: 30 * 1000, // 30초
     refetchInterval: options?.refetchInterval ?? 10 * 1000, // 기본 10초 폴링
-
     refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false,
   });
 };
@@ -58,7 +55,7 @@ export const useWorkflowRunLogs = (owner: string, repo: string, runId: string) =
   });
 };
 
-// * 워크플로우 실행의 모든 Job 조회
+// * 워크플로우 실행 Job 목록 조회
 export const useWorkflowRunJobs = (owner: string, repo: string, runId: string) => {
   return useQuery<GithubJobDetailResponse[]>({
     queryKey: ['workflowRunJobs', owner, repo, runId],

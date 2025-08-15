@@ -9,16 +9,6 @@ import {
   Monitor,
 } from 'lucide-react';
 
-// * 아이콘 타입 정의
-type IconType = React.ComponentType<{ className?: string }>;
-
-// * 라우트 아이템 타입 정의
-interface RouteItem {
-  url: string;
-  label: string;
-  icon: IconType;
-}
-
 // * 브랜드 정보
 export const BRAND = {
   name: 'PipeMate',
@@ -30,7 +20,7 @@ export const BRAND = {
 } as const;
 
 // * 라우트 정보
-export const ROUTES: Record<string, RouteItem> = {
+export const ROUTES = {
   HOME: {
     url: '/',
     label: '대시보드',
@@ -102,61 +92,9 @@ export const HOME = {
   },
 } as const;
 
-// * 파일 정보 (예시 데이터)
-export const FILES = {
-  changes: [
-    {
-      file: 'README.md',
-      state: 'M',
-    },
-    {
-      file: 'api/hello/route.ts',
-      state: 'U',
-    },
-    {
-      file: 'app/layout.tsx',
-      state: 'M',
-    },
-  ],
-  tree: [
-    [
-      'app',
-      [
-        'api',
-        ['hello', ['route.ts']],
-        'page.tsx',
-        'layout.tsx',
-        ['blog', ['page.tsx']],
-        ['blockly', ['page.tsx']],
-        ['github-actions-flow', ['page.tsx']],
-      ],
-    ],
-    ['components', ['ui', 'button.tsx', 'card.tsx'], 'header.tsx', 'footer.tsx'],
-    ['lib', ['util.ts']],
-    ['public', 'favicon.ico', 'vercel.svg'],
-    '.eslintrc.json',
-    '.gitignore',
-    'next.config.js',
-    'tailwind.config.js',
-    'package.json',
-    'README.md',
-  ],
-} as const;
-
 // * 쿠키 저장소 명
 export const STORAGES = {
   GITHUB_TOKEN: 'github token',
   REPOSITORY_OWNER: 'repository owner',
   REPOSITORY_NAME: 'repository name',
 } as const;
-
-// * 편의를 위한 유틸리티 상수들
-export const ROUTE_URLS = Object.values(ROUTES).map((route) => route.url);
-export const ROUTE_LABELS = Object.values(ROUTES).map((route) => route.label);
-export const CHANGED_FILES = FILES.changes.map((file) => file.file);
-export const FILE_STATES = FILES.changes.map((file) => file.state);
-
-// * 브랜드 관련 편의 export
-export const BRAND_NAME = BRAND.name;
-export const BRAND_DESCRIPTION = BRAND.description;
-export const BRAND_LOGO = BRAND.logo;

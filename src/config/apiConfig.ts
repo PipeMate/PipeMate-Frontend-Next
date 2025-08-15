@@ -1,18 +1,7 @@
-import type { ApiConfig, ApiEndpoints, ApiErrorMessages, HttpStatusCode } from './types';
-
-// * 환경 변수 상수
-const ENV_VARS = {
-  NODE_ENV: process.env.NODE_ENV,
-  USE_REAL_API: process.env.NEXT_PUBLIC_USE_REAL_API,
-  API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
-} as const;
-
-// * API 기본 설정 상수
-const API_DEFAULTS = {
-  BASE_URL: 'http://localhost:8080',
+// * API 설정
+export const API_CONFIG = {
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
   TIMEOUT: 10000,
-  RETRY_COUNT: 3,
-  RETRY_DELAY: 1000,
 } as const;
 
 // * API 경로 상수
@@ -30,29 +19,6 @@ const API_PATHS = {
   },
 } as const;
 
-// * API 설정
-// * - 환경별 설정 관리
-// * - 타입 안전성 보장
-export const API_CONFIG: ApiConfig = {
-  // 실제 백엔드 API 사용 여부
-  // - production 환경에서는 자동으로 true
-  // - development 환경에서는 환경변수로 제어
-  // - 임시로 강제 활성화 (디버깅용)
-  USE_REAL_API: true, // ENV_VARS.NODE_ENV === 'production' || ENV_VARS.USE_REAL_API === 'true',
-
-  // 백엔드 API 기본 URL
-  BASE_URL: ENV_VARS.API_BASE_URL || API_DEFAULTS.BASE_URL,
-
-  // API 타임아웃 (ms)
-  TIMEOUT: API_DEFAULTS.TIMEOUT,
-
-  // 재시도 횟수
-  RETRY_COUNT: API_DEFAULTS.RETRY_COUNT,
-
-  // 재시도 간격 (ms)
-  RETRY_DELAY: API_DEFAULTS.RETRY_DELAY,
-};
-
 // * URL 쿼리 파라미터 생성 유틸리티
 const createQueryParams = (params: Record<string, string>): string => {
   const searchParams = new URLSearchParams();
@@ -63,9 +29,7 @@ const createQueryParams = (params: Record<string, string>): string => {
 };
 
 // * API 엔드포인트 정의
-// * - 타입 안전한 URL 생성
-// * - 쿼리 파라미터 자동 처리
-export const API_ENDPOINTS: ApiEndpoints = {
+export const API_ENDPOINTS = {
   // 파이프라인 관련
   PIPELINES: {
     CREATE: API_PATHS.PIPELINES,
@@ -102,7 +66,7 @@ export const API_ENDPOINTS: ApiEndpoints = {
     },
     WORKFLOW_RUN_DETAIL: (owner: string, repo: string, runId: string) => {
       const query = createQueryParams({ owner, repo, runId });
-      return `${API_PATHS.GITHUB.WORKFLOW_RUN}/?${query}`;
+      return `${API_PATHS.GITHUB.WORKFLOW_RUN}?${query}`;
     },
     WORKFLOW_RUN_LOGS: (owner: string, repo: string, runId: string) => {
       const query = createQueryParams({ owner, repo, runId });
@@ -113,8 +77,8 @@ export const API_ENDPOINTS: ApiEndpoints = {
       return `${API_PATHS.GITHUB.WORKFLOW_RUN}/jobs?${query}`;
     },
     WORKFLOW_JOB_DETAIL: (owner: string, repo: string, jobId: string) => {
-      const query = createQueryParams({ owner, repo });
-      return `${API_PATHS.GITHUB.WORKFLOW_RUNS}/jobs/${jobId}?${query}`;
+      const query = createQueryParams({ owner, repo, jobId });
+      return `${API_PATHS.GITHUB.WORKFLOW_RUN}/job?${query}`;
     },
     WORKFLOW_DISPATCH: (
       owner: string,
@@ -122,33 +86,30 @@ export const API_ENDPOINTS: ApiEndpoints = {
       ymlFileName: string,
       ref: string,
     ) => {
-      const query = createQueryParams({ owner, repo, ref });
-      return `${API_PATHS.GITHUB.WORKFLOWS}/${ymlFileName}/dispatches?${query}`;
+      const query = createQueryParams({ owner, repo, ymlFileName, ref });
+      return `${API_PATHS.GITHUB.WORKFLOWS}/dispatch?${query}`;
     },
     WORKFLOW_RUN_CANCEL: (owner: string, repo: string, runId: string) => {
-      const query = createQueryParams({ owner, repo });
-      return `${API_PATHS.GITHUB.WORKFLOW_RUNS}/${runId}/cancel?${query}`;
+      const query = createQueryParams({ owner, repo, runId });
+      return `${API_PATHS.GITHUB.WORKFLOW_RUN}/cancel?${query}`;
     },
     SECRETS: (owner: string, repo: string) => {
       const query = createQueryParams({ owner, repo });
       return `${API_PATHS.GITHUB.SECRETS}?${query}`;
     },
-    SECRET_CREATE_OR_UPDATE: (_owner: string, _repo: string, secretName: string) => {
-      return `${API_PATHS.GITHUB.SECRETS}/${secretName}`;
+    SECRET_CREATE_OR_UPDATE: (owner: string, repo: string, secretName: string) => {
+      const query = createQueryParams({ owner, repo, secretName });
+      return `${API_PATHS.GITHUB.SECRETS}?${query}`;
     },
-    SECRET_PUBLIC_KEY: (_owner: string, _repo: string) => {
-      return `${API_PATHS.GITHUB.SECRETS}/public-key`;
-    },
-    SECRET_DELETE: (_owner: string, _repo: string, secretName: string) => {
-      return `${API_PATHS.GITHUB.SECRETS}/${secretName}`;
+    SECRET_DELETE: (owner: string, repo: string, secretName: string) => {
+      const query = createQueryParams({ owner, repo, secretName });
+      return `${API_PATHS.GITHUB.SECRETS}?${query}`;
     },
   },
-};
+} as const;
 
 // * 에러 메시지 정의
-// * - 사용자 친화적인 메시지
-// * - 일관된 메시지 형식
-export const API_ERROR_MESSAGES: ApiErrorMessages = {
+export const API_ERROR_MESSAGES = {
   NETWORK_ERROR: '네트워크 연결에 실패했습니다.',
   UNAUTHORIZED: '인증이 필요합니다.',
   FORBIDDEN: '접근 권한이 없습니다.',
@@ -156,20 +117,20 @@ export const API_ERROR_MESSAGES: ApiErrorMessages = {
   SERVER_ERROR: '서버 오류가 발생했습니다.',
   TIMEOUT: '요청 시간이 초과되었습니다.',
   UNKNOWN: '알 수 없는 오류가 발생했습니다.',
-};
+} as const;
 
 // * HTTP 상태 코드별 에러 메시지 매핑
-// * - 타입 안전한 상태 코드 처리
-// * - 명확한 에러 메시지 반환
 export const getErrorMessage = (status: number): string => {
-  const statusMessages: Record<HttpStatusCode, string> = {
+  const statusMessages = {
     401: API_ERROR_MESSAGES.UNAUTHORIZED,
     403: API_ERROR_MESSAGES.FORBIDDEN,
     404: API_ERROR_MESSAGES.NOT_FOUND,
     408: API_ERROR_MESSAGES.TIMEOUT,
     500: API_ERROR_MESSAGES.SERVER_ERROR,
     504: API_ERROR_MESSAGES.TIMEOUT,
-  };
+  } as const;
 
-  return statusMessages[status as HttpStatusCode] || API_ERROR_MESSAGES.UNKNOWN;
+  return (
+    statusMessages[status as keyof typeof statusMessages] || API_ERROR_MESSAGES.UNKNOWN
+  );
 };

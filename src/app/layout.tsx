@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import '@/styles';
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   description: 'GitHub Actions 워크플로우를 시각적으로 관리하고 모니터링하는 강력한 도구',
   keywords: ['GitHub Actions', 'CI/CD', '워크플로우', '파이프라인', '모니터링'],
   authors: [{ name: 'PipeMate Team' }],
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 // * 애플리케이션 루트 레이아웃

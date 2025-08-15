@@ -7,7 +7,7 @@ import { WorkflowNodeData } from '../types';
 import { NodeType } from './area-editor/types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
 import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
-import { useCreatePipeline } from '@/api/hooks/usePipeline';
+import { useCreatePipeline } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
@@ -40,7 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import 'react-toastify/dist/ReactToastify.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSecrets, useCreateOrUpdateSecret } from '@/api/hooks';
+import { useSecrets, useCreateOrUpdateSecret } from '@/api';
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,

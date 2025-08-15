@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { Button } from '@/components/ui/button';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useDispatchWorkflow } from '@/api/hooks';
+import { useDispatchWorkflow } from '@/api';
 import { LoadingSpinner, EmptyState, WorkflowStatusBadge } from '@/components/ui';
 import { ROUTES } from '@/config/appConstants';
 import {

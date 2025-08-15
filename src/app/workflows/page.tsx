@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useWorkflows, useWorkflowRuns, useDispatchWorkflow } from '@/api/hooks';
-import { WorkflowItem } from '@/api/types';
+import { useWorkflows, useWorkflowRuns, useDispatchWorkflow, WorkflowItem } from '@/api';
 import {
   LoadingSpinner,
   EmptyState,

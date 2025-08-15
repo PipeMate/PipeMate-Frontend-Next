@@ -1,9 +1,9 @@
-// * GitHub Secrets 관련 React Query 훅 모음
+// * Secrets 관련 React Query 훅
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { secretsAPI } from '@/api';
-import { GithubSecretRequest } from '@/api/types';
+import { secretsAPI } from './api';
+import { GithubSecretRequest } from './types';
 
-// * Secrets 목록 조회
+// * Secrets 목록 조회 (도메인별 그룹화됨)
 export const useSecrets = (owner: string, repo: string) => {
   return useQuery({
     queryKey: ['secrets', owner, repo],
@@ -13,25 +13,8 @@ export const useSecrets = (owner: string, repo: string) => {
   });
 };
 
-// * Secrets 그룹화된 목록 조회
-export const useGroupedSecrets = (owner: string, repo: string) => {
-  return useQuery({
-    queryKey: ['groupedSecrets', owner, repo],
-    queryFn: () => secretsAPI.getGroupedList(owner, repo),
-    enabled: !!owner && !!repo,
-    staleTime: 5 * 60 * 1000, // 5분
-  });
-};
-
-// * Public Key 조회
-export const usePublicKey = (owner: string, repo: string) => {
-  return useQuery({
-    queryKey: ['publicKey', owner, repo],
-    queryFn: () => secretsAPI.getPublicKey(owner, repo),
-    enabled: !!owner && !!repo,
-    staleTime: 10 * 60 * 1000, // 10분
-  });
-};
+// * 하위 호환성을 위한 별칭
+export const useGroupedSecrets = useSecrets;
 
 // * Secret 생성/수정 뮤테이션
 export const useCreateOrUpdateSecret = () => {

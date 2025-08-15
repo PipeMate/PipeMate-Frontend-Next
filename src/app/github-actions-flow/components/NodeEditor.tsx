@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSecrets } from '@/api/hooks';
+import { useSecrets } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
   detectSecretsInConfig,

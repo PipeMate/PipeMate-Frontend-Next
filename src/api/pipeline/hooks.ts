@@ -1,7 +1,6 @@
-// * 파이프라인 관련 React Query 훅 모음
-// * - 조회/생성/수정/삭제 뮤테이션을 제공합니다.
+// * Pipeline 관련 React Query 훅
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pipelineAPI } from '@/api';
+import { pipelineAPI } from './api';
 
 // * 파이프라인 조회
 export const usePipeline = (ymlFileName: string, owner: string, repo: string) => {
@@ -35,10 +34,11 @@ export const useUpdatePipeline = () => {
   return useMutation({
     mutationFn: pipelineAPI.update,
     onSuccess: (data, variables) => {
-      // * 관련 쿼리 무효화
+      // * 캐시된 파이프라인 데이터 무효화
       queryClient.invalidateQueries({
         queryKey: ['pipeline', variables.workflowName, variables.owner, variables.repo],
       });
+      // * 워크플로우 목록도 무효화
       queryClient.invalidateQueries({
         queryKey: ['workflows', variables.owner, variables.repo],
       });
@@ -61,7 +61,26 @@ export const useDeletePipeline = () => {
       repo: string;
     }) => pipelineAPI.delete(ymlFileName, owner, repo),
     onSuccess: (data, variables) => {
-      // * 관련 쿼리 무효화
+      // * 캐시된 파이프라인 데이터 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['pipeline', variables.ymlFileName, variables.owner, variables.repo],
+      });
+      // * 워크플로우 목록도 무효화
+      queryClient.invalidateQueries({
+        queryKey: ['workflows', variables.owner, variables.repo],
+      });
+    },
+  });
+};
+
+// * 워크플로우 저장 뮤테이션 (ServerBlock 배열을 받아서 저장)
+export const useSaveWorkflow = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: pipelineAPI.saveWorkflow,
+    onSuccess: (data, variables) => {
+      // * 워크플로우 목록 새로고침
       queryClient.invalidateQueries({
         queryKey: ['workflows', variables.owner, variables.repo],
       });

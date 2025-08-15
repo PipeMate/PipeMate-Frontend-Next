@@ -17,7 +17,7 @@ import {
 import React from 'react';
 import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
 import { NODE_COLORS } from '../constants/nodeConstants';
-import { usePresetBlocks, usePresetPipelines } from '@/api/hooks/usePresets';
+import { usePresetBlocks, usePresetPipelines } from '@/api';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import YamlViewer from '@/components/ui/YamlViewer';
 import { generateBlockYaml } from '../utils/yamlGenerator';

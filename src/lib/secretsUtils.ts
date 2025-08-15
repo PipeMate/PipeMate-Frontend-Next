@@ -43,21 +43,6 @@ export const secretsUtils = {
     }
   },
 
-  // * 퍼블릭 키 조회
-  // * - 저장소의 퍼블릭 키를 조회합니다.
-  getPublicKey: async (owner: string, repo: string): Promise<ApiResult> => {
-    try {
-      logger.info('퍼블릭 키 조회 시작', { owner, repo });
-      const response = await secretsAPI.getPublicKey(owner, repo);
-      logger.info('퍼블릭 키 조회 성공');
-      return { success: true, data: response.data };
-    } catch (error) {
-      const errorInfo = extractErrorInfo(error);
-      logger.error('퍼블릭 키 조회 실패', error, errorInfo);
-      return { success: false, error };
-    }
-  },
-
   // * Secret 삭제
   // * - 특정 secret을 삭제합니다.
   deleteSecret: async (
