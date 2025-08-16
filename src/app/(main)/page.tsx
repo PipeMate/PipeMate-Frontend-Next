@@ -32,7 +32,7 @@ function HeroSection() {
   return (
     <div className="text-center py-20 lg:py-32 relative">
       <div className="flex justify-center mb-6">
-        <div className="p-4 bg-blue-100 rounded-full border-3 border-blue-300">
+        <div className="p-4 bg-blue-100 rounded-full border-4 border-blue-400 shadow-lg">
           <BRAND.logo.icon className="w-12 h-12 text-blue-600" />
         </div>
       </div>
@@ -48,7 +48,7 @@ function HeroSection() {
       <div className="flex justify-center space-x-4">
         <Button
           onClick={handleCTAClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-6 rounded-full font-semibold border-3 border-blue-500 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-6 rounded-full font-semibold border-4 border-blue-500 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
         >
           {isConfigured && hasToken ? HOME.cta.button : '시작하기'}
         </Button>
@@ -96,6 +96,20 @@ function FeaturesSection() {
     }
   };
 
+  // 색상별 버튼 border 클래스 매핑
+  const getButtonBorderColor = (color: string) => {
+    switch (color) {
+      case 'text-blue-600':
+        return 'border-blue-500';
+      case 'text-green-600':
+        return 'border-green-500';
+      case 'text-orange-600':
+        return 'border-orange-500';
+      default:
+        return 'border-gray-300';
+    }
+  };
+
   return (
     <div className="py-20 lg:py-32">
       <div className="text-center mb-16">
@@ -111,10 +125,11 @@ function FeaturesSection() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
         {HOME.features.map((feature, index) => {
           const IconComponent = feature.icon;
+          const buttonBorderColor = getButtonBorderColor(feature.color);
           return (
             <div
               key={index}
-              className={`bg-white p-8 rounded-2xl shadow-lg border-3 border-gray-200 transition-transform duration-300 hover:scale-105 ${
+              className={`bg-white p-8 rounded-2xl shadow-lg border-3 border-gray-200 transition-transform duration-300 hover:scale-105 hover:shadow-xl ${
                 index === 0 ? 'border-4 border-blue-300 shadow-xl' : ''
               }`}
             >
@@ -132,7 +147,7 @@ function FeaturesSection() {
               <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
               <Button
                 onClick={() => handleFeatureClick(feature.action.url)}
-                className={`${feature.action.color} text-white text-md px-6 py-3 w-full rounded-full font-semibold border-3 border-gray-300 transition-all duration-300`}
+                className={`${feature.action.color} text-white text-md px-6 py-3 w-full rounded-full font-semibold border-4 ${buttonBorderColor} transition-all duration-300`}
               >
                 {isConfigured && hasToken ? feature.action.title : '시작하기'}
               </Button>
@@ -174,7 +189,7 @@ function CTASection() {
         </p>
         <Button
           onClick={handleCTAClick}
-          className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6 rounded-full font-semibold shadow-lg border-3 border-blue-300"
+          className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6 rounded-full font-semibold shadow-lg border-4 border-blue-300"
         >
           {isConfigured && hasToken ? HOME.cta.button : '시작하기'}
         </Button>

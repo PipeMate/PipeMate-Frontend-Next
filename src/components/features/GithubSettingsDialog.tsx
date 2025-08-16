@@ -278,7 +278,7 @@ export function GithubSettingsDialog({
               </TabsTrigger>
               <TabsTrigger value="secrets" className="flex items-center gap-2">
                 <Lock className="h-4 w-4" />
-                <span>Secrets</span>
+                <span>시크릿</span>
                 {missingSecrets.length > 0 && (
                   <Badge
                     variant="destructive"
@@ -291,80 +291,69 @@ export function GithubSettingsDialog({
             </TabsList>
 
             <div className="flex-1 overflow-y-auto">
-              <TabsContent value="token" className="space-y-6 mt-0">
+              <TabsContent value="token" className="h-full mt-0">
                 <TokenTab
-                  token={token}
-                  savedToken={savedToken}
-                  tokenError={tokenError}
-                  onTokenChange={setToken}
-                  onSaveToken={handleSaveToken}
-                  onDeleteToken={handleDeleteToken}
+                  data={{
+                    token,
+                    savedToken,
+                    error: tokenError,
+                  }}
+                  handlers={{
+                    onTokenChange: setToken,
+                    onSaveToken: handleSaveToken,
+                    onDeleteToken: handleDeleteToken,
+                  }}
                 />
               </TabsContent>
 
-              <TabsContent value="repository" className="space-y-6 mt-0">
+              <TabsContent value="repository" className="h-full mt-0">
                 <RepositoryTab
-                  owner={owner}
-                  repo={repo}
-                  savedOwner={savedOwner}
-                  savedRepo={savedRepo}
-                  repoError={repoError}
-                  onOwnerChange={setOwner}
-                  onRepoChange={setRepo}
-                  onSaveRepository={handleSaveRepository}
-                  onDeleteRepository={handleDeleteRepository}
+                  data={{
+                    owner,
+                    repo,
+                    savedOwner,
+                    savedRepo,
+                    error: repoError,
+                  }}
+                  handlers={{
+                    onOwnerChange: setOwner,
+                    onRepoChange: setRepo,
+                    onSaveRepository: handleSaveRepository,
+                    onDeleteRepository: handleDeleteRepository,
+                  }}
                 />
               </TabsContent>
 
-              <TabsContent value="secrets" className="space-y-6 mt-0">
+              <TabsContent value="secrets" className="h-full mt-0">
                 <SecretsTab
-                  availableSecrets={availableSecrets}
-                  missingSecrets={missingSecrets}
-                  secretsLoading={secretsLoading}
-                  secretsError={secretsError}
-                  showSecretForm={showSecretForm}
-                  secretsToCreate={secretsToCreate}
-                  showValues={showValues}
-                  isCreatingSecrets={isCreatingSecrets}
-                  onDeleteSecret={handleDeleteSecret}
-                  onCreateMissingSecrets={handleCreateMissingSecrets}
-                  onAddSecretForm={handleAddSecretForm}
-                  onRemoveSecretForm={handleRemoveSecretForm}
-                  onUpdateSecretForm={handleUpdateSecretForm}
-                  onToggleValueVisibility={handleToggleValueVisibility}
-                  onCloseSecretForm={handleCloseSecretForm}
-                  onCreateSecrets={handleCreateSecrets}
+                  data={{
+                    availableSecrets,
+                    missingSecrets,
+                    loading: secretsLoading,
+                    error: secretsError,
+                    groupedSecrets: secretsData?.data?.groupedSecrets,
+                  }}
+                  form={{
+                    showForm: showSecretForm,
+                    secretsToCreate,
+                    showValues,
+                    isCreating: isCreatingSecrets,
+                  }}
+                  handlers={{
+                    onDeleteSecret: handleDeleteSecret,
+                    onCreateMissingSecrets: handleCreateMissingSecrets,
+                    onAddSecretForm: handleAddSecretForm,
+                    onRemoveSecretForm: handleRemoveSecretForm,
+                    onUpdateSecretForm: handleUpdateSecretForm,
+                    onToggleValueVisibility: handleToggleValueVisibility,
+                    onCloseSecretForm: handleCloseSecretForm,
+                    onCreateSecrets: handleCreateSecrets,
+                  }}
                 />
               </TabsContent>
             </div>
           </Tabs>
         </div>
-
-        <DialogFooter className="p-6 pt-0 pb-2">
-          <div className="flex gap-3 w-full">
-            {showSecretForm ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleCloseSecretForm}
-                  disabled={isCreatingSecrets}
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={handleCreateSecrets}
-                  disabled={
-                    !secretsToCreate.some((s) => s.name.trim() && s.value.trim()) ||
-                    isCreatingSecrets
-                  }
-                  className="flex-1"
-                >
-                  {isCreatingSecrets ? '생성 중...' : '시크릿 생성'}
-                </Button>
-              </>
-            ) : null}
-          </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
