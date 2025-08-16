@@ -12,27 +12,27 @@ interface PageHeaderProps {
   // * 페이지 정보
   title: string;
   description?: string;
-  
+
   // * 브레드크럼 정보
   breadcrumbs?: Array<{
     label: string;
     href?: string;
     icon?: React.ComponentType<{ className?: string }>;
   }>;
-  
+
   // * 추가 요소들
   badges?: Array<{
     label: string;
     variant?: 'default' | 'secondary' | 'destructive' | 'outline';
     color?: string;
   }>;
-  
+
   // * 액션 버튼들
   actions?: React.ReactNode;
-  
+
   // * 추가 정보
   extra?: React.ReactNode;
-  
+
   // * 스타일링
   className?: string;
 }
@@ -75,28 +75,25 @@ export function PageHeader({
         </nav>
       )}
 
-      {/* * 레포지토리 정보 (설정된 경우) */}
-      {isConfigured && owner && repo && (
-        <div className="flex items-center space-x-2 mb-3">
-          <div className="flex items-center space-x-1 text-sm text-gray-600">
-            <Github className="h-4 w-4" />
-            <span className="font-medium">{owner}</span>
-            <ChevronRight className="h-3 w-3" />
-            <GitBranch className="h-4 w-4" />
-            <span className="font-medium">{repo}</span>
-          </div>
-        </div>
-      )}
-
-      {/* * 메인 헤더 영역 */}
-      <div className="flex items-start justify-between">
+      {/* * 메인 헤더 영역 - 가로 배치로 변경 */}
+      <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          {/* * 페이지 제목 */}
-          <div className="flex items-center space-x-3 mb-2">
-            <h1 className="text-2xl font-semibold text-gray-900 truncate">
-              {title}
-            </h1>
-            
+          {/* * 레포지토리 정보와 페이지 제목을 가로로 배치 */}
+          <div className="flex items-center space-x-4 mb-2">
+            {/* * 레포지토리 정보 (설정된 경우) */}
+            {isConfigured && owner && repo && (
+              <div className="flex items-center space-x-1 text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-md border">
+                <Github className="h-4 w-4" />
+                <span className="font-medium">{owner}</span>
+                <ChevronRight className="h-3 w-3" />
+                <GitBranch className="h-4 w-4" />
+                <span className="font-medium">{repo}</span>
+              </div>
+            )}
+
+            {/* * 페이지 제목 */}
+            <h1 className="text-xl font-semibold text-gray-900 truncate">{title}</h1>
+
             {/* * 뱃지들 */}
             {badges.length > 0 && (
               <div className="flex items-center space-x-2">
@@ -105,7 +102,8 @@ export function PageHeader({
                     key={index}
                     variant={badge.variant || 'secondary'}
                     className={cn(
-                      badge.color && `bg-${badge.color}-100 text-${badge.color}-800 border-${badge.color}-200`
+                      badge.color &&
+                        `bg-${badge.color}-100 text-${badge.color}-800 border-${badge.color}-200`,
                     )}
                   >
                     {badge.label}
@@ -116,25 +114,15 @@ export function PageHeader({
           </div>
 
           {/* * 페이지 설명 */}
-          {description && (
-            <p className="text-sm text-gray-600 mb-3">
-              {description}
-            </p>
-          )}
+          {description && <p className="text-sm text-gray-600">{description}</p>}
 
           {/* * 추가 정보 */}
-          {extra && (
-            <div className="mt-3">
-              {extra}
-            </div>
-          )}
+          {extra && <div className="mt-2">{extra}</div>}
         </div>
 
         {/* * 액션 버튼들 */}
         {actions && (
-          <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-            {actions}
-          </div>
+          <div className="flex items-center space-x-2 ml-4 flex-shrink-0">{actions}</div>
         )}
       </div>
     </div>
@@ -145,14 +133,20 @@ export function PageHeader({
 export function usePageHeader() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
 
-  const setPageHeader = React.useCallback((props: PageHeaderProps) => {
-    const headerContent = <PageHeader {...props} />;
-    setHeaderExtra(headerContent);
-  }, [setHeaderExtra]);
+  const setPageHeader = React.useCallback(
+    (props: PageHeaderProps) => {
+      const headerContent = <PageHeader {...props} />;
+      setHeaderExtra(headerContent);
+    },
+    [setHeaderExtra],
+  );
 
-  const setPageActions = React.useCallback((actions: React.ReactNode) => {
-    setHeaderRight(actions);
-  }, [setHeaderRight]);
+  const setPageActions = React.useCallback(
+    (actions: React.ReactNode) => {
+      setHeaderRight(actions);
+    },
+    [setHeaderRight],
+  );
 
   const clearPageHeader = React.useCallback(() => {
     setHeaderExtra(null);
