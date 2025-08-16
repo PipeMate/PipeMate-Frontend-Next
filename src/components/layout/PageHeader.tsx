@@ -50,49 +50,25 @@ export function PageHeader({
   const { owner, repo, isConfigured } = useRepository();
 
   return (
-    <div className={cn('border-b border-gray-200 bg-white px-6 py-4', className)}>
-      {/* * 브레드크럼 네비게이션 */}
-      {breadcrumbs.length > 0 && (
-        <nav className="flex items-center space-x-1 text-sm text-gray-500 mb-2">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={index}>
-              {index > 0 && <ChevronRight className="h-4 w-4" />}
-              <div className="flex items-center space-x-1">
-                {crumb.icon && <crumb.icon className="h-4 w-4" />}
-                {crumb.href ? (
-                  <a
-                    href={crumb.href}
-                    className="hover:text-gray-700 hover:underline transition-colors"
-                  >
-                    {crumb.label}
-                  </a>
-                ) : (
-                  <span>{crumb.label}</span>
-                )}
-              </div>
-            </React.Fragment>
-          ))}
-        </nav>
-      )}
-
-      {/* * 메인 헤더 영역 - 가로 배치로 변경 */}
+    <div className={cn('border-b border-gray-200 bg-white px-6 py-3', className)}>
+      {/* * 메인 헤더 영역 - 컴팩트한 레이아웃 */}
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
-          {/* * 레포지토리 정보와 페이지 제목을 가로로 배치 */}
-          <div className="flex items-center space-x-4 mb-2">
-            {/* * 레포지토리 정보 (설정된 경우) */}
+          {/* * 페이지 제목과 레포 정보를 한 줄에 배치 */}
+          <div className="flex items-center space-x-3">
+            {/* * 페이지 제목 */}
+            <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
+
+            {/* * 레포지토리 정보 (설정된 경우) - 작은 크기로 */}
             {isConfigured && owner && repo && (
-              <div className="flex items-center space-x-1 text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-md border">
-                <Github className="h-4 w-4" />
+              <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border">
+                <Github className="h-3 w-3" />
                 <span className="font-medium">{owner}</span>
-                <ChevronRight className="h-3 w-3" />
-                <GitBranch className="h-4 w-4" />
+                <ChevronRight className="h-2 w-2" />
+                <GitBranch className="h-3 w-3" />
                 <span className="font-medium">{repo}</span>
               </div>
             )}
-
-            {/* * 페이지 제목 */}
-            <h1 className="text-xl font-semibold text-gray-900 truncate">{title}</h1>
 
             {/* * 뱃지들 */}
             {badges.length > 0 && (
@@ -102,6 +78,7 @@ export function PageHeader({
                     key={index}
                     variant={badge.variant || 'secondary'}
                     className={cn(
+                      'text-xs',
                       badge.color &&
                         `bg-${badge.color}-100 text-${badge.color}-800 border-${badge.color}-200`,
                     )}
@@ -113,8 +90,10 @@ export function PageHeader({
             )}
           </div>
 
-          {/* * 페이지 설명 */}
-          {description && <p className="text-sm text-gray-600">{description}</p>}
+          {/* * 페이지 설명 - 작은 크기로 */}
+          {description && (
+            <p className="text-xs text-gray-500 mt-1 truncate">{description}</p>
+          )}
 
           {/* * 추가 정보 */}
           {extra && <div className="mt-2">{extra}</div>}
