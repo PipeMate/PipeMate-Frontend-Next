@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { IconBadge } from '@/components/ui';
-import { getDomainColor } from '@/app/github-actions-flow/constants/nodeConstants';
+import { getDomainColor } from '@/app/editor/constants/nodeConstants';
 
 interface Preset {
   id: string;
