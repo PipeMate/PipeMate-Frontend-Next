@@ -723,10 +723,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                 <div className="text-xs text-gray-500">타입</div>
                 <div className="font-medium">{detailBlock.type}</div>
               </div>
-              {detailBlock['job-name'] && (
+              {detailBlock['jobName'] && (
                 <div>
                   <div className="text-xs text-gray-500">Job 이름</div>
-                  <div className="font-medium">{detailBlock['job-name']}</div>
+                  <div className="font-medium">{detailBlock['jobName']}</div>
                 </div>
               )}
               {detailBlock.domain && (

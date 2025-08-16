@@ -110,7 +110,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               ? 'trigger'
               : (node.data.type as 'trigger' | 'job' | 'step'),
           description: node.data.description,
-          'job-name': node.data.jobName,
+          jobName: node.data.jobName,
           config: node.data.config,
         };
         onNodeSelect(selectedBlock);
@@ -130,7 +130,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
       if (editingNode) {
         updateNodeData(editingNode.id, updatedData);
 
-        //* Job의 job-name이 변경된 경우 하위 Step들도 업데이트
+        //* Job의 jobName이 변경된 경우 하위 Step들도 업데이트
         if (
           editingNode.type === 'job' &&
           updatedData.jobName !== editingNode.data.jobName &&
@@ -281,7 +281,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         {/* 영역별 배치 */}
         <div
           className={`flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300 ${
-            isControlPanelOpen ? 'mr-0 sm:mr-96 lg:mr-[450px] xl:mr-[500px]' : ''
+            isControlPanelOpen ? 'mr-0' : ''
           }`}
           onClick={handleWorkspaceClick}
         >

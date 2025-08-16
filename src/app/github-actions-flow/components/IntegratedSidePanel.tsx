@@ -637,7 +637,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 onChange={(e) =>
                   setEditedData({ ...editedData, jobName: e.target.value })
                 }
-                placeholder="job-name을 입력하세요"
+                placeholder="jobName을 입력하세요"
                 className="mt-1"
               />
             </div>
@@ -834,9 +834,6 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     }
   }, [selectedNode, secretsData]);
 
-  // 워크플로우 구조 분석
-  // 트리 분석 제거됨
-
   // AreaNodeData를 ServerBlock로 변환하는 함수
   const convertAreaNodeToServerBlock = useCallback((node: AreaNodeData): ServerBlock => {
     return {
@@ -846,12 +843,10 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           ? 'trigger'
           : (node.type as 'trigger' | 'job' | 'step'),
       description: node.data.description,
-      'job-name': node.data.jobName,
+      jobName: node.data.jobName,
       config: node.data.config || {},
     };
   }, []);
-
-  // Secrets 관리자 열기 핸들러 (미사용 제거)
 
   // 편집 모드가 활성화되면 YAML을 편집 가능한 상태로 설정
   useEffect(() => {
@@ -947,12 +942,6 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
       console.log('YAML이 클립보드에 복사되었습니다.');
     });
   }, [getCurrentYaml]);
-
-  // 트리 뷰에서 블록 선택 핸들러
-  // 트리 선택 제거됨
-
-  // 노드 저장 핸들러 (로컬 편집용)
-  // handleNodeSave 통합: settings → node 섹션에서 직접 updateNodeData 사용
 
   // 서버에 워크플로우 저장 핸들러
   const handleSaveWorkflowToServer = useCallback(async () => {
@@ -1445,16 +1434,6 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         )}
       </div>
 
-      {/* GitHub 설정 관리 (Secrets 포함) */}
-      <GithubTokenDialog
-        trigger={
-          <Button className="w-full">
-            <Lock className="w-4 h-4 mr-2" />
-            Secrets 관리자 열기
-          </Button>
-        }
-        missingSecrets={missingSecrets}
-      />
       {/* 누락된 Secrets 생성 다이얼로그 */}
       <Dialog open={secretDialogOpen} onOpenChange={setSecretDialogOpen}>
         <DialogContent>

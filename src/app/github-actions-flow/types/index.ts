@@ -19,7 +19,7 @@ export interface ServerBlock {
   domain?: string; //* 도메인 정보 (Step 노드에서만 사용)
   task?: string[]; //* 태스크 정보 (Step 노드에서만 사용)
   description: string; //* 블록 설명
-  'job-name'?: string; //* Job과 Step에서만 사용, 블록 라이브러리에서는 빈 값
+  jobName?: string; //* Job과 Step에서만 사용, 블록 라이브러리에서는 빈 값
   config: Record<string, unknown>; //* 블록 설정 데이터
 }
 

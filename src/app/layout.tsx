@@ -34,7 +34,7 @@ export default function RootLayout({
         <ErrorBoundaryProvider>
           <QueryProvider>
             <RepositoryProvider>
-              <SidebarProvider>
+              <SidebarProvider defaultOpen={false}>
                 <LayoutProvider>
                   <AppSidebar />
                   <SidebarInset className="relative flex flex-col min-h-screen">

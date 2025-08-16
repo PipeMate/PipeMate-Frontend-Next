@@ -57,19 +57,19 @@ const analyzeWorkflowStructure = (blocks: ServerBlock[]): WorkflowStructure => {
     if (block.type === 'trigger') {
       structure.trigger = block;
     } else if (block.type === 'job') {
-      const jobName = block['job-name'] || 'unknown';
+      const jobName = block['jobName'] || 'unknown';
       structure.jobs[jobName] = {
         job: block,
         steps: [],
       };
     } else if (block.type === 'step') {
-      const jobName = block['job-name'] || 'unknown';
+      const jobName = block['jobName'] || 'unknown';
       if (!structure.jobs[jobName]) {
         structure.jobs[jobName] = {
           job: {
             name: jobName,
             type: 'job',
-            'job-name': jobName,
+            jobName: jobName,
           } as ServerBlock,
           steps: [],
         };
@@ -500,12 +500,12 @@ export const YamlPreviewPanel = ({
                 </label>
                 <input
                   type="text"
-                  value={selectedBlock['job-name'] || ''}
+                  value={selectedBlock['jobName'] || ''}
                   onChange={(e) => {
                     if (onBlockUpdate) {
                       onBlockUpdate({
                         ...selectedBlock,
-                        'job-name': e.target.value,
+                        jobName: e.target.value,
                       });
                     }
                   }}

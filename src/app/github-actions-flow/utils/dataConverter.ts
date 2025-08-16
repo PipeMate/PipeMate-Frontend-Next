@@ -123,8 +123,8 @@ export const convertServerBlocksToNodes = (
   stepBlocks.forEach((stepBlock) => {
     // step이 속할 job 찾기
     let parentJob = null;
-    if (stepBlock['job-name'] && stepBlock['job-name'].trim() !== '') {
-      const jobName = stepBlock['job-name'];
+    if (stepBlock['jobName'] && stepBlock['jobName'].trim() !== '') {
+      const jobName = stepBlock['jobName'];
       parentJob = nodes.find(
         (node) =>
           node.data.type === 'job' &&
@@ -171,7 +171,7 @@ export const convertServerBlocksToNodes = (
           description: stepBlock.description,
           config: stepBlock.config,
           parentId: subflowId,
-          jobName: stepBlock['job-name'] || 'job1',
+          jobName: stepBlock['jobName'] || 'job1',
         },
       };
       nodes.push(stepNode);
@@ -306,7 +306,7 @@ export const convertNodesToServerBlocks = (
         config: nodeData.config,
       });
     } else if (nodeData.type === 'job') {
-      //* Job의 job-name을 nodeData.jobName에서 추출
+      //* Job의 jobName을 nodeData.jobName에서 추출
       const jobName = nodeData.jobName || 'job1';
 
       //* Job 간 의존성 (needs) 처리
@@ -333,12 +333,12 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        'job-name': jobName, //* nodeData.jobName 사용
+        jobName: jobName, //* nodeData.jobName 사용
         config: jobConfig,
       });
     } else if (nodeData.type === 'step') {
-      //* Step의 job-name을 올바르게 설정
-      //* 부모 Job 노드를 찾아서 job-name을 가져옴
+      //* Step의 jobName을 올바르게 설정
+      //* 부모 Job 노드를 찾아서 jobName을 가져옴
       let jobName = nodeData.jobName || '';
 
       //* 부모 Job이 없는 경우, 부모 Subflow를 통해 Job을 찾음
@@ -360,7 +360,7 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        'job-name': jobName,
+        jobName: jobName,
         config: nodeData.config,
       });
     }

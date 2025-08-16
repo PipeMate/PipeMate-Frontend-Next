@@ -57,7 +57,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
   if (jobBlocks.length > 0) {
     const jobs: Record<string, any> = {};
     for (const jobBlock of jobBlocks) {
-      const jobId = (jobBlock['job-name'] as string) || toJobId(jobBlock.name);
+      const jobId = (jobBlock['jobName'] as string) || toJobId(jobBlock.name);
       const jobObj: Record<string, unknown> = {
         ...(jobBlock.config || {}),
       };
@@ -66,7 +66,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
 
       // Steps attached to this job
       const stepBlocks = blocks.filter(
-        (b) => b.type === 'step' && (b['job-name'] as string | undefined) === jobId,
+        (b) => b.type === 'step' && (b['jobName'] as string | undefined) === jobId,
       );
       if (stepBlocks.length > 0) {
         const stepsArr: any[] = [];

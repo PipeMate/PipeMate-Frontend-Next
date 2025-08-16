@@ -23,7 +23,7 @@ export const useAreaNodes = (
       if (block.type === 'trigger' || block.type === 'job') {
         const nodeId = uuidv4();
         const jobName =
-          block['job-name'] || (block.type === 'job' ? `job${job.length + 1}` : '');
+          block['jobName'] || (block.type === 'job' ? `job${job.length + 1}` : '');
         const node: AreaNodeData = {
           id: nodeId,
           type: block.type === 'trigger' ? 'workflowTrigger' : 'job',
@@ -53,7 +53,7 @@ export const useAreaNodes = (
     blocks.forEach((block, idx) => {
       if (block.type === 'step') {
         const nodeId = uuidv4();
-        const parentJobName = block['job-name'] || '';
+        const parentJobName = block['jobName'] || '';
         const parentId = parentJobName ? jobNameToNodeId.get(parentJobName) : undefined;
         const node: AreaNodeData = {
           id: nodeId,
@@ -117,19 +117,22 @@ export const useAreaNodes = (
   // * 노드 생성
   const createNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string): AreaNodeData => {
-      //* Job인 경우 job-name 자동 생성 및 config 업데이트
+      //* Job인 경우 jobName 처리 및 config 업데이트
       if (nodeType === 'job') {
-        const jobIndex = areaNodes.job.length;
-        const jobName = generateJobName(jobIndex);
-        nodeData.jobName = jobName;
+        //* 파이프라인에서 전달된 jobName이 있으면 사용, 없으면 자동 생성
+        if (!nodeData.jobName) {
+          const jobIndex = areaNodes.job.length;
+          const jobName = generateJobName(jobIndex);
+          nodeData.jobName = jobName;
+        }
 
-        //* config의 jobs 객체에서 job-name을 올바르게 설정
+        //* config의 jobs 객체에서 jobName을 올바르게 설정
         if (nodeData.config && nodeData.config.jobs) {
           const jobConfig = Object.values(nodeData.config.jobs)[0];
           nodeData.config = {
             ...nodeData.config,
             jobs: {
-              [jobName]: jobConfig,
+              [nodeData.jobName]: jobConfig,
             },
           };
         }
@@ -238,7 +241,7 @@ export const useAreaNodes = (
           const area = areaKey as keyof AreaNodes;
           newAreaNodes[area] = newAreaNodes[area].filter((n) => n.id !== nodeId);
 
-          //* Job 영역의 경우 순서 재정렬 및 job-name 업데이트
+          //* Job 영역의 경우 순서 재정렬 및 jobName 업데이트
           if (area === 'job') {
             newAreaNodes[area] = newAreaNodes[area].map((node, index) => {
               const newJobName = generateJobName(index);
@@ -267,14 +270,14 @@ export const useAreaNodes = (
           }
         });
 
-        //* Job이 삭제된 경우 하위 Step들도 삭제하고, 남은 Job들의 하위 Step들의 job-name 업데이트
+        //* Job이 삭제된 경우 하위 Step들도 삭제하고, 남은 Job들의 하위 Step들의 jobName 업데이트
         if (deletedJob) {
           //* 삭제된 Job의 하위 Step들 제거
           newAreaNodes.step = newAreaNodes.step.filter(
             (step) => step.parentId !== nodeId,
           );
 
-          //* 남은 Job들의 하위 Step들의 job-name 업데이트
+          //* 남은 Job들의 하위 Step들의 jobName 업데이트
           newAreaNodes.step = newAreaNodes.step.map((step) => {
             const parentJob = newAreaNodes.job.find((job) => job.id === step.parentId);
             if (parentJob) {
@@ -372,7 +375,7 @@ export const useAreaNodes = (
           );
         });
 
-        //* Job 노드의 job-name이 변경된 경우 관련 Step들 업데이트
+        //* Job 노드의 jobName이 변경된 경우 관련 Step들 업데이트
         if (isJobNode && oldJobName && oldJobName !== data.jobName) {
           const newJobName = data.jobName;
 
@@ -397,7 +400,7 @@ export const useAreaNodes = (
             return job;
           });
 
-          //* 해당 job-name을 참조하는 모든 Step들의 job-name 업데이트
+          //* 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
           newAreaNodes.step = newAreaNodes.step.map((step) => {
             if (step.data.jobName === oldJobName) {
               return {
@@ -452,7 +455,7 @@ export const useAreaNodes = (
     );
   }, [getAllNodes]);
 
-  // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (job-name 기준 그룹화)
+  // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (jobName 기준 그룹화)
   const getServerBlocksInOrder = useCallback(() => {
     // 모든 노드를 하나의 배열로 합치기
     const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
@@ -460,7 +463,7 @@ export const useAreaNodes = (
     // order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
     const sortedNodes = allNodes.sort((a, b) => a.order - b.order);
 
-    // job-name을 기준으로 그룹화
+    // jobName을 기준으로 그룹화
     const groupedBlocks: ServerBlock[] = [];
 
     // trigger는 먼저 추가
@@ -470,14 +473,14 @@ export const useAreaNodes = (
         name: node.data.label,
         type: 'trigger' as const,
         description: node.data.description,
-        'job-name': node.data.jobName,
+        jobName: node.data.jobName,
         domain: node.data.domain,
         task: node.data.task,
         config: node.data.config,
       })),
     );
 
-    // job과 관련 step들을 job-name 기준으로 그룹화
+    // job과 관련 step들을 jobName 기준으로 그룹화
     const jobNodes = sortedNodes.filter((node) => node.type === 'job');
 
     jobNodes.forEach((jobNode) => {
@@ -488,13 +491,13 @@ export const useAreaNodes = (
         name: jobNode.data.label,
         type: 'job' as const,
         description: jobNode.data.description,
-        'job-name': jobName,
+        jobName: jobName,
         domain: jobNode.data.domain,
         task: jobNode.data.task,
         config: jobNode.data.config,
       });
 
-      // 해당 job-name을 가진 step들 추가
+      // 해당 jobName을 가진 step들 추가
       const relatedSteps = sortedNodes.filter(
         (node) => node.type === 'step' && node.data.jobName === jobName,
       );
@@ -504,7 +507,7 @@ export const useAreaNodes = (
           name: node.data.label,
           type: 'step' as const,
           description: node.data.description,
-          'job-name': node.data.jobName,
+          jobName: node.data.jobName,
           domain: node.data.domain,
           task: node.data.task,
           config: node.data.config,
@@ -524,18 +527,18 @@ export const useAreaNodes = (
     });
   }, []);
 
-  // * Job의 job-name 변경 시 하위 Step들의 job-name도 업데이트
+  // * Job의 jobName 변경 시 하위 Step들의 jobName도 업데이트
   const updateStepJobNames = useCallback((jobId: string, newJobName: string) => {
     setAreaNodes((prev) => {
       const newAreaNodes = { ...prev };
 
-      //* 해당 Job을 찾아서 기존 job-name 확인
+      //* 해당 Job을 찾아서 기존 jobName 확인
       const targetJob = newAreaNodes.job.find((job) => job.id === jobId);
       if (!targetJob) return prev;
 
       const oldJobName = targetJob.data.jobName;
 
-      //* 해당 job-name을 참조하는 모든 Step들의 job-name 업데이트
+      //* 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
       newAreaNodes.step = newAreaNodes.step.map((step) => {
         if (step.data.jobName === oldJobName) {
           return {

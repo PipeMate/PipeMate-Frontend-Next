@@ -34,7 +34,7 @@ export const useDragDrop = (): UseDragDropReturn => {
         label: block.name,
         type: block.type === 'trigger' ? 'workflow_trigger' : block.type,
         description: block.description,
-        jobName: block['job-name'] || '',
+        jobName: block['jobName'] || '',
         domain: block.domain,
         task: block.task,
         config: block.config,
