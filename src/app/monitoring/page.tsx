@@ -128,11 +128,13 @@ export default function MonitoringPage() {
           size="sm"
         >
           <RefreshCw
-            className={`w-4 h-4 mr-2 ${isManualRefreshing || runsLoading ? 'animate-spin' : ''}`}
+            className={`w-4 h-4 mr-2 ${
+              isManualRefreshing || runsLoading ? 'animate-spin' : ''
+            }`}
           />
           새로고침
         </Button>
-      </div>
+      </div>,
     );
 
     return () => {
@@ -176,8 +178,6 @@ export default function MonitoringPage() {
       // 설정이 유효하면 현재 페이지를 유지
     }
   }, [isChecking, isSetupValid]);
-
-
 
   // * 데이터 리페치 시 선택된 실행 상태 유지
   useEffect(() => {

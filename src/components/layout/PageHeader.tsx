@@ -53,7 +53,7 @@ export function PageHeader({
   const pathname = usePathname();
 
   // * 현재 페이지에 해당하는 아이콘 찾기
-  const currentRoute = Object.values(ROUTES).find(route => route.url === pathname);
+  const currentRoute = Object.values(ROUTES).find((route) => route.url === pathname);
   const pageIcon = currentRoute?.icon;
 
   return (
@@ -65,7 +65,8 @@ export function PageHeader({
           <div className="flex items-center space-x-3">
             {/* * 페이지 제목과 아이콘 */}
             <div className="flex items-center space-x-2">
-              {pageIcon && React.createElement(pageIcon, { className: "h-4 w-4 text-gray-600" })}
+              {pageIcon &&
+                React.createElement(pageIcon, { className: 'h-4 w-4 text-gray-600' })}
               <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
             </div>
 

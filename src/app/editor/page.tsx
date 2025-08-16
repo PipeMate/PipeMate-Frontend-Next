@@ -92,7 +92,7 @@ function GitHubActionsFlowContent() {
           <Save className="w-4 h-4 mr-2" />
           {createPipeline.isPending ? '저장 중...' : '워크플로우 저장'}
         </Button>
-      </div>
+      </div>,
     );
 
     return () => {
