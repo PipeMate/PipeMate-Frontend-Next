@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, GitBranch, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
+import { ROUTES } from '@/config/appConstants';
 
 // * 페이지 헤더 props 인터페이스
 interface PageHeaderProps {
@@ -48,20 +50,28 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   const { owner, repo, isConfigured } = useRepository();
+  const pathname = usePathname();
+
+  // * 현재 페이지에 해당하는 아이콘 찾기
+  const currentRoute = Object.values(ROUTES).find(route => route.url === pathname);
+  const pageIcon = currentRoute?.icon;
 
   return (
-    <div className={cn('border-b border-gray-200 bg-white px-6 py-3', className)}>
+    <div className={cn('', className)}>
       {/* * 메인 헤더 영역 - 컴팩트한 레이아웃 */}
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           {/* * 페이지 제목과 레포 정보를 한 줄에 배치 */}
           <div className="flex items-center space-x-3">
-            {/* * 페이지 제목 */}
-            <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
+            {/* * 페이지 제목과 아이콘 */}
+            <div className="flex items-center space-x-2">
+              {pageIcon && React.createElement(pageIcon, { className: "h-4 w-4 text-gray-600" })}
+              <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
+            </div>
 
             {/* * 레포지토리 정보 (설정된 경우) - 작은 크기로 */}
             {isConfigured && owner && repo && (
-              <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border">
+              <div className="flex items-center space-x-1 text-xs text-gray-500 px-2 py-1 rounded border">
                 <Github className="h-3 w-3" />
                 <span className="font-medium">{owner}</span>
                 <ChevronRight className="h-2 w-2" />
