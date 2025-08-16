@@ -197,17 +197,19 @@ export function GithubSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button
-            variant="outline"
-            className="w-full flex items-center gap-2 justify-center font-semibold text-sm sm:text-base py-3 sm:py-4 px-4 sm:px-6 border-3 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 rounded-xl"
-          >
-            <Github className="text-[#24292f] size-4 sm:size-5" />
-            <span>설정 관리</span>
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button
+              variant="outline"
+              className="w-full flex items-center gap-2 justify-center font-semibold text-sm sm:text-base py-3 sm:py-4 px-4 sm:px-6 border-3 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 rounded-xl"
+            >
+              <Github className="text-[#24292f] size-4 sm:size-5" />
+              <span>설정 관리</span>
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="w-[90vw] max-w-4xl h-[80vh] max-h-[600px] p-0 flex flex-col py-4">
         <DialogHeader className="flex flex-row items-center justify-between px-6 py-0">
           <DialogTitle className="text-xl font-semibold">GitHub 설정</DialogTitle>
