@@ -200,7 +200,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
               </div>
             ) : data.groupedSecrets ? (
               // * 그룹화된 시크릿 표시
-              <div className="space-y-2 max-h-[320px] overflow-auto">
+              <div className="space-y-2 max-h-[260px] overflow-auto">
                 {Object.entries(data.groupedSecrets).map(([groupName, secrets]) => (
                   <div
                     key={groupName}
@@ -350,13 +350,13 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
               시크릿 삭제
             </AlertDialogTitle>
             <AlertDialogDescription className="text-red-700">
-              <div>
-                <p className="font-medium mb-2">
+              <div className="space-y-2">
+                <div className="font-medium">
                   시크릿 &quot;{deleteDialog.secretName}&quot;을 삭제하시겠습니까?
-                </p>
-                <p className="text-sm text-red-600">
+                </div>
+                <div className="text-sm text-red-600">
                   이 작업은 되돌릴 수 없으며, 관련된 워크플로우에 영향을 줄 수 있습니다.
-                </p>
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
