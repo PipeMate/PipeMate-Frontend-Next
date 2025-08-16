@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { usePipeline, useUpdatePipeline } from '@/api';
-import { AreaBasedWorkflowEditor } from '@/app/github-actions-flow/components/AreaBasedWorkflowEditor';
-import { ServerBlock } from '@/app/github-actions-flow/types';
+import { AreaBasedWorkflowEditor } from '@/app/editor/components/AreaBasedWorkflowEditor';
+import { ServerBlock } from '@/app/editor/types';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/config/appConstants';
 import { useLayout } from '@/components/layout/LayoutContext';
@@ -13,12 +13,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Save, RefreshCw, Blocks } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useSetupGuard } from '@/hooks/useSetupGuard';
+import { FullScreenLoading } from '@/components/ui';
 
 function WorkflowEditContent() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const file = searchParams.get('file') || '';
   const { owner, repo, isConfigured } = useRepository();
   const { setHeaderExtra, setHeaderRight } = useLayout();
+
+  // 설정 가드
+  const { isChecking, isSetupRequired, redirectToSetup } = useSetupGuard();
 
   const {
     data: pipelineData,
@@ -98,7 +104,7 @@ function WorkflowEditContent() {
           size="sm"
         >
           <Save className="w-4 h-4 mr-2" />
-          {updatePipelineMutation.isPending ? '저장 중...' : '저장'}
+          저장
         </Button>
       </div>,
     );
@@ -107,22 +113,39 @@ function WorkflowEditContent() {
       setHeaderRight(null);
     };
   }, [
-    blocks.length,
-    isLoading,
-    refetch,
     setHeaderExtra,
     setHeaderRight,
     owner,
     repo,
     file,
-    updatePipelineMutation.isPending,
-    isConfigured,
+    blocks.length,
+    isLoading,
+    refetch,
+    updatePipelineMutation,
     workflowName,
+    isConfigured,
   ]);
+
+  // 설정이 필요하면 리다이렉트
+  useEffect(() => {
+    if (!isChecking && isSetupRequired) {
+      redirectToSetup(pathname);
+    }
+  }, [isChecking, isSetupRequired, redirectToSetup, pathname]);
 
   const handleWorkflowChange = useCallback((newBlocks: ServerBlock[]) => {
     setBlocks(newBlocks);
   }, []);
+
+  // 설정 확인 중일 때 로딩 표시
+  if (isChecking) {
+    return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
+  }
+
+  // 설정이 필요한 경우 빈 화면 (리다이렉트 중)
+  if (isSetupRequired) {
+    return null;
+  }
 
   if (!isConfigured) {
     return <div className="p-6">저장소 설정이 필요합니다.</div>;

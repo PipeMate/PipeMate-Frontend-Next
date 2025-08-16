@@ -19,12 +19,19 @@ import type { WorkflowRun } from './types';
 // * 커스텀 훅 및 컴포넌트 import
 import { useMonitoringState, useRefreshFeedback, useWorkflowData } from './hooks';
 import { RefreshFeedback, WorkflowRunsList, RunDetail } from './components';
+import { useSetupGuard } from '@/hooks/useSetupGuard';
+import { FullScreenLoading } from '@/components/ui';
+import { usePathname } from 'next/navigation';
 
 // * 모니터링 페이지
 export default function MonitoringPage() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const MonitoringIcon = ROUTES.MONITORING.icon;
+  const pathname = usePathname();
+
+  // 설정 가드
+  const { isChecking, isSetupRequired, redirectToSetup } = useSetupGuard();
 
   // * 상태 관리 커스텀 훅
   const {
@@ -99,6 +106,13 @@ export default function MonitoringPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [selectedRunId, setIsDetailOpen]);
 
+  // 설정이 필요하면 리다이렉트
+  useEffect(() => {
+    if (!isChecking && isSetupRequired) {
+      redirectToSetup(pathname);
+    }
+  }, [isChecking, isSetupRequired, redirectToSetup, pathname]);
+
   // * 레이아웃 헤더 설정 (타이틀, 버튼 등)
   useEffect(() => {
     setHeaderExtra(
@@ -155,18 +169,6 @@ export default function MonitoringPage() {
     setAutoRefresh,
   ]);
 
-  // * 워크플로우 실행 선택 시 상세 보기 핸들러
-  const handleShowDetails = (run: WorkflowRun) => {
-    setSelectedRun(run);
-    setSelectedRunId(run.id);
-    setSelectedRunSnapshot(run);
-    setActiveTab('execution');
-    // ? 모바일/태블릿에서는 시트로 표시
-    if (isMobile() || isTablet()) {
-      setIsDetailOpen(true);
-    }
-  };
-
   // * 데이터 리페치 시 선택된 실행 상태 유지
   useEffect(() => {
     if (!selectedRunId) return;
@@ -178,6 +180,28 @@ export default function MonitoringPage() {
       setSelectedRun(selectedRunSnapshot);
     }
   }, [workflowRuns, selectedRunId, selectedRun, selectedRunSnapshot, setSelectedRun]);
+
+  // 설정 확인 중일 때 로딩 표시
+  if (isChecking) {
+    return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
+  }
+
+  // 설정이 필요한 경우 빈 화면 (리다이렉트 중)
+  if (isSetupRequired) {
+    return null;
+  }
+
+  // * 워크플로우 실행 선택 시 상세 보기 핸들러
+  const handleShowDetails = (run: WorkflowRun) => {
+    setSelectedRun(run);
+    setSelectedRunId(run.id);
+    setSelectedRunSnapshot(run);
+    setActiveTab('execution');
+    // ? 모바일/태블릿에서는 시트로 표시
+    if (isMobile() || isTablet()) {
+      setIsDetailOpen(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
