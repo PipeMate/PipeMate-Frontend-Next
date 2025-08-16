@@ -16,7 +16,7 @@ import {
   findMissingSecrets,
 } from '../utils/secretsDetector';
 import { toast } from 'react-toastify';
-import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+import { GithubTokenDialog } from '@/components/features/GithubSettingsDialog';
 import { SecretAutocomplete } from './SecretAutocomplete';
 import { SecretCreateDialog } from './SecretCreateDialog';
 import { SecretManagementPanel } from './SecretManagementPanel';

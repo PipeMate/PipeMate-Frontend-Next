@@ -10,7 +10,7 @@ import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
 import { useCreatePipeline } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
-import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+import { GithubTokenDialog } from '@/components/features/GithubSettingsDialog';
 
 import { SecretManagementPanel } from './SecretManagementPanel';
 import {
