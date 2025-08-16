@@ -1,6 +1,7 @@
 // * Hooks 모듈 export
 // * - 반응형 디바이스 감지 훅들
 // * - 윈도우 크기 감지 훅들
+// * - GitHub 설정 관리 훅들
 // * - 타입 안전성 보장
 // * - SSR 호환성 지원
 
@@ -9,6 +10,9 @@ export { useIsMobile, useResponsive, useBreakpoint } from './use-mobile';
 
 // * 윈도우 크기 훅들
 export { useWindowSize, useWindowWidth, useWindowHeight } from './use-window-size';
+
+// * GitHub 설정 훅들
+export { useGithubSettings } from './useGithubSettings';
 
 // * 타입 export
 export type {

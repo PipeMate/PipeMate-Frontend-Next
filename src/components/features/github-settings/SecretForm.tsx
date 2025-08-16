@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Eye, EyeOff, Plus, X, Shield, Save } from 'lucide-react';
 
+// * 시크릿 폼 데이터 인터페이스
 interface SecretFormData {
   name: string;
   value: string;
 }
 
+// * 시크릿 폼 props 인터페이스
 interface SecretFormProps {
   secrets: SecretFormData[];
   showValues: Record<number, boolean>;
@@ -30,14 +32,14 @@ export function SecretForm({
   onClose,
   onCreateSecrets,
 }: SecretFormProps) {
-  // 그룹 추출 함수
+  // * 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
   const extractGroup = (secretName: string): string => {
     if (!secretName) return 'UNKNOWN';
     const parts = secretName.split('_');
     return parts.length > 1 ? parts[0] : 'UNKNOWN';
   };
 
-  // 그룹별로 정렬된 시크릿
+  // * 그룹별로 정렬된 시크릿 - 시크릿을 그룹별로 분류하여 정렬
   const groupedSecrets = useMemo(() => {
     const groups: { [key: string]: { secret: SecretFormData; index: number }[] } = {};
 
@@ -49,16 +51,17 @@ export function SecretForm({
       groups[group].push({ secret, index });
     });
 
-    // 그룹명으로 정렬
+    // * 그룹명으로 정렬
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [secrets]);
 
-  // 저장 가능한 시크릿이 있는지 확인
+  // * 저장 가능한 시크릿이 있는지 확인 - 모든 시크릿이 이름과 값을 가지고 있는지 검증
   const hasValidSecrets =
     secrets.length > 0 && secrets.every((secret) => secret.name && secret.value);
 
   return (
     <div className="h-full flex flex-col justify-between">
+      {/* * 헤더 섹션 */}
       <div className="flex items-center justify-between flex-shrink-0 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -79,9 +82,11 @@ export function SecretForm({
         </Button>
       </div>
 
+      {/* * 시크릿 폼 내용 */}
       <div className="flex-1 space-y-4 overflow-y-auto pt-4 max-h-[320px]">
         {groupedSecrets.map(([groupName, groupSecrets]) => (
           <div key={groupName} className="space-y-3">
+            {/* * 그룹 헤더 */}
             <div className="flex items-center gap-2">
               <h4 className="text-sm font-semibold text-gray-700">{groupName} 그룹</h4>
               <Badge
@@ -92,11 +97,13 @@ export function SecretForm({
               </Badge>
             </div>
 
+            {/* * 그룹 내 시크릿들 */}
             {groupSecrets.map(({ secret, index }) => (
               <div
                 key={index}
                 className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white shadow-sm hover:shadow-md transition-shadow"
               >
+                {/* * 시크릿 헤더 */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-medium text-gray-900">
@@ -109,6 +116,7 @@ export function SecretForm({
                       {groupName}
                     </Badge>
                   </div>
+                  {/* * 시크릿 삭제 버튼 - 여러 개일 때만 표시 */}
                   {secrets.length > 1 && (
                     <Button
                       type="button"
@@ -122,6 +130,7 @@ export function SecretForm({
                   )}
                 </div>
 
+                {/* * 시크릿 이름 입력 필드 */}
                 <div>
                   <label className="text-xs text-gray-600 mb-1 block font-medium">
                     이름 (예: AWS_ACCESS_KEY, DOCKER_PASSWORD)
@@ -129,6 +138,7 @@ export function SecretForm({
                   <Input
                     value={secret.name}
                     onChange={(e) => {
+                      // * 대문자와 언더스코어만 허용하도록 필터링
                       const value = e.target.value
                         .toUpperCase()
                         .replace(/[^A-Z0-9_]/g, '');
@@ -139,6 +149,7 @@ export function SecretForm({
                   />
                 </div>
 
+                {/* * 시크릿 값 입력 필드 */}
                 <div>
                   <label className="text-xs text-gray-600 mb-1 block font-medium">
                     값
@@ -151,6 +162,7 @@ export function SecretForm({
                       placeholder="시크릿 값을 입력하세요..."
                       className="pr-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
+                    {/* * 값 표시/숨김 토글 버튼 */}
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                       <Button
                         type="button"
@@ -169,6 +181,7 @@ export function SecretForm({
                   </div>
                 </div>
 
+                {/* * 준비 완료 표시 */}
                 {secret.name && secret.value && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
                     <CheckCircle className="h-4 w-4" />
@@ -181,6 +194,7 @@ export function SecretForm({
         ))}
       </div>
 
+      {/* * 액션 버튼들 */}
       <div className="flex gap-3 flex-shrink-0 pt-4">
         <Button
           type="button"

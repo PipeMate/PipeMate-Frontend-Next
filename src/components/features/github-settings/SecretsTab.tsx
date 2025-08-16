@@ -28,12 +28,14 @@ import { SecretForm } from './SecretForm';
 import { GroupedGithubSecretListResponse } from '@/api/secrets/types';
 import { toast } from 'react-toastify';
 
+// * 시크릿 폼 데이터 인터페이스
 interface SecretFormData {
   name: string;
   value: string;
   description?: string;
 }
 
+// * 시크릿 데이터 인터페이스
 interface SecretsData {
   availableSecrets: string[];
   missingSecrets: string[];
@@ -42,6 +44,7 @@ interface SecretsData {
   groupedSecrets?: GroupedGithubSecretListResponse['groupedSecrets'];
 }
 
+// * 폼 데이터 인터페이스
 interface FormData {
   showForm: boolean;
   secretsToCreate: SecretFormData[];
@@ -49,6 +52,7 @@ interface FormData {
   isCreating: boolean;
 }
 
+// * 시크릿 핸들러 인터페이스
 interface SecretsHandlers {
   onDeleteSecret: (secretName: string) => void;
   onCreateMissingSecrets: (secretNames: string[]) => void;
@@ -60,6 +64,7 @@ interface SecretsHandlers {
   onCreateSecrets: () => void;
 }
 
+// * 시크릿 탭 props 인터페이스
 interface SecretsTabProps {
   data: SecretsData;
   form: FormData;
@@ -67,12 +72,16 @@ interface SecretsTabProps {
 }
 
 export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
+  // * 확장된 그룹 상태 관리
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // * 삭제 확인 다이얼로그 상태
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     secretName: string | null;
   }>({ isOpen: false, secretName: null });
 
+  // * 그룹 토글 핸들러
   const toggleGroup = (groupName: string) => {
     const newExpanded = new Set(expandedGroups);
     if (newExpanded.has(groupName)) {
@@ -83,12 +92,12 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
     setExpandedGroups(newExpanded);
   };
 
-  // 삭제 확인 다이얼로그 열기
+  // * 삭제 확인 다이얼로그 열기
   const handleDeleteClick = (secretName: string) => {
     setDeleteDialog({ isOpen: true, secretName });
   };
 
-  // 삭제 확인
+  // * 삭제 확인 처리
   const handleConfirmDelete = async () => {
     if (!deleteDialog.secretName) return;
 
@@ -102,12 +111,12 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
     }
   };
 
-  // 삭제 취소
+  // * 삭제 취소 처리
   const handleCancelDelete = () => {
     setDeleteDialog({ isOpen: false, secretName: null });
   };
 
-  // 날짜 포맷팅 함수
+  // * 날짜 포맷팅 함수
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -123,6 +132,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
     }
   };
 
+  // * 시크릿 폼이 표시되는 경우
   if (form.showForm) {
     return (
       <div className="h-full flex flex-col">
@@ -143,6 +153,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 space-y-4 pb-4">
+        {/* * 에러 메시지 표시 */}
         {data.error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-2">
             <div className="flex items-center gap-2">
@@ -155,6 +166,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
         )}
 
         <div className="space-y-4">
+          {/* * 헤더 섹션 */}
           <div className="flex items-center gap-2">
             <div className="p-2 bg-orange-100 rounded-lg">
               <Lock className="h-4 w-4 text-orange-600" />
@@ -166,6 +178,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
           </div>
 
           <div className="space-y-3">
+            {/* * 기존 시크릿 섹션 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-gray-600" />
@@ -175,15 +188,18 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
               </div>
             </div>
 
+            {/* * 로딩 상태 */}
             {data.loading ? (
               <div className="flex justify-center py-6">
                 <LoadingSpinner message="로딩 중..." />
               </div>
             ) : data.availableSecrets.length === 0 ? (
+              // * 시크릿이 없는 경우
               <div className="text-center py-6 text-gray-500 text-sm">
                 생성된 시크릿이 없습니다.
               </div>
             ) : data.groupedSecrets ? (
+              // * 그룹화된 시크릿 표시
               <div className="space-y-2 max-h-[320px] overflow-auto">
                 {Object.entries(data.groupedSecrets).map(([groupName, secrets]) => (
                   <div
@@ -210,6 +226,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
                       )}
                     </button>
 
+                    {/* * 확장된 그룹 내용 */}
                     {expandedGroups.has(groupName) && (
                       <div className="p-2">
                         <div className="space-y-1 max-h-48 overflow-y-auto">
@@ -245,6 +262,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
                 ))}
               </div>
             ) : (
+              // * 단순 시크릿 목록 표시
               <div className="space-y-1">
                 {data.availableSecrets.map((secretName) => (
                   <div
@@ -269,6 +287,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
             )}
           </div>
 
+          {/* * 누락된 시크릿 섹션 */}
           {data.missingSecrets.length > 0 && (
             <div className="space-y-3 pt-3 border-t border-gray-200">
               <div className="flex items-center justify-between">
@@ -301,6 +320,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
         </div>
       </div>
 
+      {/* * 액션 버튼들 */}
       <div className="flex gap-3 flex-shrink-0 pt-4">
         <Button
           onClick={() => handlers.onCreateMissingSecrets([])}
@@ -308,6 +328,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
         >
           <Plus className="h-4 w-4 mr-2" />새 시크릿 추가
         </Button>
+        {/* * 누락된 시크릿이 있을 때만 생성 버튼 표시 */}
         {data.missingSecrets.length > 0 && (
           <Button
             onClick={() => handlers.onCreateMissingSecrets(data.missingSecrets)}
@@ -320,7 +341,7 @@ export function SecretsTab({ data, form, handlers }: SecretsTabProps) {
         )}
       </div>
 
-      {/* 삭제 확인 다이얼로그 */}
+      {/* * 삭제 확인 다이얼로그 */}
       <AlertDialog open={deleteDialog.isOpen} onOpenChange={handleCancelDelete}>
         <AlertDialogContent className="border-red-300 bg-red-50">
           <AlertDialogHeader>
