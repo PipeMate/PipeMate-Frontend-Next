@@ -8,6 +8,7 @@ import { useRepository } from '@/contexts/RepositoryContext';
 import { getCookie } from '@/lib/cookieUtils';
 import { STORAGES } from '@/config/appConstants';
 import { useEffect, useState } from 'react';
+import { GithubSettingsDialog } from '@/components/features/GithubSettingsDialog';
 
 // * Hero 섹션 컴포넌트 (개선)
 function HeroSection() {
@@ -107,6 +108,7 @@ function FeaturesSection() {
   const router = useRouter();
   const { isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // * 토큰 상태를 실시간으로 감지하는 함수
   const checkTokenStatus = () => {
@@ -139,6 +141,13 @@ function FeaturesSection() {
   }, []);
 
   const handleFeatureClick = (url: string) => {
+    // * 모달창으로 열어야 하는 경우
+    if (url === 'modal') {
+      setShowSettingsModal(true);
+      return;
+    }
+
+    // * 일반 페이지 이동
     if (isConfigured && hasToken) {
       router.push(url);
     } else {
@@ -153,10 +162,10 @@ function FeaturesSection() {
         return 'border-blue-500';
       case 'text-green-600':
         return 'border-green-500';
-      case 'text-orange-600':
-        return 'border-orange-500';
       case 'text-purple-600':
         return 'border-purple-500';
+      case 'text-orange-600':
+        return 'border-orange-500';
       default:
         return 'border-gray-300';
     }
@@ -208,6 +217,17 @@ function FeaturesSection() {
           );
         })}
       </div>
+
+      {/* * 설정 관리 모달 */}
+      <GithubSettingsDialog
+        open={showSettingsModal}
+        onOpenChange={setShowSettingsModal}
+        onTokenChange={(token) => {
+          if (token) {
+            checkTokenStatus();
+          }
+        }}
+      />
     </div>
   );
 }
