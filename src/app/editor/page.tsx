@@ -5,9 +5,9 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 
 import { ServerBlock } from './types';
-import { useLayout } from '@/components/layout/LayoutContext';
+import { usePageHeader } from '@/components/layout';
 import { ROUTES } from '@/config/appConstants';
-import { Blocks, Save } from 'lucide-react';
+import { Blocks, Save, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useCreatePipeline } from '@/api';
@@ -40,7 +40,7 @@ function GitHubActionsFlowContent() {
   //* ========================================
 
   //* 레이아웃 컨텍스트에서 헤더 slot setter 가져오기
-  const { setHeaderRight, setHeaderExtra } = useLayout();
+  const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const FlowIcon = ROUTES.ACTION_FLOW.icon;
   const { owner, repo, isConfigured } = useRepository();
   const createPipeline = useCreatePipeline();
@@ -63,9 +63,78 @@ function GitHubActionsFlowContent() {
     },
   });
 
+  // * 페이지 헤더 설정
+  useEffect(() => {
+    setPageHeader({
+      title: ROUTES.ACTION_FLOW.label,
+      description: '블록을 드래그하여 워크플로우를 시각적으로 설계하세요',
+      breadcrumbs: [
+        { label: '홈', href: '/', icon: Home },
+        { label: ROUTES.ACTION_FLOW.label, icon: FlowIcon },
+      ],
+      badges: [
+        {
+          label: `${blocks.length} 블록`,
+          variant: 'secondary',
+          color: 'blue',
+        },
+      ],
+    });
+
+    setPageActions(
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={handleSaveWorkflow}
+          disabled={createPipeline.isPending || blocks.length === 0}
+          variant="outline"
+          size="sm"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {createPipeline.isPending ? '저장 중...' : '워크플로우 저장'}
+        </Button>
+      </div>
+    );
+
+    return () => {
+      clearPageHeader();
+    };
+  }, [
+    setPageHeader,
+    setPageActions,
+    clearPageHeader,
+    blocks.length,
+    createPipeline.isPending,
+  ]);
+
   //* ========================================
   //* 이벤트 핸들러
   //* ========================================
+
+  // * 워크플로우 저장 핸들러
+  const handleSaveWorkflow = useCallback(async () => {
+    if (!isConfigured) {
+      toast.error('저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.');
+      return;
+    }
+    if (blocks.length === 0) {
+      toast.error('저장할 워크플로우가 없습니다.');
+      return;
+    }
+    const finalName = (workflowName || `workflow-${Date.now()}`).trim();
+    try {
+      await createPipelineRef.current.mutateAsync({
+        owner: owner!,
+        repo: repo!,
+        workflowName: finalName,
+        inputJson: blocks as unknown as Record<string, unknown>[],
+        description: 'PipeMate로 생성된 워크플로우',
+      });
+      toast.success(`워크플로우가 서버에 저장되었습니다: ${finalName}`);
+    } catch (e) {
+      console.error('워크플로우 저장 실패:', e);
+      toast.error('워크플로우 저장에 실패했습니다.');
+    }
+  }, [blocks, workflowName, isConfigured, owner, repo]);
 
   // * 워크플로우 변경 핸들러
   // * AreaBasedWorkflowEditor에서 블록이 추가/삭제/수정될 때 호출
@@ -111,32 +180,6 @@ function GitHubActionsFlowContent() {
     setWorkflowName(name);
   }, []);
 
-  // * 워크플로우 저장 핸들러 (메모이제이션)
-  const handleSaveWorkflow = useCallback(async () => {
-    if (!isConfigured) {
-      toast.error('저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.');
-      return;
-    }
-    if (blocks.length === 0) {
-      toast.error('저장할 워크플로우가 없습니다.');
-      return;
-    }
-    const finalName = (workflowName || `workflow-${Date.now()}`).trim();
-    try {
-      await createPipelineRef.current.mutateAsync({
-        owner: owner!,
-        repo: repo!,
-        workflowName: finalName,
-        inputJson: blocks as unknown as Record<string, unknown>[],
-        description: 'PipeMate로 생성된 워크플로우',
-      });
-      toast.success(`워크플로우가 서버에 저장되었습니다: ${finalName}`);
-    } catch (e) {
-      console.error('워크플로우 저장 실패:', e);
-      toast.error('워크플로우 저장에 실패했습니다.');
-    }
-  }, [blocks, workflowName, isConfigured, owner, repo]);
-
   //* ========================================
   //* 메모이제이션된 값들
   //* ========================================
@@ -171,53 +214,6 @@ function GitHubActionsFlowContent() {
   //* ========================================
   //* useEffect (조건부 렌더링 전에 호출)
   //* ========================================
-
-  //* 헤더 좌측 설정 (고정된 내용)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHeaderExtra(
-        <div className="flex w-full items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
-              <FlowIcon className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
-                {ROUTES.ACTION_FLOW.label}
-              </div>
-              <div className="text-xs md:text-sm text-slate-500 truncate">
-                블록 기반 워크플로우 에디터
-              </div>
-            </div>
-          </div>
-        </div>,
-      );
-    }
-
-    return () => {
-      setHeaderExtra(null);
-    };
-  }, [setHeaderExtra]);
-
-  //* 헤더 우측 설정 (동적 내용 - 블록 수와 저장 버튼)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHeaderRight(
-        <div className="inline-flex items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-700 px-3 py-2 text-sm">
-            <Blocks size={16} /> 총 {blocks.length}개 블록
-          </div>
-          <Button size="sm" onClick={handleSaveWorkflow}>
-            <Save size={14} className="mr-1" /> 최종 저장
-          </Button>
-        </div>,
-      );
-    }
-
-    return () => {
-      setHeaderRight(null);
-    };
-  }, [blocks.length, setHeaderRight, handleSaveWorkflow]);
 
   // 설정이 필요하면 리다이렉트
   useEffect(() => {

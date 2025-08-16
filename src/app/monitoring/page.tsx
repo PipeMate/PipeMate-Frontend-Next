@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
 // * 컨텍스트 및 설정 import
-import { useLayout } from '@/components/layout/LayoutContext';
+import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { Monitor, Clock, RefreshCw, AlertTriangle, Loader2 } from 'lucide-react';
+import { Monitor, Clock, RefreshCw, AlertTriangle, Loader2, Home } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 
 // * 유틸리티 및 타입 import
@@ -25,7 +25,7 @@ import { usePathname } from 'next/navigation';
 
 // * 모니터링 페이지
 export default function MonitoringPage() {
-  const { setHeaderExtra, setHeaderRight } = useLayout();
+  const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const { owner, repo, isConfigured } = useRepository();
   const MonitoringIcon = ROUTES.MONITORING.icon;
   const pathname = usePathname();
@@ -96,6 +96,59 @@ export default function MonitoringPage() {
   const showRepositoryNotConfigured = !isInitialMount && !isConfigured;
   const showWorkflowContent = !isFullLoading && isConfigured;
 
+  // * 페이지 헤더 설정
+  useEffect(() => {
+    setPageHeader({
+      title: ROUTES.MONITORING.label,
+      description: '워크플로우 실행 상태를 실시간으로 모니터링하세요',
+      breadcrumbs: [
+        { label: '홈', href: '/', icon: Home },
+        { label: ROUTES.MONITORING.label, icon: MonitoringIcon },
+      ],
+      badges: [
+        {
+          label: `${runningWorkflows.length} 실행 중`,
+          variant: 'secondary',
+          color: 'green',
+        },
+        {
+          label: `${completedWorkflows.length} 완료`,
+          variant: 'secondary',
+          color: 'blue',
+        },
+      ],
+    });
+
+    setPageActions(
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={() => handleManualRefresh(refetchRuns)}
+          disabled={isManualRefreshing || runsLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw
+            className={`w-4 h-4 mr-2 ${isManualRefreshing || runsLoading ? 'animate-spin' : ''}`}
+          />
+          새로고침
+        </Button>
+      </div>
+    );
+
+    return () => {
+      clearPageHeader();
+    };
+  }, [
+    setPageHeader,
+    setPageActions,
+    clearPageHeader,
+    runningWorkflows.length,
+    completedWorkflows.length,
+    handleManualRefresh,
+    isManualRefreshing,
+    runsLoading,
+  ]);
+
   // * 초기 마운트 처리 (화면 깜빡임 방지)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -124,61 +177,7 @@ export default function MonitoringPage() {
     }
   }, [isChecking, isSetupValid]);
 
-  // * 레이아웃 헤더 설정 (타이틀, 버튼 등)
-  useEffect(() => {
-    setHeaderExtra(
-      <div className="flex items-center gap-2">
-        <MonitoringIcon className="w-5 h-5" />
-        <span>워크플로우 모니터링</span>
-        {isConfigured && owner && repo && (
-          <span className="text-sm text-gray-500 ml-2">
-            {owner} / {repo}
-          </span>
-        )}
-      </div>,
-    );
 
-    setHeaderRight(
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => setAutoRefresh(!autoRefresh)}>
-          <Clock className="w-4 h-4 mr-1" />
-          {autoRefresh ? '자동 새로고침 켜짐' : '자동 새로고침 꺼짐'}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleManualRefresh(refetchRuns)}
-          disabled={isManualRefreshing || runsLoading}
-        >
-          <RefreshCw
-            className={`w-4 h-4 mr-1 ${
-              isManualRefreshing || runsLoading ? 'animate-spin' : ''
-            }`}
-          />
-          {isManualRefreshing ? '새로고침 중...' : '새로고침'}
-        </Button>
-      </div>,
-    );
-
-    // ! 컴포넌트 언마운트 시 헤더 정리 필수
-    return () => {
-      setHeaderExtra(null);
-      setHeaderRight(null);
-    };
-  }, [
-    setHeaderExtra,
-    setHeaderRight,
-    MonitoringIcon,
-    isConfigured,
-    owner,
-    repo,
-    autoRefresh,
-    runsLoading,
-    isManualRefreshing,
-    handleManualRefresh,
-    refetchRuns,
-    setAutoRefresh,
-  ]);
 
   // * 데이터 리페치 시 선택된 실행 상태 유지
   useEffect(() => {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useLayout } from '@/components/layout/LayoutContext';
+import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useWorkflows, useWorkflowRuns, useDispatchWorkflow, WorkflowItem } from '@/api';
 import {
@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Edit,
   X,
+  Home,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 import { useRouter, usePathname } from 'next/navigation';
@@ -30,7 +31,7 @@ import { useSetupGuard } from '@/hooks/useSetupGuard';
 import { FullScreenLoading } from '@/components/ui';
 
 export default function WorkflowsPage() {
-  const { setHeaderExtra, setHeaderRight } = useLayout();
+  const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const { owner, repo, isConfigured } = useRepository();
   const WorkflowsIcon = ROUTES.WORKFLOWS.icon;
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,31 +73,26 @@ export default function WorkflowsPage() {
     ? (runsResponse!.workflow_runs as any[])
     : [];
 
-  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
+  // * 페이지 헤더 설정
   useEffect(() => {
-    setHeaderExtra(
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
-          <WorkflowsIcon className="w-4 h-4" />
-        </span>
-        <div className="min-w-0">
-          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
-            {ROUTES.WORKFLOWS.label}
-          </div>
-          <div className="text-xs md:text-sm text-slate-500 truncate">
-            {owner && repo ? (
-              <span className="text-slate-700">
-                {owner}/{repo}
-              </span>
-            ) : (
-              'GitHub Actions 워크플로우 관리 및 실행'
-            )}
-          </div>
-        </div>
-      </div>,
-    );
-    setHeaderRight(
-      <div className="flex items-center gap-2.5">
+    setPageHeader({
+      title: ROUTES.WORKFLOWS.label,
+      description: 'GitHub Actions 워크플로우 관리 및 실행',
+      breadcrumbs: [
+        { label: '홈', href: '/', icon: Home },
+        { label: ROUTES.WORKFLOWS.label, icon: WorkflowsIcon },
+      ],
+      badges: [
+        {
+          label: `${workflows.length} 워크플로우`,
+          variant: 'secondary',
+          color: 'blue',
+        },
+      ],
+    });
+
+    setPageActions(
+      <div className="flex items-center gap-2">
         <IconBadge icon={<GitBranch className="w-4 h-4" />} variant="outline" size="sm">
           {workflows.length} 워크플로우
         </IconBadge>
@@ -111,15 +107,16 @@ export default function WorkflowsPage() {
           />
           새로고침
         </Button>
-      </div>,
+      </div>
     );
+
     return () => {
-      setHeaderExtra(null);
-      setHeaderRight(null);
+      clearPageHeader();
     };
   }, [
-    setHeaderExtra,
-    setHeaderRight,
+    setPageHeader,
+    setPageActions,
+    clearPageHeader,
     workflows.length,
     workflowsLoading,
     refetchWorkflows,
