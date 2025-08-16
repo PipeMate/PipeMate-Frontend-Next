@@ -8,9 +8,14 @@ import { NodeEditorModal } from './NodeEditorModal';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Package, Play, Database, Cloud, Zap, Settings, Code } from 'lucide-react';
 
 //* 새로운 구조의 컴포넌트들과 훅들 import
-import { AreaBasedWorkflowEditorProps, AreaNodeData } from './area-editor/types';
+import {
+  AreaBasedWorkflowEditorProps,
+  AreaNodeData,
+  AreaNodes,
+} from './area-editor/types';
 import { useAreaNodes } from './area-editor/hooks/useAreaNodes';
 import { useDragDrop } from './area-editor/hooks/useDragDrop';
 import { useDropHandlers } from './area-editor/hooks/useDropHandlers';
@@ -213,10 +218,96 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     return jobSteps;
   }, [areaNodes]);
 
+  //* ========================================
+  //* 기본 블록 생성 함수들
+  //* ========================================
+
+  // * 기본 Trigger 블록 생성
+  const createDefaultTrigger = useCallback(() => {
+    const triggerData = {
+      label: 'push',
+      type: 'workflow_trigger' as const,
+      description: 'GitHub 저장소에 push가 발생했을 때 실행',
+      config: {
+        on: {
+          push: {
+            branches: ['main', 'develop'],
+          },
+          pull_request: {
+            branches: ['main'],
+          },
+        },
+      },
+    };
+    addNode('workflowTrigger', triggerData);
+    toast.success('기본 Trigger 블록이 생성되었습니다.');
+  }, [addNode]);
+
+  // * 기본 Job 블록 생성
+  const createDefaultJob = useCallback(() => {
+    const jobIndex = areaNodes.job.length;
+    const jobName = `job${jobIndex + 1}`;
+
+    const jobData = {
+      label: 'build-and-test',
+      type: 'job' as const,
+      description: '코드를 빌드하고 테스트를 실행',
+      jobName: jobName,
+      config: {
+        runs_on: 'ubuntu-latest',
+        steps: [],
+      },
+    };
+    addNode('job', jobData);
+    toast.success('기본 Job 블록이 생성되었습니다.');
+  }, [addNode, areaNodes.job.length]);
+
+  // * 기본 Step 블록 생성 (특정 Job에 추가)
+  const createDefaultStep = useCallback(
+    (jobId: string) => {
+      const job = areaNodes.job.find((job) => job.id === jobId);
+      const jobName = job?.data.jobName || 'unknown';
+
+      const stepData = {
+        label: 'checkout',
+        type: 'step' as const,
+        description: '저장소 코드를 체크아웃',
+        jobName: jobName,
+        config: {
+          name: 'Checkout code',
+          uses: 'actions/checkout@v4',
+        },
+      };
+      addNode('step', stepData, jobId);
+      toast.success('기본 Step 블록이 생성되었습니다.');
+    },
+    [addNode, areaNodes.job],
+  );
+
+  // * 영역별 기본 블록 생성 함수
+  const createDefaultBlock = useCallback(
+    (areaKey: keyof AreaNodes, jobId?: string) => {
+      switch (areaKey) {
+        case 'trigger':
+          createDefaultTrigger();
+          break;
+        case 'job':
+          createDefaultJob();
+          break;
+        case 'step':
+          if (jobId) {
+            createDefaultStep(jobId);
+          }
+          break;
+      }
+    },
+    [createDefaultTrigger, createDefaultJob, createDefaultStep],
+  );
+
   // * 빈 상태 렌더링
   const renderEmptyState = useCallback(
     (
-      areaKey: keyof typeof areaNodes,
+      areaKey: keyof AreaNodes,
       title: string,
       isDragOver: boolean,
       isJobStep: boolean = false,
@@ -229,10 +320,11 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           isDragOver={isDragOver}
           isJobStep={isJobStep}
           jobId={jobId}
+          onCreateDefaultBlock={() => createDefaultBlock(areaKey, jobId)}
         />
       );
     },
-    [],
+    [createDefaultBlock],
   );
 
   // * 노드 드래그 시작 핸들러
@@ -307,6 +399,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
               onNodeEdit={handleNodeEdit}
+              onAddBlock={createDefaultBlock}
             />
           </div>
 
@@ -331,6 +424,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
               onNodeEdit={handleNodeEdit}
+              onAddBlock={createDefaultBlock}
             />
           </div>
         </div>
