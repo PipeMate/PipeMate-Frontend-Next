@@ -30,8 +30,19 @@ export default function MonitoringPage() {
   const MonitoringIcon = ROUTES.MONITORING.icon;
   const pathname = usePathname();
 
-  // 설정 가드
-  const { isChecking, isSetupRequired, redirectToSetup } = useSetupGuard();
+  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
+    requireToken: true,
+    requireRepository: true,
+    redirectTo: '/setup',
+    onSetupChange: (tokenExists, repositoryExists) => {
+      // 설정이 변경되면 페이지 상태를 업데이트
+      if (!tokenExists || !repositoryExists) {
+        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        window.location.href = '/setup';
+      }
+    },
+  });
 
   // * 상태 관리 커스텀 훅
   const {
@@ -108,10 +119,10 @@ export default function MonitoringPage() {
 
   // 설정이 필요하면 리다이렉트
   useEffect(() => {
-    if (!isChecking && isSetupRequired) {
-      redirectToSetup(pathname);
+    if (!isChecking && isSetupValid) {
+      // 설정이 유효하면 현재 페이지를 유지
     }
-  }, [isChecking, isSetupRequired, redirectToSetup, pathname]);
+  }, [isChecking, isSetupValid]);
 
   // * 레이아웃 헤더 설정 (타이틀, 버튼 등)
   useEffect(() => {
@@ -181,14 +192,9 @@ export default function MonitoringPage() {
     }
   }, [workflowRuns, selectedRunId, selectedRun, selectedRunSnapshot, setSelectedRun]);
 
-  // 설정 확인 중일 때 로딩 표시
-  if (isChecking) {
-    return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
-  }
-
-  // 설정이 필요한 경우 빈 화면 (리다이렉트 중)
-  if (isSetupRequired) {
-    return null;
+  // 설정이 유효하지 않으면 로딩 표시
+  if (isChecking || !isSetupValid) {
+    return <FullScreenLoading />;
   }
 
   // * 워크플로우 실행 선택 시 상세 보기 핸들러

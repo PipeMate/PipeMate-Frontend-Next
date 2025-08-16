@@ -15,9 +15,34 @@ function HeroSection() {
   const { isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
 
-  useEffect(() => {
+  // 토큰 상태를 실시간으로 감지하는 함수
+  const checkTokenStatus = () => {
     const token = getCookie(STORAGES.GITHUB_TOKEN);
     setHasToken(!!token);
+  };
+
+  useEffect(() => {
+    checkTokenStatus();
+  }, []);
+
+  // 설정 변경 감지
+  useEffect(() => {
+    const handleTokenChange = () => {
+      checkTokenStatus();
+    };
+
+    const handleRepositoryChange = () => {
+      // 레포지토리 변경 시에도 토큰 상태 재확인
+      checkTokenStatus();
+    };
+
+    window.addEventListener('token-changed', handleTokenChange);
+    window.addEventListener('repository-changed', handleRepositoryChange);
+
+    return () => {
+      window.removeEventListener('token-changed', handleTokenChange);
+      window.removeEventListener('repository-changed', handleRepositoryChange);
+    };
   }, []);
 
   const handleCTAClick = () => {
@@ -83,9 +108,34 @@ function FeaturesSection() {
   const { isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
 
-  useEffect(() => {
+  // 토큰 상태를 실시간으로 감지하는 함수
+  const checkTokenStatus = () => {
     const token = getCookie(STORAGES.GITHUB_TOKEN);
     setHasToken(!!token);
+  };
+
+  useEffect(() => {
+    checkTokenStatus();
+  }, []);
+
+  // 설정 변경 감지
+  useEffect(() => {
+    const handleTokenChange = () => {
+      checkTokenStatus();
+    };
+
+    const handleRepositoryChange = () => {
+      // 레포지토리 변경 시에도 토큰 상태 재확인
+      checkTokenStatus();
+    };
+
+    window.addEventListener('token-changed', handleTokenChange);
+    window.addEventListener('repository-changed', handleRepositoryChange);
+
+    return () => {
+      window.removeEventListener('token-changed', handleTokenChange);
+      window.removeEventListener('repository-changed', handleRepositoryChange);
+    };
   }, []);
 
   const handleFeatureClick = (url: string) => {

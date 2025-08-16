@@ -1,41 +1,100 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRepository } from '@/contexts/RepositoryContext';
 import { getCookie } from '@/lib/cookieUtils';
+import { getRepositoryConfig } from '@/lib/cookieUtils';
 import { STORAGES } from '@/config/appConstants';
+import { useRepository } from '@/contexts/RepositoryContext';
 
-export function useSetupGuard() {
+interface UseSetupGuardOptions {
+  redirectTo?: string;
+  requireToken?: boolean;
+  requireRepository?: boolean;
+  onSetupChange?: (hasToken: boolean, hasRepository: boolean) => void;
+}
+
+export function useSetupGuard({
+  redirectTo = '/setup',
+  requireToken = true,
+  requireRepository = true,
+  onSetupChange,
+}: UseSetupGuardOptions = {}) {
   const router = useRouter();
   const { isConfigured } = useRepository();
-  const [hasToken, setHasToken] = useState(false);
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [hasRepository, setHasRepository] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
-  useEffect(() => {
-    const checkSetup = () => {
-      const token = getCookie(STORAGES.GITHUB_TOKEN);
-      setHasToken(!!token);
-      setIsChecking(false);
-    };
+  // 설정 상태를 확인하는 함수
+  const checkSetupStatus = () => {
+    const token = getCookie(STORAGES.GITHUB_TOKEN);
+    const repoConfig = getRepositoryConfig();
+    const tokenExists = !!token;
+    const repositoryExists = !!(repoConfig.owner && repoConfig.repo);
 
-    // 약간의 지연을 두어 초기 렌더링 완료 후 설정 확인
-    const timer = setTimeout(checkSetup, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    setHasToken(tokenExists);
+    setHasRepository(repositoryExists);
 
-  const redirectToSetup = (currentPath: string) => {
-    const redirectUrl = encodeURIComponent(currentPath);
-    router.push(`/setup?redirect=${redirectUrl}`);
+    // 콜백 호출
+    onSetupChange?.(tokenExists, repositoryExists);
+
+    return { tokenExists, repositoryExists };
   };
 
-  const isSetupRequired = !isConfigured || !hasToken;
-  const isReady = !isChecking;
+  // 초기 설정 상태 확인
+  useEffect(() => {
+    const { tokenExists, repositoryExists } = checkSetupStatus();
+    setIsChecking(false);
+  }, []);
+
+  // 설정 변경 감지
+  useEffect(() => {
+    const handleSetupChange = () => {
+      const { tokenExists, repositoryExists } = checkSetupStatus();
+
+      // 필수 설정이 누락된 경우 리다이렉트
+      if (requireToken && !tokenExists) {
+        router.push(redirectTo);
+        return;
+      }
+
+      if (requireRepository && !repositoryExists) {
+        router.push(redirectTo);
+        return;
+      }
+    };
+
+    // 토큰 변경 이벤트 리스너
+    window.addEventListener('token-changed', handleSetupChange);
+
+    // 레포지토리 변경 이벤트 리스너
+    window.addEventListener('repository-changed', handleSetupChange);
+
+    return () => {
+      window.removeEventListener('token-changed', handleSetupChange);
+      window.removeEventListener('repository-changed', handleSetupChange);
+    };
+  }, [requireToken, requireRepository, redirectTo, router]);
+
+  // RepositoryContext 변경 감지
+  useEffect(() => {
+    if (hasRepository !== null) {
+      setHasRepository(isConfigured);
+    }
+  }, [isConfigured, hasRepository]);
+
+  // 현재 설정 상태 계산 - null 체크 추가
+  const isSetupValid =
+    !isChecking &&
+    (!requireToken || hasToken === true) &&
+    (!requireRepository || hasRepository === true);
 
   return {
-    isConfigured,
     hasToken,
+    hasRepository,
+    isSetupValid,
     isChecking,
-    isSetupRequired,
-    isReady,
-    redirectToSetup,
+    checkSetupStatus,
   };
 }

@@ -49,8 +49,19 @@ function GitHubActionsFlowContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // 설정 가드
-  const { isChecking, isSetupRequired, redirectToSetup } = useSetupGuard();
+  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
+    requireToken: true,
+    requireRepository: true,
+    redirectTo: '/setup',
+    onSetupChange: (tokenExists, repositoryExists) => {
+      // 설정이 변경되면 페이지 상태를 업데이트
+      if (!tokenExists || !repositoryExists) {
+        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        window.location.href = '/setup';
+      }
+    },
+  });
 
   //* ========================================
   //* 이벤트 핸들러
@@ -121,9 +132,10 @@ function GitHubActionsFlowContent() {
       });
       toast.success(`워크플로우가 서버에 저장되었습니다: ${finalName}`);
     } catch (e) {
-      toast.error('서버 저장 중 오류가 발생했습니다.');
+      console.error('워크플로우 저장 실패:', e);
+      toast.error('워크플로우 저장에 실패했습니다.');
     }
-  }, [blocks.length, workflowName, isConfigured, owner, repo]);
+  }, [blocks, workflowName, isConfigured, owner, repo]);
 
   //* ========================================
   //* 메모이제이션된 값들
@@ -209,23 +221,19 @@ function GitHubActionsFlowContent() {
 
   // 설정이 필요하면 리다이렉트
   useEffect(() => {
-    if (!isChecking && isSetupRequired) {
-      redirectToSetup(pathname);
+    if (!isChecking && !isSetupValid) {
+      // 설정이 유효하지 않은 경우 setup 페이지로 리다이렉트
+      window.location.href = '/setup';
     }
-  }, [isChecking, isSetupRequired, redirectToSetup, pathname]);
+  }, [isChecking, isSetupValid]);
 
   //* ========================================
   //* 조건부 렌더링
   //* ========================================
 
   // 설정 확인 중일 때 로딩 표시
-  if (isChecking) {
+  if (isChecking || !isSetupValid) {
     return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
-  }
-
-  // 설정이 필요한 경우 빈 화면 (리다이렉트 중)
-  if (isSetupRequired) {
-    return null;
   }
 
   //* ========================================
