@@ -28,11 +28,10 @@ interface DropAreaProps {
   ) => React.ReactNode;
   dragOverArea: string | null;
   dragOverJobId: string | null;
+  onNodeEdit?: (node: AreaNodeData) => void;
 }
 
-/**
- * 드롭 영역 컴포넌트
- */
+// * 드롭 영역 컴포넌트
 export const DropArea: React.FC<DropAreaProps> = ({
   areaKey,
   title,
@@ -52,6 +51,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
   renderEmptyState,
   dragOverArea,
   dragOverJobId,
+  onNodeEdit,
 }) => {
   const isDragOver = dragOverArea === areaKey;
   const stepsByJob = getStepsByJob();
@@ -96,6 +96,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
                   onSelect={onNodeSelect}
                   onDragStart={onNodeDragStart}
                   onDrag={onNodeDrag}
+                  onEdit={onNodeEdit}
                 />
 
                 {node.type === 'job' && (
@@ -135,6 +136,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
                                 onSelect={onNodeSelect}
                                 onDragStart={onNodeDragStart}
                                 onDrag={onNodeDrag}
+                                onEdit={onNodeEdit}
                               />
                             </div>
                           ))}

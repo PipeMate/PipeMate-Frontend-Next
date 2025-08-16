@@ -9,15 +9,11 @@ interface UseDragDropReturn {
   convertBlockTypeToNodeType: (blockType: string) => NodeType;
 }
 
-/**
- * 드래그 앤 드롭 훅
- */
+// * 드래그 앤 드롭 훅
 export const useDragDrop = (): UseDragDropReturn => {
   const [draggedNode, setDraggedNode] = useState<AreaNodeData | null>(null);
 
-  /**
-   * 드롭 데이터 파싱
-   */
+  // * 드롭 데이터 파싱
   const parseDropData = useCallback((e: React.DragEvent): ServerBlock | null => {
     try {
       const data = e.dataTransfer.getData('application/json');
@@ -29,9 +25,7 @@ export const useDragDrop = (): UseDragDropReturn => {
     }
   }, []);
 
-  /**
-   * 블록을 노드 데이터로 변환
-   */
+  // * 블록을 노드 데이터로 변환
   const convertBlockToNodeData = useCallback((block: ServerBlock): AreaNodeData => {
     return {
       id: block.id || `node-${Date.now()}`,
@@ -40,7 +34,7 @@ export const useDragDrop = (): UseDragDropReturn => {
         label: block.name,
         type: block.type === 'trigger' ? 'workflow_trigger' : block.type,
         description: block.description,
-        jobName: block['job-name'] || '',
+        jobName: block['jobName'] || '',
         domain: block.domain,
         task: block.task,
         config: block.config,
@@ -51,9 +45,7 @@ export const useDragDrop = (): UseDragDropReturn => {
     };
   }, []);
 
-  /**
-   * 블록 타입을 노드 타입으로 변환
-   */
+  // * 블록 타입을 노드 타입으로 변환
   const convertBlockTypeToNodeType = useCallback((blockType: string): NodeType => {
     switch (blockType) {
       case 'trigger':

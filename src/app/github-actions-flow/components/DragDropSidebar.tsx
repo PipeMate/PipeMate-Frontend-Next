@@ -4,11 +4,23 @@
 
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import { ServerBlock, Pipeline } from '../types';
-import { Lightbulb, Filter, Blocks, GitBranch } from 'lucide-react';
+import {
+  Lightbulb,
+  Filter,
+  Blocks,
+  GitBranch,
+  Info,
+  Eye,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import React from 'react';
 import { getDomainColor, getNodeIcon } from '../constants/nodeConstants';
 import { NODE_COLORS } from '../constants/nodeConstants';
-import { usePresetBlocks, usePresetPipelines } from '@/api/hooks/usePresets';
+import { usePresetBlocks, usePresetPipelines } from '@/api';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import YamlViewer from '@/components/ui/YamlViewer';
+import { generateBlockYaml } from '../utils/yamlGenerator';
 
 //* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
 type TabType = 'trigger' | 'job' | 'step';
@@ -32,14 +44,19 @@ interface PresetPipeline extends Pipeline {
   id: string;
 }
 
-//* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
-export const DragDropSidebar = () => {
-  //* 라이브러리 모드 상태 관리 (블록 또는 파이프라인)
-  const [libraryMode, setLibraryMode] = useState<LibraryMode>('blocks');
+interface DragDropSidebarProps {
+  nodePanelOpen?: boolean;
+  onRequestCloseNodePanel?: () => void;
+}
 
+//* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
+export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
+  nodePanelOpen = false,
+  onRequestCloseNodePanel,
+}) => {
+  const [libraryMode, setLibraryMode] = useState<LibraryMode>('blocks');
   //* 현재 활성화된 탭 상태 관리
   const [activeTab, setActiveTab] = useState<TabType>('trigger');
-  const [activePipelineTab, setActivePipelineTab] = useState<PipelineTabType>('cicd');
 
   //* Step 탭 필터 상태 관리
   const [selectedDomain, setSelectedDomain] = useState<FilterType>('all');
@@ -48,6 +65,19 @@ export const DragDropSidebar = () => {
   //* 프리셋 블록 데이터 상태 관리
   const [presetBlocks, setPresetBlocks] = useState<Record<string, PresetBlock[]>>({});
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailBlock, setDetailBlock] = useState<ServerBlock | null>(null);
+  const [libraryExpanded, setLibraryExpanded] = useState(false);
+  // 시트 오버레이 포인터 이벤트 복원용 ref
+  const overlayPointerPrev = React.useRef<string | null>(null);
+  // 블록 검색(타입별)
+  const [blockSearchByType, setBlockSearchByType] = useState<Record<TabType, string>>({
+    trigger: '',
+    job: '',
+    step: '',
+  });
+  // 파이프라인 검색
+  const [pipelineSearch, setPipelineSearch] = useState('');
 
   //* 프리셋 파이프라인 데이터 상태 관리
   const [presetPipelines, setPresetPipelines] = useState<
@@ -55,8 +85,46 @@ export const DragDropSidebar = () => {
   >({});
   const [isLoadingPipelines, setIsLoadingPipelines] = useState(true);
 
+  // 노드 패널이 열려있으면 상세 패널 닫기 (상호 배타)
+  useEffect(() => {
+    if (nodePanelOpen && (detailOpen || detailBlock)) {
+      setDetailOpen(false);
+      setDetailBlock(null);
+    }
+    // 노드 패널이 열리면 확장 시트도 닫기 (상호 배타)
+    if (nodePanelOpen && libraryExpanded) {
+      setLibraryExpanded(false);
+    }
+  }, [nodePanelOpen]);
+  // 라이브러리 모드 변경 시 블록 탭 초기화
+  useEffect(() => {
+    if (libraryMode === 'blocks') {
+      setActiveTab('trigger');
+    }
+  }, [libraryMode]);
+
   //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
   const onDragStart = useCallback((event: React.DragEvent, block: ServerBlock) => {
+    // 확장 시트의 오버레이가 드래그를 막지 않도록 임시로 pointer-events 비활성화
+    const overlay = document.querySelector(
+      '[data-slot="sheet-overlay"]',
+    ) as HTMLElement | null;
+    if (overlay) {
+      if (overlayPointerPrev.current === null) {
+        overlayPointerPrev.current = overlay.style.pointerEvents || '';
+      }
+      overlay.style.pointerEvents = 'none';
+      const handleRestore = () => {
+        if (overlayPointerPrev.current !== null) {
+          overlay.style.pointerEvents = overlayPointerPrev.current;
+          overlayPointerPrev.current = null;
+        }
+        window.removeEventListener('dragend', handleRestore);
+        window.removeEventListener('drop', handleRestore);
+      };
+      window.addEventListener('dragend', handleRestore);
+      window.addEventListener('drop', handleRestore);
+    }
     //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
     event.dataTransfer.setData('application/reactflow', JSON.stringify(block));
     event.dataTransfer.effectAllowed = 'move';
@@ -65,6 +133,25 @@ export const DragDropSidebar = () => {
   //* 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
   const onPipelineDragStart = useCallback(
     (event: React.DragEvent, pipeline: Pipeline) => {
+      const overlay = document.querySelector(
+        '[data-slot="sheet-overlay"]',
+      ) as HTMLElement | null;
+      if (overlay) {
+        if (overlayPointerPrev.current === null) {
+          overlayPointerPrev.current = overlay.style.pointerEvents || '';
+        }
+        overlay.style.pointerEvents = 'none';
+        const handleRestore = () => {
+          if (overlayPointerPrev.current !== null) {
+            overlay.style.pointerEvents = overlayPointerPrev.current;
+            overlayPointerPrev.current = null;
+          }
+          window.removeEventListener('dragend', handleRestore);
+          window.removeEventListener('drop', handleRestore);
+        };
+        window.addEventListener('dragend', handleRestore);
+        window.addEventListener('drop', handleRestore);
+      }
       //* 파이프라인의 모든 블록들을 드래그 데이터로 설정
       event.dataTransfer.setData(
         'application/reactflow',
@@ -136,14 +223,7 @@ export const DragDropSidebar = () => {
     }
   }, [activeTab]);
 
-  //* 라이브러리 모드 변경 시 탭 초기화
-  useEffect(() => {
-    if (libraryMode === 'blocks') {
-      setActiveTab('trigger');
-    } else {
-      setActivePipelineTab('cicd');
-    }
-  }, [libraryMode]);
+  // 라이브러리 모드 제거로 인한 초기화 불필요
 
   //* 도메인과 태스크를 동적으로 추출하는 함수
   const { domains, tasks } = useMemo(() => {
@@ -179,12 +259,20 @@ export const DragDropSidebar = () => {
   //* 필터링된 블록 목록 생성
   const filteredBlocks = useMemo(() => {
     const currentBlocks = presetBlocks[activeTab] || [];
+    const q = (blockSearchByType[activeTab] || '').toLowerCase();
+    const searched = q
+      ? currentBlocks.filter(
+          (b) =>
+            b.name.toLowerCase().includes(q) ||
+            (b.description || '').toLowerCase().includes(q),
+        )
+      : currentBlocks;
 
     if (activeTab !== 'step') {
-      return currentBlocks;
+      return searched;
     }
 
-    return currentBlocks.filter((block) => {
+    return searched.filter((block) => {
       //* 도메인 필터링
       if (selectedDomain !== 'all' && block.domain !== selectedDomain) {
         return false;
@@ -200,13 +288,23 @@ export const DragDropSidebar = () => {
 
       return true;
     });
-  }, [activeTab, presetBlocks, selectedDomain, selectedTask]);
+  }, [activeTab, presetBlocks, selectedDomain, selectedTask, blockSearchByType]);
 
   //* 필터링된 파이프라인 목록 생성
+  // 모든 파이프라인을 하나의 리스트로 취급하고 검색어로만 필터링
+  const allPipelines = useMemo(
+    () => Object.values(presetPipelines).flat(),
+    [presetPipelines],
+  );
   const filteredPipelines = useMemo(() => {
-    const currentPipelines = presetPipelines[activePipelineTab] || [];
-    return currentPipelines;
-  }, [activePipelineTab, presetPipelines]);
+    if (!pipelineSearch) return allPipelines;
+    const q = pipelineSearch.toLowerCase();
+    return allPipelines.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q),
+    );
+  }, [allPipelines, pipelineSearch]);
 
   //* 블록 타입별 아이콘 - 각 블록 타입을 아이콘으로 구분
   const getBlockIcon = (type: string) => {
@@ -317,44 +415,48 @@ export const DragDropSidebar = () => {
           <span className="truncate">
             {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}
           </span>
+          {/* 확장 버튼 */}
+          <button
+            className="absolute right-4 top-4 inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100"
+            onClick={() => {
+              if (onRequestCloseNodePanel) onRequestCloseNodePanel();
+              setDetailOpen(false);
+              setDetailBlock(null);
+              setLibraryExpanded(true);
+            }}
+            title="확장 보기"
+          >
+            <Maximize2 size={12} /> 확장
+          </button>
         </h3>
-
-        {/* 라이브러리 모드 토글 버튼 */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-2">
           <button
             onClick={() => setLibraryMode('blocks')}
-            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1
-              ${
-                libraryMode === 'blocks'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+              libraryMode === 'blocks'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
           >
-            <Blocks size={12} />
-            블록
+            <Blocks size={12} /> 블록
           </button>
           <button
             onClick={() => setLibraryMode('pipelines')}
-            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1
-              ${
-                libraryMode === 'pipelines'
-                  ? 'bg-white text-purple-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+              libraryMode === 'pipelines'
+                ? 'bg-white text-purple-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
           >
-            <GitBranch size={12} />
-            파이프라인
+            <GitBranch size={12} /> 파이프라인
           </button>
         </div>
-
-        <div className="text-xs text-gray-600 text-center leading-relaxed w-full mt-2">
-          {libraryMode === 'blocks'
-            ? '블록을 드래그하여 워크스페이스에 추가하세요'
-            : '파이프라인을 드래그하여 워크스페이스에 추가하세요'}
+        <div className="text-xs text-gray-600 text-center leading-relaxed w-full">
+          검색으로 원하는 항목을 찾아 워크스페이스에 드래그하세요
         </div>
       </div>
 
-      {/* 블록 라이브러리 모드 */}
+      {/* 블록 라이브러리 */}
       {libraryMode === 'blocks' && (
         <>
           {/* 블록 탭 네비게이션 - 트리거, Job, Step 탭 (컴팩트하게) */}
@@ -381,6 +483,22 @@ export const DragDropSidebar = () => {
                 <span className="truncate w-full text-center">{tab.label}</span>
               </button>
             ))}
+          </div>
+          {/* 블록 검색바 (타입별로 입력 유지) */}
+          <div className="p-2 border-b border-gray-200 bg-gray-50">
+            <div className="relative">
+              <input
+                value={blockSearchByType[activeTab] || ''}
+                onChange={(e) =>
+                  setBlockSearchByType((prev) => ({
+                    ...prev,
+                    [activeTab]: e.target.value,
+                  }))
+                }
+                placeholder={`${activeTab.toUpperCase()} 검색 (이름/설명)`}
+                className="w-full h-8 px-2 text-xs rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+              />
+            </div>
           </div>
 
           {/* Step 탭 필터 - 도메인과 태스크 필터링 */}
@@ -541,6 +659,19 @@ export const DragDropSidebar = () => {
                       >
                         {block.type.toUpperCase()}
                       </div>
+                      <button
+                        className="ml-2 inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (onRequestCloseNodePanel) onRequestCloseNodePanel();
+                          setDetailBlock(block);
+                          setDetailOpen(true);
+                        }}
+                        title="자세히 보기"
+                      >
+                        <Eye size={12} /> 자세히
+                      </button>
                     </div>
                   );
                 })
@@ -566,96 +697,490 @@ export const DragDropSidebar = () => {
         </>
       )}
 
-      {/* 파이프라인 라이브러리 모드 */}
-      {libraryMode === 'pipelines' && (
-        <>
-          {/* 파이프라인 탭 네비게이션 */}
-          <div className="flex border-b border-gray-200 w-full bg-gray-50">
-            {pipelineTabs.map((tab) => (
-              <button
-                key={tab.type}
-                onClick={() => setActivePipelineTab(tab.type)}
-                className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-1 w-full
-                  ${
-                    activePipelineTab === tab.type
-                      ? 'bg-white text-purple-600 shadow-sm border-b-2 border-purple-500'
-                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                  }
-                `}
-              >
-                <span className="text-sm">{tab.icon}</span>
-                <span className="truncate w-full text-center">{tab.label}</span>
-              </button>
-            ))}
+      {/* 상세 보기 시트 */}
+      {detailOpen && detailBlock && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 lg:w-[450px] xl:w-[500px] bg-white border-l border-gray-200 flex flex-col overflow-hidden shadow-xl">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center gap-2">
+              <Info size={20} className="text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900 truncate">
+                {detailBlock.name}
+              </h3>
+            </div>
+            <button
+              className="h-8 px-2 text-xs rounded bg-white hover:bg-gray-100 border"
+              onClick={() => setDetailOpen(false)}
+            >
+              닫기
+            </button>
           </div>
-
-          {/* 파이프라인 리스트 */}
-          <div className="flex-1 p-3 overflow-y-auto w-full flex flex-col justify-between bg-gray-50">
-            <div className="flex flex-col gap-3 w-full">
-              {isLoadingPipelines ? (
-                //* 로딩 상태 표시
-                <div className="flex items-center justify-center py-6">
-                  <div className="text-gray-500 text-xs">
-                    프리셋 파이프라인을 불러오는 중...
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            {detailBlock.description && (
+              <div className="text-sm text-gray-600">{detailBlock.description}</div>
+            )}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-gray-500">타입</div>
+                <div className="font-medium">{detailBlock.type}</div>
+              </div>
+              {detailBlock['jobName'] && (
+                <div>
+                  <div className="text-xs text-gray-500">Job 이름</div>
+                  <div className="font-medium">{detailBlock['jobName']}</div>
+                </div>
+              )}
+              {detailBlock.domain && (
+                <div>
+                  <div className="text-xs text-gray-500">도메인</div>
+                  <div className="font-medium">{detailBlock.domain}</div>
+                </div>
+              )}
+              {detailBlock.task && detailBlock.task.length > 0 && (
+                <div className="col-span-2">
+                  <div className="text-xs text-gray-500">태스크</div>
+                  <div className="flex flex-wrap gap-1">
+                    {detailBlock.task.map((t, i) => (
+                      <span
+                        key={`${t}-${i}`}
+                        className="px-1.5 py-0.5 border rounded text-[11px]"
+                      >
+                        {t}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                filteredPipelines.map((pipeline, index) => {
-                  const colors = getPipelineColors(pipeline.type);
-                  const icon = getPipelineIcon(pipeline.type);
+              )}
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs text-gray-600">YAML</div>
+              <div className="border rounded">
+                <YamlViewer
+                  yaml={generateBlockYaml(detailBlock)}
+                  title={detailBlock.name}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 확장 보기 시트 */}
+      <Sheet open={libraryExpanded} onOpenChange={setLibraryExpanded}>
+        <SheetContent
+          side="right"
+          className="border-l !w-[95vw] sm:!w-[90vw] lg:!w-[70vw] xl:!w-[60vw] !max-w-none sm:!max-w-[90vw] lg:!max-w-[70vw] xl:!max-w-[60vw] p-0"
+        >
+          {/* 접근성: DialogTitle 요구 충족 (시각적으로 숨김) */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>라이브러리 확장 시트</SheetTitle>
+          </SheetHeader>
+          <div className="w-full flex flex-col h-full">
+            {/* 헤더 */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {libraryMode === 'blocks' ? (
+                  <Blocks size={16} />
+                ) : (
+                  <GitBranch size={16} />
+                )}
+                <span className="text-base font-semibold">
+                  {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}{' '}
+                  (확장)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setLibraryMode('blocks')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+                      libraryMode === 'blocks'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <Blocks size={12} /> 블록
+                  </button>
+                  <button
+                    onClick={() => setLibraryMode('pipelines')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+                      libraryMode === 'pipelines'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    <GitBranch size={12} /> 파이프라인
+                  </button>
+                </div>
+                <button
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100"
+                  onClick={() => setLibraryExpanded(false)}
+                  title="축소"
+                >
+                  <Minimize2 size={12} /> 축소
+                </button>
+              </div>
+            </div>
 
-                  return (
-                    <div
-                      key={index}
-                      draggable
-                      onDragStart={(e) => onPipelineDragStart(e, pipeline)}
-                      style={{
-                        backgroundColor: colors.bg,
-                        border: `2px solid ${colors.border}`,
-                        color: colors.text,
-                      }}
-                      className="p-3 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing group"
-                      onMouseDown={(e) => {
-                        e.currentTarget.style.cursor = 'grabbing';
-                      }}
-                      onMouseUp={(e) => {
-                        e.currentTarget.style.cursor = 'grab';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.cursor = 'grab';
-                      }}
-                    >
-                      {/* 파이프라인 헤더 - 아이콘과 제목 */}
-                      <div className="flex items-start gap-2 mb-2 w-full">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0">
-                          {icon}
+            {/* 콘텐츠 */}
+            <div className="flex-1 overflow-auto">
+              {/* 블록 모드 */}
+              {libraryMode === 'blocks' && (
+                <div className="w-full">
+                  {/* 탭 */}
+                  <div className="flex border-b border-gray-200 w-full bg-gray-50">
+                    {blockTabs.map((tab) => (
+                      <button
+                        key={tab.type}
+                        onClick={() => setActiveTab(tab.type)}
+                        className={`flex-1 px-3 py-3 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 ${
+                          activeTab === tab.type
+                            ? tab.type === 'trigger'
+                              ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
+                              : tab.type === 'job'
+                              ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                              : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                            : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                        }`}
+                      >
+                        <span className="text-sm">{tab.icon}</span>
+                        <span className="truncate">{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* 검색/필터 */}
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
+                    <input
+                      value={blockSearchByType[activeTab] || ''}
+                      onChange={(e) =>
+                        setBlockSearchByType((prev) => ({
+                          ...prev,
+                          [activeTab]: e.target.value,
+                        }))
+                      }
+                      placeholder={`${activeTab.toUpperCase()} 검색 (이름/설명)`}
+                      className="w-full h-9 px-3 text-sm rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+                    />
+                    {activeTab === 'step' && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                            도메인:
+                          </label>
+                          <select
+                            value={selectedDomain}
+                            onChange={(e) => {
+                              setSelectedDomain(e.target.value as FilterType);
+                              setSelectedTask('all');
+                            }}
+                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="all">전체</option>
+                            {domains.map((domain) => (
+                              <option key={domain} value={domain}>
+                                {domain}
+                              </option>
+                            ))}
+                          </select>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span
-                              style={{ color: colors.text }}
-                              className="text-xs font-bold truncate"
-                              title={pipeline.name}
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-medium text-gray-600 min-w-[40px]">
+                            태스크:
+                          </label>
+                          <select
+                            value={selectedTask}
+                            onChange={(e) =>
+                              setSelectedTask(e.target.value as FilterType)
+                            }
+                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={selectedDomain === 'all' && tasks.length === 0}
+                          >
+                            <option value="all">전체</option>
+                            {tasks.map((task) => (
+                              <option key={task} value={task}>
+                                {task}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 블록 그리드 */}
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {isLoadingBlocks ? (
+                        <div className="col-span-full text-sm text-gray-500 py-8 text-center">
+                          프리셋 블록을 불러오는 중...
+                        </div>
+                      ) : (
+                        filteredBlocks.map((block, index) => {
+                          const colors = (() => {
+                            if (block.type === 'trigger') return NODE_COLORS.TRIGGER;
+                            if (block.type === 'job') return NODE_COLORS.JOB;
+                            if (block.type === 'step' && block.domain)
+                              return getDomainColor(block.domain);
+                            return {
+                              bg: '#f3f4f6',
+                              border: '#6b7280',
+                              text: '#374151',
+                              hover: '#e5e7eb',
+                            };
+                          })();
+                          const icon = getBlockIcon(block.type);
+                          return (
+                            <div
+                              key={index}
+                              draggable
+                              onDragStart={(e) => onDragStart(e, block)}
+                              style={{
+                                backgroundColor: colors.bg,
+                                border: `2px solid ${colors.border}`,
+                                color: colors.text,
+                              }}
+                              className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
                             >
-                              {pipeline.name}
-                            </span>
-                          </div>
-                          {/* 도메인/태스크 정보 */}
-                          <div className="flex items-center gap-1">
-                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
-                              <span className="truncate text-xs">
-                                {pipeline.domain &&
-                                pipeline.task &&
-                                pipeline.task.length > 0
-                                  ? `${pipeline.domain} • ${pipeline.task.join(', ')}`
-                                  : pipeline.type}
-                              </span>
+                              <div className="flex items-start gap-3 mb-2">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">
+                                  {icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span
+                                      style={{ color: colors.text }}
+                                      className="text-sm font-bold truncate"
+                                      title={block.name}
+                                    >
+                                      {block.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                                      <span className="truncate text-xs">
+                                        {block.type === 'step' && block.domain
+                                          ? `${block.domain}${
+                                              block.task && block.task.length > 0
+                                                ? ` • ${block.task.join(', ')}`
+                                                : ''
+                                            }`
+                                          : block.type}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              {block.description && (
+                                <div
+                                  style={{ color: colors.text, opacity: 0.85 }}
+                                  className="text-xs leading-relaxed mb-2 line-clamp-2"
+                                  title={block.description}
+                                >
+                                  {block.description}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <div
+                                  style={{
+                                    backgroundColor: colors.border,
+                                    color: '#fff',
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block"
+                                >
+                                  {block.type.toUpperCase()}
+                                </div>
+                                <button
+                                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (onRequestCloseNodePanel)
+                                      onRequestCloseNodePanel();
+                                    setDetailBlock(block);
+                                    setDetailOpen(true);
+                                    setLibraryExpanded(false);
+                                  }}
+                                  title="자세히 보기"
+                                >
+                                  <Eye size={12} /> 자세히
+                                </button>
+                              </div>
                             </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 파이프라인 모드 */}
+              {libraryMode === 'pipelines' && (
+                <div className="w-full">
+                  <div className="p-3 border-b border-gray-200 bg-gray-50">
+                    <input
+                      value={pipelineSearch}
+                      onChange={(e) => setPipelineSearch(e.target.value)}
+                      placeholder="파이프라인 검색 (이름/설명)"
+                      className="w-full h-9 px-3 text-sm rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="p-4">
+                    {isLoadingPipelines ? (
+                      <div className="text-sm text-gray-500 py-8 text-center">
+                        프리셋 파이프라인을 불러오는 중...
+                      </div>
+                    ) : filteredPipelines.length === 0 ? (
+                      <div className="text-sm text-gray-400 py-8 text-center">
+                        일치하는 파이프라인이 없습니다.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredPipelines.map((pipeline, index) => {
+                          const colors = getPipelineColors(pipeline.type);
+                          const icon = getPipelineIcon(pipeline.type);
+                          return (
+                            <div
+                              key={index}
+                              draggable
+                              onDragStart={(e) => onPipelineDragStart(e, pipeline)}
+                              style={{
+                                backgroundColor: colors.bg,
+                                border: `2px solid ${colors.border}`,
+                                color: colors.text,
+                              }}
+                              className="p-4 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.01] cursor-grab active:cursor-grabbing"
+                            >
+                              <div className="flex items-start gap-3 mb-2">
+                                <div className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0">
+                                  {icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span
+                                      style={{ color: colors.text }}
+                                      className="text-sm font-bold truncate"
+                                      title={pipeline.name}
+                                    >
+                                      {pipeline.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                                      <span className="truncate text-xs">
+                                        {pipeline.domain &&
+                                        pipeline.task &&
+                                        pipeline.task.length > 0
+                                          ? `${pipeline.domain} • ${pipeline.task.join(
+                                              ', ',
+                                            )}`
+                                          : pipeline.type}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              {pipeline.description && (
+                                <div
+                                  style={{ color: colors.text, opacity: 0.85 }}
+                                  className="text-xs leading-relaxed mb-2 line-clamp-2"
+                                  title={pipeline.description}
+                                >
+                                  {pipeline.description}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <div
+                                  style={{
+                                    backgroundColor: colors.border,
+                                    color: '#fff',
+                                  }}
+                                  className="px-2 py-0.5 text-[11px] rounded-full font-semibold inline-block"
+                                >
+                                  {pipeline.type.toUpperCase()}
+                                </div>
+                                <div className="text-[11px] text-gray-600">
+                                  {pipeline.blocks.length}개 블록
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* 파이프라인 라이브러리 (검색 기반) */}
+      {libraryMode === 'pipelines' && (
+        <div className="p-3 border-t border-gray-200 bg-white">
+          <div className="p-2 border border-gray-200 rounded mb-2 bg-gray-50">
+            <input
+              value={pipelineSearch}
+              onChange={(e) => setPipelineSearch(e.target.value)}
+              placeholder="파이프라인 검색 (이름/설명)"
+              className="w-full h-8 px-2 text-xs rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+            />
+          </div>
+          <div className="text-xs text-gray-600 font-semibold mb-2 flex items-center gap-2">
+            <GitBranch size={12} /> 파이프라인
+            <span className="text-[10px] text-gray-400">검색어와 일치하는 항목</span>
+          </div>
+          {isLoadingPipelines ? (
+            <div className="text-xs text-gray-500 py-2">
+              프리셋 파이프라인을 불러오는 중...
+            </div>
+          ) : filteredPipelines.length === 0 ? (
+            <div className="text-xs text-gray-400 py-2">
+              일치하는 파이프라인이 없습니다.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredPipelines.map((pipeline, index) => {
+                const colors = getPipelineColors(pipeline.type);
+                const icon = getPipelineIcon(pipeline.type);
+                return (
+                  <div
+                    key={index}
+                    draggable
+                    onDragStart={(e) => onPipelineDragStart(e, pipeline)}
+                    style={{
+                      backgroundColor: colors.bg,
+                      border: `2px solid ${colors.border}`,
+                      color: colors.text,
+                    }}
+                    className="p-3 rounded-lg transition-all duration-200 w-full shadow-sm hover:shadow-md hover:scale-[1.02] cursor-grab active:cursor-grabbing group"
+                  >
+                    <div className="flex items-start gap-2 mb-2 w-full">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 mb-1">
+                          <span
+                            style={{ color: colors.text }}
+                            className="text-xs font-bold truncate"
+                            title={pipeline.name}
+                          >
+                            {pipeline.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-white/50">
+                            <span className="truncate text-xs">
+                              {pipeline.domain &&
+                              pipeline.task &&
+                              pipeline.task.length > 0
+                                ? `${pipeline.domain} • ${pipeline.task.join(', ')}`
+                                : pipeline.type}
+                            </span>
                           </div>
                         </div>
                       </div>
-
-                      {/* 파이프라인 설명 */}
+                    </div>
+                    {pipeline.description && (
                       <div
                         style={{ color: colors.text, opacity: 0.8 }}
                         className="text-xs leading-relaxed w-full mb-2 line-clamp-2"
@@ -663,63 +1188,24 @@ export const DragDropSidebar = () => {
                       >
                         {pipeline.description}
                       </div>
-
-                      {/* 파이프라인 정보 */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          style={{
-                            backgroundColor: colors.border,
-                            color: '#ffffff',
-                          }}
-                          className="px-2 py-0.5 text-xs rounded-full font-semibold inline-block shadow-sm"
-                        >
-                          {pipeline.type.toUpperCase()}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {pipeline.blocks.length}개 블록
-                        </div>
+                    )}
+                    <div className="flex items-center justify-between mb-1">
+                      <div
+                        style={{ backgroundColor: colors.border, color: '#ffffff' }}
+                        className="px-2 py-0.5 text-xs rounded-full font-semibold inline-block shadow-sm"
+                      >
+                        {pipeline.type.toUpperCase()}
                       </div>
-
-                      {/* 포함된 블록 미리보기 */}
-                      <div className="text-xs text-gray-600">
-                        <div className="font-medium mb-1">포함된 블록:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {pipeline.blocks.slice(0, 3).map((block, blockIndex) => (
-                            <span
-                              key={blockIndex}
-                              className="px-1.5 py-0.5 bg-white/50 rounded text-xs"
-                            >
-                              {block.name}
-                            </span>
-                          ))}
-                          {pipeline.blocks.length > 3 && (
-                            <span className="px-1.5 py-0.5 bg-white/50 rounded text-xs">
-                              +{pipeline.blocks.length - 3}개 더
-                            </span>
-                          )}
-                        </div>
+                      <div className="text-xs text-gray-500">
+                        {pipeline.blocks.length}개 블록
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })}
             </div>
-
-            {/* 사용법 안내 */}
-            <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed w-full shadow-sm">
-              <div className="flex items-center gap-1 mb-1">
-                <Lightbulb size={12} className="text-purple-500 flex-shrink-0" />
-                <strong className="text-gray-800 text-xs">파이프라인 사용법:</strong>
-              </div>
-              <ul className="space-y-0.5 text-xs">
-                <li>• 파이프라인을 드래그하여 워크스페이스에 드롭</li>
-                <li>• 전체 파이프라인이 자동으로 구성됩니다</li>
-                <li>• 파이프라인 타입별로 분류되어 있습니다</li>
-                <li>• 필요에 따라 개별 블록을 추가로 수정할 수 있습니다</li>
-              </ul>
-            </div>
-          </div>
-        </>
+          )}
+        </div>
       )}
     </div>
   );

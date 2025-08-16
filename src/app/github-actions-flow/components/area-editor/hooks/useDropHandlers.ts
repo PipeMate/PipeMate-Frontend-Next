@@ -3,10 +3,8 @@ import { ServerBlock, WorkflowNodeData } from '../../../types';
 import { AreaNodes, NodeType } from '../types';
 import { toast } from 'react-toastify';
 
-/**
- * 드롭 핸들러 관리 훅
- * 강화된 유효성 검사 및 순서 제약 포함
- */
+// * 드롭 핸들러 관리 훅
+// * 강화된 유효성 검사 및 순서 제약 포함
 export const useDropHandlers = (
   areaNodes: AreaNodes,
   addNode: (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => void,
@@ -102,9 +100,7 @@ export const useDropHandlers = (
   //* 유효성 검사 함수들
   //* ========================================
 
-  /**
-   * 블록 타입별 허용 영역 검사
-   */
+  // * 블록 타입별 허용 영역 검사
   const validateBlockDrop = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -140,9 +136,7 @@ export const useDropHandlers = (
     [showToast],
   );
 
-  /**
-   * 순서 제약 검사
-   */
+  // * 순서 제약 검사
   const validateOrderConstraints = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -164,9 +158,7 @@ export const useDropHandlers = (
     [areaNodes.trigger.length, areaNodes.job.length, showToast],
   );
 
-  /**
-   * 중복 검사 (Trigger만 적용)
-   */
+  // * 중복 검사 (Trigger만 적용)
   const validateDuplicates = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       const blockType = block.type;
@@ -188,9 +180,7 @@ export const useDropHandlers = (
     [areaNodes.trigger, showToast],
   );
 
-  /**
-   * 종합 유효성 검사
-   */
+  // * 종합 유효성 검사
   const performValidation = useCallback(
     (block: ServerBlock, targetArea: keyof AreaNodes) => {
       return (
@@ -202,10 +192,8 @@ export const useDropHandlers = (
     [validateBlockDrop, validateOrderConstraints, validateDuplicates],
   );
 
-  /**
-   * 드롭 이벤트 핸들러
-   * 블록을 특정 영역에 드롭했을 때 호출됩니다.
-   */
+  // * 드롭 이벤트 핸들러
+  // * 블록을 특정 영역에 드롭했을 때 호출됩니다.
   const handleDrop = useCallback(
     (e: React.DragEvent, targetArea: keyof AreaNodes) => {
       e.preventDefault();
@@ -234,46 +222,112 @@ export const useDropHandlers = (
             return;
           }
 
-          //* 파이프라인 블록들을 순서대로 추가
-          blocks.forEach((block: ServerBlock) => {
-            const nodeType =
-              block.type === 'trigger'
-                ? 'workflowTrigger'
-                : block.type === 'job'
-                ? 'job'
-                : 'step';
-
-            //* 각 블록에 대해 유효성 검사 수행
-            if (!performValidation(block, targetArea)) {
-              return; //* 유효성 검사 실패 시 해당 블록 건너뛰기
-            }
-
-            const nodeData: WorkflowNodeData = {
-              label: block.name,
-              type:
-                block.type === 'trigger'
-                  ? 'workflow_trigger'
-                  : (block.type as 'workflow_trigger' | 'job' | 'step'),
-              description: block.description,
-              jobName: block['job-name'] || '',
-              domain: block.domain,
-              task: block.task,
-              config: block.config,
-            };
-
-            //* Step을 Job 영역에 드롭한 경우, 가장 가까운 Job을 부모로 설정
-            let parentId: string | undefined;
-            if (nodeType === 'step' && targetArea === 'job') {
-              const jobNodes = areaNodes.job;
-              if (jobNodes.length > 0) {
-                const parentJob = jobNodes[jobNodes.length - 1];
-                parentId = parentJob.id;
-                nodeData.jobName = parentJob.data.jobName || '';
-              }
-            }
-
-            addNode(nodeType as NodeType, nodeData, parentId);
+          //* 디버깅: 파이프라인 데이터 로그
+          console.log('파이프라인 드롭 데이터:', {
+            pipeline,
+            blocks,
+            targetArea,
           });
+
+          //* 파이프라인 블록들을 순서대로 추가
+          //* Job과 Step을 분리하여 처리
+          const triggerBlocks: ServerBlock[] = [];
+          const jobBlocks: ServerBlock[] = [];
+          const stepBlocks: ServerBlock[] = [];
+
+          //* 블록들을 타입별로 분류
+          blocks.forEach((block: ServerBlock) => {
+            if (block.type === 'trigger') {
+              triggerBlocks.push(block);
+            } else if (block.type === 'job') {
+              jobBlocks.push(block);
+            } else if (block.type === 'step') {
+              stepBlocks.push(block);
+            }
+          });
+
+          console.log('분류된 블록들:', { triggerBlocks, jobBlocks, stepBlocks });
+
+          //* 1단계: Trigger와 Job 블록들을 먼저 생성
+          [...triggerBlocks, ...jobBlocks].forEach((block: ServerBlock) => {
+            console.log('Job/Trigger 블록 생성:', block);
+
+            if (block.type === 'trigger') {
+              const nodeData: WorkflowNodeData = {
+                label: block.name,
+                type: 'workflow_trigger',
+                description: block.description,
+                jobName: '',
+                domain: block.domain,
+                task: block.task,
+                config: block.config,
+              };
+              addNode('workflowTrigger', nodeData);
+            } else if (block.type === 'job') {
+              console.log('Job 블록 생성 시작:', block);
+              const nodeData: WorkflowNodeData = {
+                label: block.name,
+                type: 'job',
+                description: block.description,
+                jobName: block.jobName || '',
+                domain: block.domain,
+                task: block.task,
+                config: block.config,
+              };
+              console.log('Job nodeData:', nodeData);
+              const result = addNode('job', nodeData);
+              console.log('Job addNode 결과:', result);
+            }
+          });
+
+          //* 2단계: Step 블록들을 생성 (Job이 생성된 후)
+          //* 상태 업데이트를 기다린 후 Step 생성
+          setTimeout(() => {
+            stepBlocks.forEach((block: ServerBlock) => {
+              console.log('Step 블록 생성:', block);
+              const nodeData: WorkflowNodeData = {
+                label: block.name,
+                type: 'step',
+                description: block.description,
+                jobName: block.jobName || '',
+                domain: block.domain,
+                task: block.task,
+                config: block.config,
+              };
+
+              //* Step의 부모 Job 찾기
+              let parentId: string | undefined;
+              const targetJobName = block.jobName;
+              console.log('Step의 targetJobName:', targetJobName);
+              console.log('현재 areaNodes.job:', areaNodes.job);
+
+              if (targetJobName) {
+                const targetJob = areaNodes.job.find(
+                  (job) => job.data.jobName === targetJobName,
+                );
+                console.log('찾은 targetJob:', targetJob);
+                if (targetJob) {
+                  parentId = targetJob.id;
+                  nodeData.jobName = targetJobName;
+                }
+              }
+
+              //* 부모 Job을 찾지 못한 경우 가장 최근 Job을 부모로 설정
+              if (!parentId) {
+                const jobNodes = areaNodes.job;
+                console.log('부모 Job을 찾지 못함, 가장 최근 Job 사용:', jobNodes);
+                if (jobNodes.length > 0) {
+                  const parentJob = jobNodes[jobNodes.length - 1];
+                  parentId = parentJob.id;
+                  nodeData.jobName = parentJob.data.jobName || '';
+                  console.log('최근 Job을 부모로 설정:', parentJob);
+                }
+              }
+
+              console.log('최종 Step 생성:', { nodeData, parentId });
+              addNode('step', nodeData, parentId);
+            });
+          }, 200); // 200ms 대기 (더 긴 시간으로 증가)
 
           showToast('파이프라인이 성공적으로 추가되었습니다.', 'success');
           return;
@@ -301,7 +355,7 @@ export const useDropHandlers = (
               ? 'workflow_trigger'
               : (block.type as 'workflow_trigger' | 'job' | 'step'),
           description: block.description,
-          jobName: block['job-name'] || '',
+          jobName: block['jobName'] || '',
           domain: block.domain,
           task: block.task,
           config: block.config,
@@ -328,9 +382,7 @@ export const useDropHandlers = (
     [addNode, areaNodes.job, performValidation, clearDragState, showToast],
   );
 
-  /**
-   * 드롭 핸들러 - 영역별
-   */
+  // * 드롭 핸들러 - 영역별
   const handleAreaDrop = useCallback(
     (e: React.DragEvent, areaKey: keyof AreaNodes) => {
       e.preventDefault();
@@ -371,7 +423,7 @@ export const useDropHandlers = (
               ? 'workflow_trigger'
               : (block.type as 'workflow_trigger' | 'job' | 'step'),
           description: block.description,
-          jobName: block['job-name'] || '',
+          jobName: block['jobName'] || '',
           domain: block.domain,
           task: block.task,
           config: block.config,
@@ -396,9 +448,7 @@ export const useDropHandlers = (
     [addNode, areaNodes.job, handleDrop, performValidation, clearDragState, showToast],
   );
 
-  /**
-   * 드롭 핸들러 - Job 내부 Step 영역
-   */
+  // * 드롭 핸들러 - Job 내부 Step 영역
   const handleJobStepDrop = useCallback(
     (e: React.DragEvent, jobId: string) => {
       e.preventDefault();
@@ -433,7 +483,7 @@ export const useDropHandlers = (
             return;
           }
 
-          const jobName = parentJob.data.jobName || block['job-name'] || '';
+          const jobName = parentJob.data.jobName || block['jobName'] || '';
 
           const nodeData: WorkflowNodeData = {
             label: block.name,

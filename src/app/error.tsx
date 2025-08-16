@@ -1,7 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import Link from "next/link";
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 
 export default function Error({
   error,
@@ -15,25 +18,40 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">500</h1>
-        <p className="text-gray-600 mb-8">서버 오류가 발생했습니다.</p>
-        <div className="space-x-4">
-          <button
-            onClick={reset}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            다시 시도
-          </button>
-          <Link
-            href="/"
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            홈으로 돌아가기
-          </Link>
-        </div>
-      </div>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <Card className="max-w-md w-full mx-4">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-900">500</CardTitle>
+          <p className="text-gray-600">서버 오류가 발생했습니다.</p>
+        </CardHeader>
+        <CardContent className="text-center">
+          <div className="space-y-3">
+            <Button onClick={reset} className="w-full">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              다시 시도
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/">
+                <Home className="w-4 h-4 mr-2" />
+                홈으로 돌아가기
+              </Link>
+            </Button>
+          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-4 text-left">
+              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                오류 상세 정보
+              </summary>
+              <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+                {error.message}
+              </pre>
+            </details>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

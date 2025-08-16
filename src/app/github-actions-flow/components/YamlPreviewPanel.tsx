@@ -57,19 +57,19 @@ const analyzeWorkflowStructure = (blocks: ServerBlock[]): WorkflowStructure => {
     if (block.type === 'trigger') {
       structure.trigger = block;
     } else if (block.type === 'job') {
-      const jobName = block['job-name'] || 'unknown';
+      const jobName = block['jobName'] || 'unknown';
       structure.jobs[jobName] = {
         job: block,
         steps: [],
       };
     } else if (block.type === 'step') {
-      const jobName = block['job-name'] || 'unknown';
+      const jobName = block['jobName'] || 'unknown';
       if (!structure.jobs[jobName]) {
         structure.jobs[jobName] = {
           job: {
             name: jobName,
             type: 'job',
-            'job-name': jobName,
+            jobName: jobName,
           } as ServerBlock,
           steps: [],
         };
@@ -449,9 +449,9 @@ export const YamlPreviewPanel = ({
       </div>
 
       {/* ========================================
-          블록 편집 영역 (블록 모드일 때만)
+          블록 편집 영역 (isEditing=true && 블록 모드일 때만)
           ======================================== */}
-      {viewMode === 'block' && selectedBlock && (
+      {isEditing && viewMode === 'block' && selectedBlock && (
         <div className="px-4 py-3 border-t border-gray-200">
           <div className="text-sm font-semibold text-gray-900 mb-3">블록 편집</div>
 
@@ -500,12 +500,12 @@ export const YamlPreviewPanel = ({
                 </label>
                 <input
                   type="text"
-                  value={selectedBlock['job-name'] || ''}
+                  value={selectedBlock['jobName'] || ''}
                   onChange={(e) => {
                     if (onBlockUpdate) {
                       onBlockUpdate({
                         ...selectedBlock,
-                        'job-name': e.target.value,
+                        jobName: e.target.value,
                       });
                     }
                   }}

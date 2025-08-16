@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { AreaNodeData } from './area-editor/types';
 import { ServerBlock } from '../types';
 import { WorkflowNodeData } from '../types';
 import { NodeType } from './area-editor/types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
 import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
-import { useCreatePipeline } from '@/api/hooks/usePipeline';
+import { useCreatePipeline } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
+
+import { SecretManagementPanel } from './SecretManagementPanel';
 import {
   Settings,
   Save,
@@ -29,11 +31,18 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import 'react-toastify/dist/ReactToastify.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSecrets } from '@/api/hooks';
+import { useSecrets, useCreateOrUpdateSecret } from '@/api';
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,
@@ -57,6 +66,9 @@ interface IntegratedSidePanelProps {
   onBlockUpdate?: (updatedBlock: ServerBlock) => void;
   hasNodes: boolean;
   updateNodeData?: (nodeId: string, data: WorkflowNodeData) => void;
+  mode?: 'create' | 'edit';
+  initialWorkflowName?: string;
+  onWorkflowNameChange?: (name: string) => void;
 }
 
 //* ========================================
@@ -98,6 +110,7 @@ interface NodeEditorProps {
   nodeType: NodeType;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
+  onMissingSecrets?: (missing: string[]) => void;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -105,6 +118,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   nodeType,
   onSave,
   onCancel: _onCancel,
+  onMissingSecrets,
 }) => {
   const { owner, repo } = useRepository();
   const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
@@ -116,28 +130,145 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // duplicate removed; use the state in the panel scope
 
   // Secrets API 훅
-  const { data: secretsData } = useSecrets(owner || '', repo || '');
+  const { data: secretsData, refetch: refetchSecrets } = useSecrets(
+    owner || '',
+    repo || '',
+  );
 
-  // 초기 데이터 설정
+  // nodeData 변경 감지를 위한 메모이제이션
+  const nodeDataKey = useMemo(() => {
+    return `${JSON.stringify(nodeData)}-${JSON.stringify(nodeData.config)}`;
+  }, [nodeData]);
+
+  // 초기 데이터 설정 (무한 렌더링 방지)
   useEffect(() => {
     setEditedData(nodeData);
     setConfigText(JSON.stringify(nodeData.config, null, 2));
     setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeData]);
+  }, [nodeDataKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Config 변경 시 secrets 감지
+  // 도메인/태스크 자동 추론
+  const inferDomainAndTask = useCallback((config: Record<string, unknown>) => {
+    const result: { domain?: string; task?: string[] } = {};
+    const uses = typeof config?.uses === 'string' ? (config.uses as string) : undefined;
+    const run = typeof config?.run === 'string' ? (config.run as string) : undefined;
+
+    if (uses) {
+      if (uses.startsWith('actions/')) {
+        result.domain = 'github';
+        const actionName = uses.split('/')[1]?.split('@')[0] || 'action';
+        result.task = [actionName];
+      } else if (uses.includes('docker')) {
+        result.domain = 'docker';
+        result.task = ['docker'];
+      }
+    }
+
+    if (!result.domain && run) {
+      if (/\b(mvn|maven|gradle)\b/i.test(run)) {
+        result.domain = 'java';
+        const tasks: string[] = [];
+        if (/gradle\s+(build|test|publish)/i.test(run)) {
+          const m = run.match(/gradle\s+(build|test|publish)/i);
+          if (m) tasks.push(m[1].toLowerCase());
+        }
+        if (/mvn\s+([a-z:-]+)/i.test(run)) {
+          const m = run.match(/mvn\s+([a-z:-]+)/i);
+          if (m) tasks.push(m[1].toLowerCase());
+        }
+        if (tasks.length > 0) result.task = tasks;
+      } else if (/\b(npm|yarn|pnpm)\b/i.test(run)) {
+        result.domain = 'node';
+        const m = run.match(/\b(npm|yarn|pnpm)\s+(run\s+)?([a-zA-Z0-9:_-]+)/i);
+        if (m && m[3]) result.task = [m[3].toLowerCase()];
+      } else if (/\bpython\b|pip|poetry/i.test(run)) {
+        result.domain = 'python';
+      }
+    }
+
+    return result;
+  }, []);
+
+  // step 기본 메타 자동완성 (미설정 시에만) - 무한 렌더링 방지
+  useEffect(() => {
+    if (nodeType === 'step' && editedData.config) {
+      const needsDomain = !editedData.domain || editedData.domain.trim() === '';
+      const needsTask = !editedData.task || editedData.task.length === 0;
+
+      if (needsDomain || needsTask) {
+        const inferred = inferDomainAndTask(editedData.config);
+        const shouldUpdate =
+          (needsDomain && inferred.domain) || (needsTask && inferred.task);
+
+        if (shouldUpdate) {
+          setEditedData((prev) => ({
+            ...prev,
+            ...(needsDomain && inferred.domain ? { domain: inferred.domain } : {}),
+            ...(needsTask && inferred.task ? { task: inferred.task } : {}),
+          }));
+        }
+      }
+    }
+  }, [
+    nodeType,
+    editedData.label,
+    editedData.domain,
+    editedData.task,
+    JSON.stringify(editedData.config),
+    inferDomainAndTask,
+  ]);
+
+  // Config 변경 시 secrets 감지 (캐시 문제 해결을 위한 개선)
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      const userSecrets =
-        secretsData?.data?.secrets?.map((s: { name: string }) => s.name) || [];
-      const missing = findMissingSecrets(requiredSecrets, userSecrets);
-      // will update panel-level state when panel mounts
+      // API 응답 구조에 맞게 수정 (groupedSecrets 사용)
+      const userSecrets: string[] = [];
+      if (secretsData?.data?.groupedSecrets) {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+          if (Array.isArray(group)) {
+            group.forEach((secret: unknown) => {
+              if (
+                secret &&
+                typeof secret === 'object' &&
+                'name' in secret &&
+                typeof secret.name === 'string'
+              ) {
+                userSecrets.push(secret.name);
+              }
+            });
+          }
+        });
+      }
 
-      // 누락된 secrets가 있으면 토스트 표시
+      // console.log('🔍 시크릿 감지 디버그:', {
+      //   requiredSecrets,
+      //   userSecrets,
+      //   secretsDataStructure: secretsData?.data,
+      //   missing: findMissingSecrets(requiredSecrets, userSecrets),
+      // });
+
+      const missing = findMissingSecrets(requiredSecrets, userSecrets);
+
+      // 누락된 시크릿이 있지만 최근에 생성되었을 가능성이 있으면 재시도
+      if (missing.length > 0 && requiredSecrets.length > 0) {
+        // 2초 후 한 번 더 확인 (시크릿 생성 직후의 캐시 지연 대응)
+        const retryTimer = setTimeout(async () => {
+          try {
+            await refetchSecrets();
+            // console.log('🔄 시크릿 목록 재확인 완료');
+          } catch (error) {
+            console.warn('시크릿 재확인 실패:', error);
+          }
+        }, 2000);
+
+        // 컴포넌트 언마운트 시 타이머 정리
+        return () => clearTimeout(retryTimer);
+      }
+
+      // 누락된 secrets가 있으면 토스트 표시 (첫 번째 감지에서만)
       if (missing.length > 0) {
         toast.warning(
           `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
@@ -152,7 +283,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         );
       }
     }
-  }, [editedData.config, nodeType, secretsData]);
+  }, [JSON.stringify(editedData.config), nodeType, secretsData, refetchSecrets]);
 
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = React.useCallback(
@@ -324,6 +455,33 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         config,
       };
       onSave(updatedData);
+      toast.success('노드가 저장되었습니다.');
+
+      // 저장 시 시크릿 누락 확인 후, 별도 편집창 열기
+      if (canNodeUseSecrets(nodeType)) {
+        const required = detectSecretsInConfig(config);
+        const existing: string[] = [];
+        if (secretsData?.data?.groupedSecrets) {
+          Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+            if (Array.isArray(group)) {
+              group.forEach((secret: unknown) => {
+                if (
+                  secret &&
+                  typeof secret === 'object' &&
+                  'name' in secret &&
+                  typeof secret.name === 'string'
+                ) {
+                  existing.push(secret.name);
+                }
+              });
+            }
+          });
+        }
+        const missing = findMissingSecrets(required, existing);
+        if (missing.length > 0 && onMissingSecrets) {
+          onMissingSecrets(missing);
+        }
+      }
     } catch {
       setConfigError('설정 저장 중 오류가 발생했습니다.');
     }
@@ -479,7 +637,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 onChange={(e) =>
                   setEditedData({ ...editedData, jobName: e.target.value })
                 }
-                placeholder="job-name을 입력하세요"
+                placeholder="jobName을 입력하세요"
                 className="mt-1"
               />
             </div>
@@ -616,10 +774,19 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   onBlockUpdate,
   hasNodes,
   updateNodeData,
+  mode = 'create',
+  initialWorkflowName,
+  onWorkflowNameChange,
 }) => {
   const { owner, repo, isConfigured } = useRepository();
   const createPipelineMutation = useCreatePipeline();
-  const [workflowName, setWorkflowName] = useState<string>('');
+  const createOrUpdateSecret = useCreateOrUpdateSecret();
+  // Secrets API 훅 (IntegratedSidePanel 전체에서 사용)
+  const { data: secretsData, refetch: refetchSecrets } = useSecrets(
+    owner || '',
+    repo || '',
+  );
+  const [workflowName, setWorkflowName] = useState<string>(initialWorkflowName || '');
   const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
   const [editableYaml, setEditableYaml] = useState<string>('');
@@ -628,12 +795,44 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   const [, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [isYamlEditing, setIsYamlEditing] = useState<boolean>(false);
   const [yamlError, setYamlError] = useState<string>('');
+  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
+  const [missingSecretsState, setMissingSecretsState] = useState<string[]>([]);
+  const [newSecretValues, setNewSecretValues] = useState<Record<string, string>>({});
 
-  // Secrets 관리 상태
-  const [missingSecrets] = useState<string[]>([]);
+  // Secrets 관리 상태 - 실제 누락된 시크릿 계산
+  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
 
-  // 워크플로우 구조 분석
-  // 트리 분석 제거됨
+  // 선택된 노드의 시크릿 감지
+  useEffect(() => {
+    if (
+      selectedNode &&
+      canNodeUseSecrets(selectedNode.type) &&
+      selectedNode.data.config
+    ) {
+      const requiredSecrets = detectSecretsInConfig(selectedNode.data.config);
+      const userSecrets: string[] = [];
+      if (secretsData?.data?.groupedSecrets) {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+          if (Array.isArray(group)) {
+            group.forEach((secret: unknown) => {
+              if (
+                secret &&
+                typeof secret === 'object' &&
+                'name' in secret &&
+                typeof secret.name === 'string'
+              ) {
+                userSecrets.push(secret.name);
+              }
+            });
+          }
+        });
+      }
+      const missing = findMissingSecrets(requiredSecrets, userSecrets);
+      setMissingSecrets(missing);
+    } else {
+      setMissingSecrets([]);
+    }
+  }, [selectedNode, secretsData]);
 
   // AreaNodeData를 ServerBlock로 변환하는 함수
   const convertAreaNodeToServerBlock = useCallback((node: AreaNodeData): ServerBlock => {
@@ -644,12 +843,10 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           ? 'trigger'
           : (node.type as 'trigger' | 'job' | 'step'),
       description: node.data.description,
-      'job-name': node.data.jobName,
+      jobName: node.data.jobName,
       config: node.data.config || {},
     };
   }, []);
-
-  // Secrets 관리자 열기 핸들러 (미사용 제거)
 
   // 편집 모드가 활성화되면 YAML을 편집 가능한 상태로 설정
   useEffect(() => {
@@ -746,12 +943,6 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     });
   }, [getCurrentYaml]);
 
-  // 트리 뷰에서 블록 선택 핸들러
-  // 트리 선택 제거됨
-
-  // 노드 저장 핸들러 (로컬 편집용)
-  // handleNodeSave 통합: settings → node 섹션에서 직접 updateNodeData 사용
-
   // 서버에 워크플로우 저장 핸들러
   const handleSaveWorkflowToServer = useCallback(async () => {
     if (!isConfigured) {
@@ -783,6 +974,17 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
       toast.error('워크플로우 저장에 실패했습니다. 다시 시도해주세요.');
     }
   }, [owner, repo, isConfigured, hasNodes, blocks, workflowName, createPipelineMutation]);
+
+  useEffect(() => {
+    // blocks의 trigger 블록에서 이름 자동완성: x_name 혹은 name 필드를 사용할 수 있다면 확장 가능
+    // 현재는 편집 페이지에서 전달된 initialWorkflowName 우선
+    if (initialWorkflowName && !workflowName) {
+      setWorkflowName(initialWorkflowName);
+    }
+    if (onWorkflowNameChange) {
+      onWorkflowNameChange(workflowName);
+    }
+  }, [initialWorkflowName, workflowName, onWorkflowNameChange]);
 
   if (!isOpen) return null;
 
@@ -1066,37 +1268,62 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
                         className="mt-1"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
-                        onClick={onSaveWorkflow}
+                        onClick={() => {
+                          onSaveWorkflow();
+                          toast.success(
+                            `임시 저장되었습니다${
+                              workflowName ? `: ${workflowName}` : ''
+                            }.`,
+                          );
+                          if (onWorkflowNameChange) onWorkflowNameChange(workflowName);
+                        }}
                         disabled={isSaving}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                        title="현재 워크스페이스 구성(블록) 상태를 임시 저장합니다."
                       >
                         <Save size={14} />
-                        {isSaving ? '저장 중...' : '워크플로우 저장'}
+                        {isSaving ? '임시 저장 중...' : '임시 저장'}
                       </Button>
                       <Button
                         onClick={onClearWorkspace}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
+                        title="워크스페이스의 블록을 모두 초기화합니다."
                       >
                         <Trash2 size={14} />
                         워크스페이스 초기화
                       </Button>
-                      <Button
-                        onClick={handleSaveWorkflowToServer}
-                        disabled={
-                          createPipelineMutation.isPending || !isConfigured || !hasNodes
-                        }
-                        size="sm"
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
-                      >
-                        <Save size={14} />
-                        {createPipelineMutation.isPending
-                          ? '서버 저장 중...'
-                          : '서버 저장'}
-                      </Button>
+                      {mode === 'create' && (
+                        <Button
+                          onClick={handleSaveWorkflowToServer}
+                          disabled={
+                            createPipelineMutation.isPending || !isConfigured || !hasNodes
+                          }
+                          size="sm"
+                          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                          title="새 워크플로우 파일을 생성하여 서버에 저장합니다."
+                        >
+                          <Save size={14} />
+                          {createPipelineMutation.isPending
+                            ? '신규 생성 중...'
+                            : '신규 생성'}
+                        </Button>
+                      )}
+                      {mode === 'edit' && (
+                        <Button
+                          onClick={() => {
+                            toast.info('편집 중: 상단 저장 버튼으로 서버에 적용됩니다.');
+                          }}
+                          variant="outline"
+                          size="sm"
+                          title="편집 모드에서는 상단 저장 버튼으로 서버에 적용됩니다."
+                        >
+                          서버 저장 안내
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1143,47 +1370,128 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
               </TabsContent>
 
               <TabsContent value="secrets" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      Secrets 관리
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
-                        GitHub Secrets를 생성하고 관리하세요. 워크플로우에서 사용되는
-                        secrets가 누락된 경우 여기서 추가할 수 있습니다.
+                {selectedNode && canNodeUseSecrets(selectedNode.type) ? (
+                  <SecretManagementPanel
+                    requiredSecrets={detectSecretsInConfig(selectedNode.data.config)}
+                    onSecretsUpdated={async () => {
+                      // 시크릿 업데이트 후 새로고침 및 재검증
+                      try {
+                        await refetchSecrets();
+                        // 약간의 지연 후 재검증
+                        setTimeout(() => {
+                          if (
+                            selectedNode &&
+                            canNodeUseSecrets(selectedNode.type) &&
+                            selectedNode.data.config
+                          ) {
+                            const requiredSecrets = detectSecretsInConfig(
+                              selectedNode.data.config,
+                            );
+                            const userSecrets: string[] = [];
+                            if (secretsData?.data?.groupedSecrets) {
+                              Object.values(secretsData.data.groupedSecrets).forEach(
+                                (group: unknown) => {
+                                  if (Array.isArray(group)) {
+                                    group.forEach((secret: unknown) => {
+                                      if (
+                                        secret &&
+                                        typeof secret === 'object' &&
+                                        'name' in secret &&
+                                        typeof secret.name === 'string'
+                                      ) {
+                                        userSecrets.push(secret.name);
+                                      }
+                                    });
+                                  }
+                                },
+                              );
+                            }
+                            const missing = findMissingSecrets(
+                              requiredSecrets,
+                              userSecrets,
+                            );
+                            setMissingSecrets(missing);
+                          }
+                        }, 500);
+                      } catch (error) {
+                        console.error('시크릿 업데이트 후 새로고침 실패:', error);
+                      }
+                    }}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">
+                        이 노드 타입에서는 시크릿을 사용할 수 없습니다.
                       </p>
-                      <GithubTokenDialog
-                        trigger={
-                          <Button className="w-full">
-                            <Lock className="w-4 h-4 mr-2" />
-                            Secrets 관리자 열기
-                          </Button>
-                        }
-                        missingSecrets={missingSecrets}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
           </div>
         )}
       </div>
 
-      {/* GitHub 설정 관리 (Secrets 포함) */}
-      <GithubTokenDialog
-        trigger={
-          <Button className="w-full">
-            <Lock className="w-4 h-4 mr-2" />
-            Secrets 관리자 열기
-          </Button>
-        }
-        missingSecrets={missingSecrets}
-      />
+      {/* 누락된 Secrets 생성 다이얼로그 */}
+      <Dialog open={secretDialogOpen} onOpenChange={setSecretDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>누락된 Secrets 생성</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {missingSecretsState.length === 0 ? (
+              <div className="text-sm text-gray-600">누락된 Secret이 없습니다.</div>
+            ) : (
+              missingSecretsState.map((name) => (
+                <div key={name} className="space-y-1">
+                  <div className="text-xs font-medium text-gray-700">{name}</div>
+                  <Input
+                    type="password"
+                    placeholder={`${name} 값 입력`}
+                    value={newSecretValues[name] || ''}
+                    onChange={(e) =>
+                      setNewSecretValues((prev) => ({ ...prev, [name]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={async () => {
+                if (!owner || !repo) return;
+                const entries = Object.entries(newSecretValues).filter(
+                  ([, v]) => v && v.trim(),
+                );
+                for (const [secretName, value] of entries) {
+                  try {
+                    await createOrUpdateSecret.mutateAsync({
+                      owner,
+                      repo,
+                      secretName,
+                      data: { value },
+                    });
+                  } catch (e) {
+                    console.error('Secret 생성 실패:', secretName, e);
+                  }
+                }
+                setSecretDialogOpen(false);
+                setMissingSecretsState([]);
+                setNewSecretValues({});
+                // 시크릿 목록 즉시 새로고침
+                refetchSecrets();
+                toast.success('누락된 Secrets가 저장되었습니다.');
+              }}
+              disabled={!isConfigured || missingSecretsState.length === 0}
+            >
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -9,27 +9,13 @@ GitHub Actions 워크플로우를 시각적으로 구성할 수 있는 프론트
 프로젝트 루트에 `.env.local` 파일을 생성하고 다음 환경변수들을 설정하세요:
 
 ```bash
-# API 설정
-NEXT_PUBLIC_USE_REAL_API=false
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-
-# GitHub 설정
-NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id_here
-GITHUB_CLIENT_SECRET=your_github_client_secret_here
-
-# 기타 설정
-NODE_ENV=development
-PORT=3000
+  # API 설정
+  NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
 ### 환경변수 설명
 
-- `NEXT_PUBLIC_USE_REAL_API`: 실제 백엔드 API 사용 여부
-  - `false`: 목 데이터 사용 (개발용)
-  - `true`: 실제 백엔드 API 사용 (프로덕션용)
 - `NEXT_PUBLIC_API_BASE_URL`: 백엔드 API 기본 URL
-- `NEXT_PUBLIC_GITHUB_CLIENT_ID`: GitHub OAuth App Client ID
-- `GITHUB_CLIENT_SECRET`: GitHub OAuth App Client Secret
 
 ## 설치 및 실행
 
@@ -45,38 +31,6 @@ npm run build
 
 # 프로덕션 서버 실행
 npm start
-```
-
-## API 사용 방법
-
-### 목 데이터 사용 (개발용)
-
-```typescript
-import { createPipeline, getPipeline } from '@/app/github-actions-flow/constants/mockData';
-
-// 목 데이터로 파이프라인 생성
-const result = await createPipeline({
-  owner: 'donghyuun',
-  repo: 'pipemate',
-  workflowName: 'test-workflow',
-  inputJson: [...],
-  description: '테스트 워크플로우'
-});
-```
-
-### 실제 API 사용 (프로덕션용)
-
-환경변수 `NEXT_PUBLIC_USE_REAL_API=true`로 설정하면 자동으로 실제 백엔드 API를 사용합니다.
-
-```typescript
-// 실제 백엔드 API 호출
-const result = await createPipeline({
-  owner: 'donghyuun',
-  repo: 'pipemate',
-  workflowName: 'test-workflow',
-  inputJson: [...],
-  description: '테스트 워크플로우'
-});
 ```
 
 ## 주요 기능

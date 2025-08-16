@@ -4,9 +4,23 @@
 //* 이 파일은 GitHub Actions 워크플로우 에디터의
 //* 노드 제목, 색상, 아이콘, 핸들 설정을 정의합니다.
 
-import { Position } from '@xyflow/react';
 import { Package, Settings, Layers, Zap, Code } from 'lucide-react';
 import React from 'react';
+
+//* 커스텀 Position 타입 정의
+interface Position {
+  Top: 'top';
+  Bottom: 'bottom';
+  Left: 'left';
+  Right: 'right';
+}
+
+const Position: Position = {
+  Top: 'top',
+  Bottom: 'bottom',
+  Left: 'left',
+  Right: 'right',
+};
 
 //* ========================================
 //* 노드 타입 정의
@@ -123,7 +137,7 @@ export const NODE_HANDLE_CONFIGS = {
     {
       type: 'source' as const,
       position: Position.Bottom,
-      className: 'reactflow-handle',
+      className: 'custom-handle',
       style: { background: '#10b981' },
     },
   ],
@@ -131,19 +145,19 @@ export const NODE_HANDLE_CONFIGS = {
     {
       type: 'target' as const,
       position: Position.Top,
-      className: 'reactflow-handle',
+      className: 'custom-handle',
       style: { background: '#3b82f6' },
     },
     {
       type: 'source' as const,
       position: Position.Bottom,
-      className: 'reactflow-handle',
+      className: 'custom-handle',
       style: { background: '#3b82f6' },
     },
     {
       type: 'source' as const,
       position: Position.Right,
-      className: 'reactflow-handle job-connection',
+      className: 'custom-handle job-connection',
       style: {
         background: '#3b82f6',
         right: -4,
@@ -156,19 +170,19 @@ export const NODE_HANDLE_CONFIGS = {
     {
       type: 'target' as const,
       position: Position.Top,
-      className: 'reactflow-handle',
+      className: 'custom-handle',
       style: { top: -4, background: '#f59e0b' },
     },
     {
       type: 'source' as const,
       position: Position.Bottom,
-      className: 'reactflow-handle',
+      className: 'custom-handle',
       style: { bottom: -4, background: '#f59e0b' },
     },
     {
       type: 'target' as const,
       position: Position.Left,
-      className: 'reactflow-handle job-connection',
+      className: 'custom-handle job-connection',
       style: {
         left: -4,
         top: '50%',

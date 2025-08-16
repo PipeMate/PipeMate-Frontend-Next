@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { ROUTE_LIST, BRAND } from '@/config';
+import { ROUTES, BRAND } from '@/config';
 import { cn } from '@/lib/utils';
 import { useLayout } from './LayoutContext';
 import { GithubTokenDialog } from '@/components/features/GithubTokenDialog';
@@ -163,7 +163,7 @@ function MenuSection() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {ROUTE_LIST.map((route, index) => (
+                {Object.values(ROUTES).map((route, index) => (
                   <SidebarMenuItem key={index}>
                     <SidebarMenuButton
                       onClick={() => handleRouteClick(route.url)}

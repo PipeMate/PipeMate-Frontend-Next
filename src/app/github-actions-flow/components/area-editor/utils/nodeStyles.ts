@@ -18,9 +18,7 @@ export interface NodeStyle {
   color: string;
 }
 
-/**
- * 노드 스타일 생성 함수
- */
+// * 노드 스타일 생성 함수
 export const getNodeStyle = (
   nodeType: NodeType,
   isChild?: boolean,

@@ -7,7 +7,6 @@ import {
   Play,
   Eye,
   Monitor,
-  Settings,
 } from 'lucide-react';
 
 // * 브랜드 정보
@@ -36,11 +35,6 @@ export const ROUTES = {
     url: '/monitoring',
     label: '로그 모니터링',
     icon: Monitor,
-  },
-  PRESETS: {
-    url: '/presets',
-    label: '프리셋 관리',
-    icon: Settings,
   },
   ACTION_FLOW: {
     url: '/github-actions-flow',
@@ -98,68 +92,9 @@ export const HOME = {
   },
 } as const;
 
-// * 파일 정보
-export const FILES = {
-  changes: [
-    {
-      file: 'README.md',
-      state: 'M',
-    },
-    {
-      file: 'api/hello/route.ts',
-      state: 'U',
-    },
-    {
-      file: 'app/layout.tsx',
-      state: 'M',
-    },
-  ],
-  tree: [
-    [
-      'app',
-      [
-        'api',
-        ['hello', ['route.ts']],
-        'page.tsx',
-        'layout.tsx',
-        ['blog', ['page.tsx']],
-        ['blockly', ['page.tsx']],
-        ['github-actions-flow', ['page.tsx']],
-      ],
-    ],
-    ['components', ['ui', 'button.tsx', 'card.tsx'], 'header.tsx', 'footer.tsx'],
-    ['lib', ['util.ts']],
-    ['public', 'favicon.ico', 'vercel.svg'],
-    '.eslintrc.json',
-    '.gitignore',
-    'next.config.js',
-    'tailwind.config.js',
-    'package.json',
-    'README.md',
-  ],
-} as const;
-
 // * 쿠키 저장소 명
 export const STORAGES = {
   GITHUB_TOKEN: 'github token',
   REPOSITORY_OWNER: 'repository owner',
   REPOSITORY_NAME: 'repository name',
-};
-
-// * 맵핑을 통한 편리한 export들
-export const ROUTE_URLS = Object.values(ROUTES).map((route) => route.url);
-export const ROUTE_LABELS = Object.values(ROUTES).map((route) => route.label);
-export const CHANGED_FILES = FILES.changes.map((file) => file.file);
-export const FILE_STATES = FILES.changes.map((file) => file.state);
-
-// * 브랜드 관련 export
-export const BRAND_NAME = BRAND.name;
-export const BRAND_DESCRIPTION = BRAND.description;
-export const BRAND_LOGO = BRAND.logo;
-
-// * 기존 호환성을 위한 export (deprecated)
-export const ROUTE_LIST = Object.values(ROUTES);
-export const FILE_LIST = {
-  changes: FILES.changes,
-  tree: FILES.tree,
-};
+} as const;

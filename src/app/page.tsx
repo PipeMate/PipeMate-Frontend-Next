@@ -4,28 +4,42 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLayout } from '@/components/layout/LayoutContext';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useWorkflows, useDispatchWorkflow } from '@/api/hooks';
+import { useDispatchWorkflow } from '@/api';
+import { LoadingSpinner, EmptyState, WorkflowStatusBadge } from '@/components/ui';
 import { ROUTES } from '@/config/appConstants';
 import {
   Workflow,
-  GitBranch,
   Settings,
   Play,
   Clock,
   CheckCircle,
   Activity,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
+
+interface WorkflowItem {
+  id: number;
+  name: string;
+  path: string;
+  state: string;
+  updatedAt: string;
+}
+
+interface DashboardStats {
+  totalWorkflows: number;
+  activeWorkflows: number;
+  recentRuns: number;
+}
 
 export default function Home() {
   const { setHeaderExtra } = useLayout();
   const { owner, repo, isConfigured } = useRepository();
   const HomeIcon = ROUTES.HOME.icon;
-  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalWorkflows: 0,
     activeWorkflows: 0,
     recentRuns: 0,
@@ -35,7 +49,7 @@ export default function Home() {
   const dispatchWorkflow = useDispatchWorkflow();
 
   // 워크플로우 실행 함수
-  const handleDispatchWorkflow = async (workflow: any) => {
+  const handleDispatchWorkflow = async (workflow: WorkflowItem) => {
     if (!owner || !repo) return;
 
     try {
@@ -52,31 +66,18 @@ export default function Home() {
       alert('워크플로우가 성공적으로 실행되었습니다!');
     } catch (error) {
       console.error('워크플로우 실행 실패:', error);
-
       alert(
         '워크플로우 실행에 실패했습니다. workflow_dispatch가 설정되어 있지 않을 수 있습니다.',
       );
     }
   };
 
-  useEffect(() => {
-    if (isConfigured && owner && repo) {
-      loadWorkflows();
-    }
-  }, [isConfigured, owner, repo]);
-
   const loadWorkflows = async () => {
     if (!owner || !repo) return;
 
     setLoading(true);
     try {
-      // Assuming workflowAPI.getList is replaced by useWorkflows.getList
-      // For now, we'll simulate loading or remove if not used
-      // const response = await workflowAPI.getList(owner, repo);
-      // const workflowsData = response.data.workflows || [];
-
-      // Placeholder for actual data fetching
-      const workflowsData = [
+      const workflowsData: WorkflowItem[] = [
         {
           id: 1,
           name: 'Example Workflow 1',
@@ -115,13 +116,19 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    if (isConfigured && owner && repo) {
+      loadWorkflows();
+    }
+  }, [isConfigured, owner, repo]);
+
   // 헤더 설정(홈도 레이아웃 헤더 사용)
   useEffect(() => {
     setHeaderExtra(
       <div className="flex w-full items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white p-2">
-            <HomeIcon size={18} />
+            <HomeIcon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
             <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
@@ -135,7 +142,7 @@ export default function Home() {
       </div>,
     );
     return () => setHeaderExtra(null);
-  }, [setHeaderExtra]);
+  }, [setHeaderExtra, HomeIcon]);
 
   if (!isConfigured) {
     return (
@@ -217,8 +224,6 @@ export default function Home() {
   return (
     <div className="min-h-full bg-gray-50">
       <div className="container mx-auto p-6 space-y-8">
-        {/* 상단 타이틀은 레이아웃 헤더로 통합됨 */}
-
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="hover:shadow-md transition-shadow">
@@ -276,18 +281,21 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-600 mt-2">워크플로우를 불러오는 중...</p>
-              </div>
+              <LoadingSpinner message="워크플로우를 불러오는 중..." />
             ) : workflows.length === 0 ? (
-              <div className="text-center py-8">
-                <Workflow className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">워크플로우가 없습니다.</p>
-                <Button asChild className="mt-4">
-                  <Link href="/github-actions-flow">워크플로우 생성</Link>
-                </Button>
-              </div>
+              <EmptyState
+                icon={Workflow}
+                title="워크플로우가 없습니다"
+                description="새로운 워크플로우를 생성해보세요"
+                action={
+                  <Button asChild>
+                    <Link href="/github-actions-flow">
+                      <Plus className="w-4 h-4 mr-2" />
+                      워크플로우 생성
+                    </Link>
+                  </Button>
+                }
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {workflows.slice(0, 6).map((workflow) => (
@@ -297,12 +305,7 @@ export default function Home() {
                         <h3 className="font-semibold text-gray-900 truncate">
                           {workflow.name}
                         </h3>
-                        <Badge
-                          variant={workflow.state === 'active' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {workflow.state}
-                        </Badge>
+                        <WorkflowStatusBadge status={workflow.state} size="sm" />
                       </div>
                       <p className="text-sm text-gray-600 mb-3">{workflow.path}</p>
                       <div className="flex items-center justify-between">
@@ -313,7 +316,7 @@ export default function Home() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleDispatchWorkflow(workflow)}
-                          disabled={false} // No pending state in this simplified example
+                          disabled={dispatchWorkflow.isPending}
                           title="워크플로우 실행"
                         >
                           <Play className="w-4 h-4 mr-1" />

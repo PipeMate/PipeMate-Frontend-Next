@@ -1,37 +1,16 @@
-/**
- * GitHub Secrets 관련 React Query 훅 모음
- */
+// * Secrets 관련 React Query 훅
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { secretsAPI } from '@/api';
-import { GithubSecretRequest } from '@/api/types';
+import { secretsAPI } from './api';
+import { GithubSecretRequest } from './types';
 
-// * Secrets 목록 조회
+// * Secrets 목록 조회 (도메인별 그룹화됨)
 export const useSecrets = (owner: string, repo: string) => {
   return useQuery({
     queryKey: ['secrets', owner, repo],
     queryFn: () => secretsAPI.getList(owner, repo),
     enabled: !!owner && !!repo,
-    staleTime: 5 * 60 * 1000, // 5분
-  });
-};
-
-// * Secrets 그룹화된 목록 조회
-export const useGroupedSecrets = (owner: string, repo: string) => {
-  return useQuery({
-    queryKey: ['groupedSecrets', owner, repo],
-    queryFn: () => secretsAPI.getGroupedList(owner, repo),
-    enabled: !!owner && !!repo,
-    staleTime: 5 * 60 * 1000, // 5분
-  });
-};
-
-// * Public Key 조회
-export const usePublicKey = (owner: string, repo: string) => {
-  return useQuery({
-    queryKey: ['publicKey', owner, repo],
-    queryFn: () => secretsAPI.getPublicKey(owner, repo),
-    enabled: !!owner && !!repo,
-    staleTime: 10 * 60 * 1000, // 10분
+    staleTime: 30 * 1000, // 30초로 단축 (시크릿 변경사항 빠르게 반영)
+    refetchOnWindowFocus: true, // 윈도우 포커스 시 새로고침
   });
 };
 
@@ -56,9 +35,6 @@ export const useCreateOrUpdateSecret = () => {
       queryClient.invalidateQueries({
         queryKey: ['secrets', variables.owner, variables.repo],
       });
-      queryClient.invalidateQueries({
-        queryKey: ['groupedSecrets', variables.owner, variables.repo],
-      });
     },
   });
 };
@@ -81,9 +57,6 @@ export const useDeleteSecret = () => {
       // * 관련 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['secrets', variables.owner, variables.repo],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['groupedSecrets', variables.owner, variables.repo],
       });
     },
   });
