@@ -1,29 +1,22 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface LayoutContextType {
-  headerRight: React.ReactNode;
-  headerExtra: React.ReactNode;
-  sidebarExtra: React.ReactNode;
-  setHeaderRight: (node: React.ReactNode) => void;
-  setHeaderExtra: (node: React.ReactNode) => void;
-  setSidebarExtra: (node: React.ReactNode) => void;
+  headerRight: ReactNode | null;
+  headerExtra: ReactNode | null;
+  sidebarExtra: ReactNode | null;
+  setHeaderRight: (extra: ReactNode | null) => void;
+  setHeaderExtra: (extra: ReactNode | null) => void;
+  setSidebarExtra: (extra: ReactNode | null) => void;
 }
 
-const LayoutContext = createContext<LayoutContextType>({
-  headerRight: null,
-  headerExtra: null,
-  sidebarExtra: null,
-  setHeaderRight: () => {},
-  setHeaderExtra: () => {},
-  setSidebarExtra: () => {},
-});
+const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
-export const LayoutProvider = ({ children }: { children: React.ReactNode }) => {
-  const [headerRight, setHeaderRight] = useState<React.ReactNode>(null);
-  const [headerExtra, setHeaderExtra] = useState<React.ReactNode>(null);
-  const [sidebarExtra, setSidebarExtra] = useState<React.ReactNode>(null);
+export function LayoutProvider({ children }: { children: ReactNode }) {
+  const [headerRight, setHeaderRight] = useState<ReactNode | null>(null);
+  const [headerExtra, setHeaderExtra] = useState<ReactNode | null>(null);
+  const [sidebarExtra, setSidebarExtra] = useState<ReactNode | null>(null);
 
   return (
     <LayoutContext.Provider
@@ -39,6 +32,12 @@ export const LayoutProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </LayoutContext.Provider>
   );
-};
+}
 
-export const useLayout = () => useContext(LayoutContext);
+export function useLayout() {
+  const context = useContext(LayoutContext);
+  if (context === undefined) {
+    throw new Error('useLayout must be used within a LayoutProvider');
+  }
+  return context;
+}
