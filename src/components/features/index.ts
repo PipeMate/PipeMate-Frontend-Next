@@ -3,7 +3,7 @@
 // * - GitHub, 워크플로우, 로그 모니터링 등
 
 // * GitHub 관련 컴포넌트들
-export { GithubTokenDialog } from './GithubTokenDialog';
+export { GithubTokenDialog } from './GithubSettingsDialog';
 
 // * 워크플로우 관련 컴포넌트들
 export { default as WorkflowManager } from './WorkflowManager';
