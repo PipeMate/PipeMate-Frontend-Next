@@ -15,7 +15,7 @@ function HeroSection() {
   const { isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
 
-  // 토큰 상태를 실시간으로 감지하는 함수
+  // * 토큰 상태를 실시간으로 감지하는 함수
   const checkTokenStatus = () => {
     const token = getCookie(STORAGES.GITHUB_TOKEN);
     setHasToken(!!token);
@@ -25,14 +25,14 @@ function HeroSection() {
     checkTokenStatus();
   }, []);
 
-  // 설정 변경 감지
+  // * 설정 변경 감지
   useEffect(() => {
     const handleTokenChange = () => {
       checkTokenStatus();
     };
 
     const handleRepositoryChange = () => {
-      // 레포지토리 변경 시에도 토큰 상태 재확인
+      // * 레포지토리 변경 시에도 토큰 상태 재확인
       checkTokenStatus();
     };
 
@@ -46,7 +46,7 @@ function HeroSection() {
   }, []);
 
   const handleCTAClick = () => {
-    // 설정이 완료된 경우 바로 에디터로, 아니면 설정 페이지로
+    // * 설정이 완료된 경우 바로 에디터로, 아니면 설정 페이지로
     if (isConfigured && hasToken) {
       router.push(HOME.cta.url);
     } else {
@@ -86,7 +86,7 @@ function HeroSection() {
         </Button>
       </div>
 
-      {/* Hero 이미지 - 실제 워크플로우 에디터 이미지 사용 */}
+      {/* * Hero 이미지 - 실제 워크플로우 에디터 이미지 사용 */}
       <div className="mt-16 relative w-full max-w-6xl mx-auto">
         <div className="relative aspect-video rounded-xl shadow-2xl overflow-hidden bg-white border-4 border-gray-300">
           <Image
@@ -108,7 +108,7 @@ function FeaturesSection() {
   const { isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
 
-  // 토큰 상태를 실시간으로 감지하는 함수
+  // * 토큰 상태를 실시간으로 감지하는 함수
   const checkTokenStatus = () => {
     const token = getCookie(STORAGES.GITHUB_TOKEN);
     setHasToken(!!token);
@@ -118,14 +118,14 @@ function FeaturesSection() {
     checkTokenStatus();
   }, []);
 
-  // 설정 변경 감지
+  // * 설정 변경 감지
   useEffect(() => {
     const handleTokenChange = () => {
       checkTokenStatus();
     };
 
     const handleRepositoryChange = () => {
-      // 레포지토리 변경 시에도 토큰 상태 재확인
+      // * 레포지토리 변경 시에도 토큰 상태 재확인
       checkTokenStatus();
     };
 
@@ -146,7 +146,7 @@ function FeaturesSection() {
     }
   };
 
-  // 색상별 버튼 border 클래스 매핑
+  // * 색상별 버튼 border 클래스 매핑 (업데이트)
   const getButtonBorderColor = (color: string) => {
     switch (color) {
       case 'text-blue-600':
@@ -155,6 +155,8 @@ function FeaturesSection() {
         return 'border-green-500';
       case 'text-orange-600':
         return 'border-orange-500';
+      case 'text-purple-600':
+        return 'border-purple-500';
       default:
         return 'border-gray-300';
     }
@@ -172,7 +174,8 @@ function FeaturesSection() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+      {/* * 4개 기능을 2x2 그리드로 배치 */}
+      <div className="grid md:grid-cols-2 gap-10 max-w-6xl mx-auto">
         {HOME.features.map((feature, index) => {
           const IconComponent = feature.icon;
           const buttonBorderColor = getButtonBorderColor(feature.color);
@@ -245,7 +248,7 @@ function CTASection() {
         </Button>
       </div>
       <div className="absolute inset-0 opacity-10">
-        {/* 배경 패턴 이미지 또는 도형 추가 */}
+        {/* * 배경 패턴 이미지 또는 도형 추가 */}
       </div>
     </div>
   );

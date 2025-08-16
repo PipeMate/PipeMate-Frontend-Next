@@ -9,6 +9,8 @@ import {
   Monitor,
   Shapes,
   Shield,
+  Settings,
+  List,
 } from 'lucide-react';
 
 // * 브랜드 정보
@@ -83,15 +85,27 @@ export const HOME = {
       },
     },
     {
+      icon: List,
+      title: '워크플로우 관리 및 편집',
+      description:
+        '생성한 워크플로우들을 한 곳에서 관리하고, 언제든지 블록 에디터를 통해 수정할 수 있습니다. 기존 워크플로우를 템플릿으로 활용하여 새로운 파이프라인을 빠르게 구축해보세요.',
+      color: 'text-orange-600',
+      action: {
+        title: '워크플로우 관리',
+        url: ROUTES.WORKFLOWS.url,
+        color: 'bg-orange-600 hover:bg-orange-700',
+      },
+    },
+    {
       icon: Shield,
       title: '안전한 보안 관리',
       description:
-        '민감한 개인 정보를 GitHub Secret과 연동하여 안전하게 관리합니다. Docker 로그인, AWS 배포 등 보안이 중요한 작업도 워크플로우 블록에서 간편하게 활용할 수 있어요.',
-      color: 'text-orange-600',
+        'GitHub 토큰과 시크릿을 로컬 백엔드 서버를 통해 안전하게 관리합니다. 민감한 인증 정보를 암호화하여 저장하고, 워크플로우에서 안전하게 사용할 수 있어 보안 걱정 없이 개발에 집중할 수 있어요.',
+      color: 'text-purple-600',
       action: {
-        title: '관리하기',
-        url: ROUTES.WORKFLOWS.url,
-        color: 'bg-orange-600 hover:bg-orange-700',
+        title: '설정 관리',
+        url: '/setup',
+        color: 'bg-purple-600 hover:bg-purple-700',
       },
     },
   ],
