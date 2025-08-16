@@ -25,7 +25,9 @@ import {
   X,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useSetupGuard } from '@/hooks/useSetupGuard';
+import { FullScreenLoading } from '@/components/ui';
 
 export default function WorkflowsPage() {
   const { setHeaderExtra, setHeaderRight } = useLayout();
@@ -34,6 +36,10 @@ export default function WorkflowsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [_selectedWorkflow] = useState<WorkflowItem | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // 설정 가드
+  const { isChecking, isSetupRequired, redirectToSetup } = useSetupGuard();
 
   // 훅 사용
   const {
@@ -103,13 +109,27 @@ export default function WorkflowsPage() {
   }, [
     setHeaderExtra,
     setHeaderRight,
-    owner,
-    repo,
     workflows.length,
     workflowsLoading,
     refetchWorkflows,
-    WorkflowsIcon,
   ]);
+
+  // 설정이 필요하면 리다이렉트
+  useEffect(() => {
+    if (!isChecking && isSetupRequired) {
+      redirectToSetup(pathname);
+    }
+  }, [isChecking, isSetupRequired, redirectToSetup, pathname]);
+
+  // 설정 확인 중일 때 로딩 표시
+  if (isChecking) {
+    return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
+  }
+
+  // 설정이 필요한 경우 빈 화면 (리다이렉트 중)
+  if (isSetupRequired) {
+    return null;
+  }
 
   // 워크플로우 필터링
   const filteredWorkflows = workflows.filter((workflow) => {
