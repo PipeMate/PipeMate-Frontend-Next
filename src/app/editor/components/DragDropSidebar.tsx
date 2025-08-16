@@ -409,49 +409,45 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   return (
     <div className="w-full border-t border-gray-200 flex flex-col h-full min-w-0 min-h-0 box-border bg-white">
       {/* 헤더 - 라이브러리 모드 선택 */}
-      <div className="p-4 border-b border-gray-200 w-full bg-gradient-to-r from-blue-50 to-indigo-50">
-        <h3 className="text-base font-bold text-gray-800 mb-3 text-center w-full flex items-center justify-center gap-2">
-          {libraryMode === 'blocks' ? <Blocks size={16} /> : <GitBranch size={16} />}
+      <div className="p-3 border-b border-gray-200 w-full bg-gradient-to-r from-blue-50 to-indigo-50 relative">
+        <h3 className="text-sm font-semibold text-gray-800 mb-2 text-center w-full flex items-center justify-center gap-2">
+          {libraryMode === 'blocks' ? <Blocks size={14} /> : <GitBranch size={14} />}
           <span className="truncate">
             {libraryMode === 'blocks' ? '블록 라이브러리' : '파이프라인 라이브러리'}
           </span>
-          {/* 확장 버튼 */}
-          <button
-            className="absolute right-4 top-4 inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100"
-            onClick={() => {
-              if (onRequestCloseNodePanel) onRequestCloseNodePanel();
-              setDetailOpen(false);
-              setDetailBlock(null);
-              setLibraryExpanded(true);
-            }}
-            title="확장 보기"
-          >
-            <Maximize2 size={12} /> 확장
-          </button>
         </h3>
+        {/* 확장 버튼 */}
+        <button
+          className="absolute right-3 top-3 inline-flex items-center gap-1 text-xs px-2 py-1 rounded border bg-white hover:bg-gray-100 transition-colors"
+          onClick={() => setLibraryExpanded(!libraryExpanded)}
+          title={libraryExpanded ? '축소' : '확장'}
+        >
+          {libraryExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+          {libraryExpanded ? '축소' : '확장'}
+        </button>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-2">
           <button
             onClick={() => setLibraryMode('blocks')}
-            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
               libraryMode === 'blocks'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
-            <Blocks size={12} /> 블록
+            <Blocks size={11} /> 블록
           </button>
           <button
             onClick={() => setLibraryMode('pipelines')}
-            className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-1 ${
               libraryMode === 'pipelines'
                 ? 'bg-white text-purple-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
-            <GitBranch size={12} /> 파이프라인
+            <GitBranch size={11} /> 파이프라인
           </button>
         </div>
-        <div className="text-xs text-gray-600 text-center leading-relaxed w-full">
+        <div className="text-xs text-gray-500 text-center leading-tight w-full">
           검색으로 원하는 항목을 찾아 워크스페이스에 드래그하세요
         </div>
       </div>
@@ -465,7 +461,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
               <button
                 key={tab.type}
                 onClick={() => setActiveTab(tab.type)}
-                className={`flex-1 px-2 py-3 text-xs font-semibold border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-1 w-full
+                className={`flex-1 px-2 py-2 text-xs font-medium border-none cursor-pointer transition-all duration-200 flex flex-col items-center gap-0.5 w-full
                   ${
                     activeTab === tab.type
                       ? tab.type === 'trigger'
@@ -479,13 +475,13 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   }
                 `}
               >
-                <span className="text-sm">{tab.icon}</span>
-                <span className="truncate w-full text-center">{tab.label}</span>
+                <span className="text-xs">{tab.icon}</span>
+                <span className="truncate w-full text-center text-xs">{tab.label}</span>
               </button>
             ))}
           </div>
           {/* 블록 검색바 (타입별로 입력 유지) */}
-          <div className="p-2 border-b border-gray-200 bg-gray-50">
+          <div className="p-1.5 border-b border-gray-200 bg-gray-50">
             <div className="relative">
               <input
                 value={blockSearchByType[activeTab] || ''}
@@ -496,16 +492,16 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                   }))
                 }
                 placeholder={`${activeTab.toUpperCase()} 검색 (이름/설명)`}
-                className="w-full h-8 px-2 text-xs rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
+                className="w-full h-7 px-2 text-xs rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {/* Step 탭 필터 - 도메인과 태스크 필터링 */}
           {activeTab === 'step' && (
-            <div className="p-3 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-2 mb-2">
-                <Filter size={14} className="text-gray-500" />
+            <div className="p-2 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Filter size={12} className="text-gray-500" />
                 <span className="text-xs font-medium text-gray-700">필터</span>
               </div>
 

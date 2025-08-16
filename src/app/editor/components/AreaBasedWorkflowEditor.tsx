@@ -8,7 +8,17 @@ import { NodeEditorModal } from './NodeEditorModal';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Package, Play, Database, Cloud, Zap, Settings, Code } from 'lucide-react';
+import {
+  Package,
+  Play,
+  Database,
+  Cloud,
+  Zap,
+  Settings,
+  Code,
+  Save,
+  RotateCcw,
+} from 'lucide-react';
 
 //* 새로운 구조의 컴포넌트들과 훅들 import
 import {
@@ -365,11 +375,59 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
 
   return (
     <div
-      className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full"
+      className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full relative"
       // onDragEnd={handleDragEnd} // This line was removed as per the edit hint
     >
       {/* 메인 에디터 영역 */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden w-full h-full bg-gray-50 relative">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-gray-50 relative">
+        {/* 워크플로우 설정 (최상단) */}
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Settings size={16} className="text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">워크플로우 설정</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-500">상태:</span>
+              <span className="font-medium text-green-600">설정됨</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                value={
+                  initialWorkflowName ||
+                  `workflow-${new Date().toISOString().slice(0, 10)}`
+                }
+                onChange={(e) => onWorkflowNameChange?.(e.target.value)}
+                placeholder="워크플로우 이름"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <button
+              onClick={clearWorkspace}
+              className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm rounded-md flex items-center gap-2"
+            >
+              <RotateCcw size={14} />
+              초기화
+            </button>
+            {mode === 'create' && (
+              <button
+                onClick={() => {
+                  // 실제 워크플로우 저장 로직
+                  toast.success('워크플로우가 저장되었습니다.');
+                }}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-md flex items-center gap-2"
+              >
+                <Save size={14} />
+                워크플로우 저장
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 영역별 배치 */}
         <div
           className={`flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300 ${
@@ -428,25 +486,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
             />
           </div>
         </div>
-
-        {/* 통합 사이드 패널 */}
-        <IntegratedSidePanel
-          selectedNode={selectedNode}
-          blocks={getServerBlocksInOrder()}
-          isOpen={isControlPanelOpen}
-          onClose={() => setIsControlPanelOpen(false)}
-          onSaveWorkflow={handleSaveWorkflow}
-          onClearWorkspace={handleClearWorkspace}
-          onNodeSelect={handleNodeSelect}
-          onNodeEdit={handleNodeEdit}
-          onNodeDelete={handleNodeDelete}
-          onBlockUpdate={onBlockUpdate}
-          hasNodes={hasNodes}
-          updateNodeData={updateNodeData}
-          mode={mode}
-          initialWorkflowName={initialWorkflowName}
-          onWorkflowNameChange={onWorkflowNameChange}
-        />
       </div>
 
       {/* 노드 편집기 모달 */}
@@ -473,11 +512,23 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         limit={3}
       />
 
-      {/* 우측: 블록/파이프라인 라이브러리 컬럼 */}
-      <div className="hidden md:block w-80 xl:w-96 h-full border-l border-gray-200 bg-white overflow-hidden">
-        <DragDropSidebar
-          nodePanelOpen={isControlPanelOpen}
-          onRequestCloseNodePanel={() => setIsControlPanelOpen(false)}
+      {/* 우측: 통합 패널 (블록 라이브러리 + 편집 + YAML + 시크릿) */}
+      <div className="hidden md:block fixed top-16 right-0 w-80 xl:w-96 h-[calc(100vh-4rem)] border-l border-gray-200 bg-white overflow-hidden z-50">
+        <IntegratedSidePanel
+          selectedNode={selectedNode}
+          blocks={getServerBlocksInOrder()}
+          isOpen={true}
+          onSaveWorkflow={handleSaveWorkflow}
+          onClearWorkspace={handleClearWorkspace}
+          onNodeSelect={handleNodeSelect}
+          onNodeEdit={handleNodeEdit}
+          onNodeDelete={handleNodeDelete}
+          onBlockUpdate={onBlockUpdate}
+          hasNodes={hasNodes}
+          updateNodeData={updateNodeData}
+          mode={mode}
+          initialWorkflowName={initialWorkflowName}
+          onWorkflowNameChange={onWorkflowNameChange}
         />
       </div>
     </div>

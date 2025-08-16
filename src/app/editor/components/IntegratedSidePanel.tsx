@@ -6,15 +6,12 @@ import { ServerBlock } from '../types';
 import { WorkflowNodeData } from '../types';
 import { NodeType } from './area-editor/types';
 import { generateBlockYaml, generateFullYaml } from '../utils/yamlGenerator';
-import { parseYamlToConfigStrict, formatYaml } from '../utils/yamlUtils';
-import { useCreatePipeline } from '@/api';
+import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { toast } from 'react-toastify';
-import { GithubTokenDialog } from '@/components/features/GithubSettingsDialog';
+import { GithubSettingsDialog } from '@/components/features/GithubSettingsDialog';
 
-import { SecretManagementPanel } from './SecretManagementPanel';
 import {
-  Settings,
   Save,
   Eye,
   Trash2,
@@ -24,30 +21,55 @@ import {
   Plus,
   Minus,
   Code,
-  Layers,
-  Palette,
   Lock,
   Edit,
+  Blocks,
+  FileText,
+  Shield,
+  Key,
+  AlertCircle,
+  AlertOctagon,
+  AlertTriangle,
+  CheckCircle,
+  EyeOff,
+  Folder,
+  ChevronDown,
+  ChevronRight,
+  Settings,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import 'react-toastify/dist/ReactToastify.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSecrets, useCreateOrUpdateSecret } from '@/api';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { LoadingSpinner } from '@/components/ui';
+
 import {
   detectSecretsInConfig,
   canNodeUseSecrets,
   findMissingSecrets,
 } from '../utils/secretsDetector';
+import { DragDropSidebar } from './DragDropSidebar';
 
 //* ========================================
 //* Props 타입 정의
@@ -57,7 +79,6 @@ interface IntegratedSidePanelProps {
   selectedNode: AreaNodeData | null;
   blocks: ServerBlock[];
   isOpen: boolean;
-  onClose: () => void;
   onSaveWorkflow: () => void;
   onClearWorkspace: () => void;
   onNodeSelect: (node: AreaNodeData) => void;
@@ -72,13 +93,7 @@ interface IntegratedSidePanelProps {
 }
 
 //* ========================================
-//* 워크플로우 구조 타입 정의
-//* ========================================
-
-// 트리 탭 제거됨: 관련 타입 제거
-
-//* ========================================
-//* Config 필드 타입 정의
+//* 타입 정의
 //* ========================================
 
 interface ConfigField {
@@ -89,17 +104,575 @@ interface ConfigField {
   children?: ConfigField[];
 }
 
+interface SecretFormData {
+  name: string;
+  value: string;
+  description?: string;
+}
+
+interface SecretsData {
+  availableSecrets: string[];
+  missingSecrets: string[];
+  loading: boolean;
+  error: string | null;
+  groupedSecrets?: any;
+}
+
+interface FormData {
+  showForm: boolean;
+  secretsToCreate: SecretFormData[];
+  showValues: Record<number, boolean>;
+  isCreating: boolean;
+}
+
+interface SecretsHandlers {
+  onDeleteSecret: (secretName: string) => void;
+  onCreateMissingSecrets: (secretNames: string[]) => void;
+  onAddSecretForm: () => void;
+  onRemoveSecretForm: (index: number) => void;
+  onUpdateSecretForm: (index: number, field: keyof SecretFormData, value: string) => void;
+  onToggleValueVisibility: (index: number) => void;
+  onCloseSecretForm: () => void;
+  onCreateSecrets: () => void;
+}
+
 //* ========================================
-//* 워크플로우 구조 분석 함수
+//* 시크릿 폼 컴포넌트
 //* ========================================
 
-// 트리 탭 제거됨: 분석 함수 제거
+interface SecretFormProps {
+  secrets: SecretFormData[];
+  showValues: Record<number, boolean>;
+  onAddSecret: () => void;
+  onRemoveSecret: (index: number) => void;
+  onUpdateSecret: (index: number, field: keyof SecretFormData, value: string) => void;
+  onToggleValueVisibility: (index: number) => void;
+  onClose: () => void;
+  onCreateSecrets: () => void;
+}
+
+const SecretForm: React.FC<SecretFormProps> = ({
+  secrets,
+  showValues,
+  onAddSecret,
+  onRemoveSecret,
+  onUpdateSecret,
+  onToggleValueVisibility,
+  onClose,
+  onCreateSecrets,
+}) => {
+  const extractGroup = (secretName: string): string => {
+    if (!secretName) return 'UNKNOWN';
+    const parts = secretName.split('_');
+    return parts.length > 1 ? parts[0] : 'UNKNOWN';
+  };
+
+  const groupedSecrets = useMemo(() => {
+    const groups: { [key: string]: { secret: SecretFormData; index: number }[] } = {};
+
+    secrets.forEach((secret, index) => {
+      const group = extractGroup(secret.name);
+      if (!groups[group]) {
+        groups[group] = [];
+      }
+      groups[group].push({ secret, index });
+    });
+
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [secrets]);
+
+  const hasValidSecrets =
+    secrets.length > 0 && secrets.every((secret) => secret.name && secret.value);
+
+  return (
+    <div className="h-full flex flex-col justify-between">
+      <div className="flex items-center justify-between flex-shrink-0 pb-4 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Shield className="h-5 w-5 text-blue-600" />
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900">시크릿 생성</h3>
+            <p className="text-sm text-gray-500">새로운 시크릿을 추가하세요</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto pt-4 max-h-[320px]">
+        {groupedSecrets.map(([groupName, groupSecrets]) => (
+          <div key={groupName} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-gray-700">{groupName} 그룹</h4>
+              <Badge
+                variant="outline"
+                className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+              >
+                {groupSecrets.length}개
+              </Badge>
+            </div>
+
+            {groupSecrets.map(({ secret, index }) => (
+              <div
+                key={index}
+                className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-gray-900">
+                      시크릿 #{index + 1}
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs bg-gray-100 text-gray-700"
+                    >
+                      {groupName}
+                    </Badge>
+                  </div>
+                  {secrets.length > 1 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onRemoveSecret(index)}
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      ×
+                    </Button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block font-medium">
+                    이름 (예: AWS_ACCESS_KEY, DOCKER_PASSWORD)
+                  </label>
+                  <Input
+                    value={secret.name}
+                    onChange={(e) => {
+                      const value = e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9_]/g, '');
+                      onUpdateSecret(index, 'name', value);
+                    }}
+                    placeholder="AWS_ACCESS_KEY"
+                    className="font-mono border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block font-medium">
+                    값
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showValues[index] ? 'text' : 'password'}
+                      value={secret.value}
+                      onChange={(e) => onUpdateSecret(index, 'value', e.target.value)}
+                      placeholder="시크릿 값을 입력하세요..."
+                      className="pr-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={() => onToggleValueVisibility(index)}
+                      >
+                        {showValues[index] ? (
+                          <EyeOff className="h-3 w-3" />
+                        ) : (
+                          <Eye className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {secret.name && secret.value && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                    <CheckCircle className="h-4 w-4" />
+                    준비 완료
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3 flex-shrink-0 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onAddSecret}
+          className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-800 transition-colors duration-200"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          시크릿 추가
+        </Button>
+        <Button
+          type="button"
+          onClick={onCreateSecrets}
+          disabled={!hasValidSecrets}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 transition-colors duration-200"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          저장
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 //* ========================================
-//* 트리 뷰 컴포넌트
+//* 노드 뷰어 컴포넌트
 //* ========================================
 
-// 트리 탭 제거됨: 트리 컴포넌트 제거
+interface NodeViewerProps {
+  node: AreaNodeData;
+  onEdit: (node: AreaNodeData) => void;
+  onDelete: (nodeId: string) => void;
+}
+
+const NodeViewer: React.FC<NodeViewerProps> = ({ node, onEdit, onDelete }) => {
+  return (
+    <div className="p-4 space-y-4">
+      {/* 노드 정보 */}
+      <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-gray-900">{node.data.label}</h4>
+          <Badge variant="outline" className="text-xs">
+            {node.type === 'workflowTrigger' ? 'Trigger' : node.type}
+          </Badge>
+        </div>
+
+        {node.data.description && (
+          <p className="text-sm text-gray-600">{node.data.description}</p>
+        )}
+
+        {node.data.jobName && (
+          <div className="text-sm">
+            <span className="text-gray-500">Job Name:</span>
+            <span className="ml-2 font-mono bg-gray-200 px-2 py-1 rounded text-xs">
+              {node.data.jobName}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 액션 버튼들 */}
+      <div className="flex gap-2">
+        <Button onClick={() => onEdit(node)} size="sm" className="flex-1">
+          <Edit size={16} className="mr-2" />
+          편집
+        </Button>
+        <Button onClick={() => onDelete(node.id)} size="sm" variant="destructive">
+          <Trash2 size={16} />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+//* ========================================
+//* 시크릿 탭 컴포넌트
+//* ========================================
+
+interface SecretsTabProps {
+  data: SecretsData;
+  form: FormData;
+  handlers: SecretsHandlers;
+}
+
+const SecretsTab: React.FC<SecretsTabProps> = ({ data, form, handlers }) => {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    secretName: string | null;
+  }>({ isOpen: false, secretName: null });
+
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const handleDeleteClick = (secretName: string) => {
+    setDeleteDialog({ isOpen: true, secretName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.secretName) return;
+
+    try {
+      await handlers.onDeleteSecret(deleteDialog.secretName);
+      toast.success(`시크릿 "${deleteDialog.secretName}"이 삭제되었습니다.`);
+    } catch (error) {
+      toast.error(`시크릿 삭제에 실패했습니다: ${error}`);
+    } finally {
+      setDeleteDialog({ isOpen: false, secretName: null });
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialog({ isOpen: false, secretName: null });
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '날짜 없음';
+    }
+  };
+
+  if (form.showForm) {
+    return (
+      <div className="h-full flex flex-col">
+        <SecretForm
+          secrets={form.secretsToCreate}
+          showValues={form.showValues}
+          onAddSecret={handlers.onAddSecretForm}
+          onRemoveSecret={handlers.onRemoveSecretForm}
+          onUpdateSecret={handlers.onUpdateSecretForm}
+          onToggleValueVisibility={handlers.onToggleValueVisibility}
+          onClose={handlers.onCloseSecretForm}
+          onCreateSecrets={handlers.onCreateSecrets}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex-1 space-y-4 pb-4">
+        {data.error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-sm text-red-800">
+                시크릿을 불러오는 중 오류가 발생했습니다
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Lock className="h-4 w-4 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">GitHub 시크릿</h3>
+              <p className="text-sm text-gray-500">저장소의 시크릿을 관리하세요</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-gray-600" />
+                <h3 className="text-sm font-semibold text-gray-900">
+                  기존 시크릿 ({data.availableSecrets.length})
+                </h3>
+              </div>
+            </div>
+
+            {data.loading ? (
+              <div className="flex justify-center py-6">
+                <LoadingSpinner message="로딩 중..." />
+              </div>
+            ) : data.availableSecrets.length === 0 ? (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                생성된 시크릿이 없습니다.
+              </div>
+            ) : data.groupedSecrets ? (
+              <div className="space-y-2 max-h-[260px] overflow-auto">
+                {Object.entries(data.groupedSecrets).map(([groupName, secrets]) => (
+                  <div
+                    key={groupName}
+                    className="border border-gray-200 rounded-lg overflow-hidden"
+                  >
+                    <button
+                      onClick={() => toggleGroup(groupName)}
+                      className="w-full flex items-center justify-between p-2 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Folder className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-semibold text-gray-900">
+                          {groupName}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">
+                          {(secrets as any[]).length}개
+                        </Badge>
+                      </div>
+                      {expandedGroups.has(groupName) ? (
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+
+                    {expandedGroups.has(groupName) && (
+                      <div className="p-2">
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {(secrets as any[]).map((secret: any) => (
+                            <div
+                              key={secret.name}
+                              className="flex items-center justify-between px-1.5 py-1 bg-white border border-gray-100 rounded"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Key className="w-3 h-3 text-blue-600" />
+                                <span className="text-sm font-medium">{secret.name}</span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(secret.created_at || secret.createdAt)}
+                                </span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteClick(secret.name)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {data.availableSecrets.map((secretName) => (
+                  <div
+                    key={secretName}
+                    className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium">{secretName}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteClick(secretName)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {data.missingSecrets.length > 0 && (
+            <div className="space-y-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertOctagon className="w-4 h-4 text-yellow-600" />
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    누락된 시크릿 ({data.missingSecrets.length})
+                  </h3>
+                </div>
+              </div>
+
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {data.missingSecrets.map((secretName) => (
+                  <div
+                    key={secretName}
+                    className="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-sm font-medium">{secretName}</span>
+                      <Badge variant="destructive" className="text-xs">
+                        누락됨
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-3 flex-shrink-0 pt-4">
+        <Button
+          onClick={() => handlers.onCreateMissingSecrets([])}
+          className="flex-1 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 transition-colors duration-200"
+        >
+          <Plus className="h-4 w-4 mr-2" />새 시크릿 추가
+        </Button>
+        {data.missingSecrets.length > 0 && (
+          <Button
+            onClick={() => handlers.onCreateMissingSecrets(data.missingSecrets)}
+            variant="outline"
+            className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 transition-colors duration-200"
+          >
+            <AlertOctagon className="h-4 w-4 mr-2" />
+            누락된 시크릿 생성
+          </Button>
+        )}
+      </div>
+
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={handleCancelDelete}>
+        <AlertDialogContent className="border-red-300 bg-red-50">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-700 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              시크릿 삭제
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-red-700">
+              <div className="space-y-2">
+                <div className="font-medium">
+                  시크릿 &quot;{deleteDialog.secretName}&quot;을 삭제하시겠습니까?
+                </div>
+                <div className="text-sm text-red-600">
+                  이 작업은 되돌릴 수 없으며, 관련된 워크플로우에 영향을 줄 수 있습니다.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800">
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
 
 //* ========================================
 //* 노드 에디터 컴포넌트
@@ -110,6 +683,7 @@ interface NodeEditorProps {
   nodeType: NodeType;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
+  onDelete: () => void;
   onMissingSecrets?: (missing: string[]) => void;
 }
 
@@ -117,173 +691,60 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   nodeData,
   nodeType,
   onSave,
-  onCancel: _onCancel,
+  onCancel,
+  onDelete,
   onMissingSecrets,
 }) => {
   const { owner, repo } = useRepository();
-  const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
-  const [configText, setConfigText] = useState<string>('');
-  const [configError, setConfigError] = useState<string>('');
-  // preview is not used in compact panel
-  const [configFields, setConfigFields] = useState<ConfigField[]>([]);
-  // secrets 경고 배지/다이얼로그에서만 사용
-  // duplicate removed; use the state in the panel scope
 
   // Secrets API 훅
   const { data: secretsData, refetch: refetchSecrets } = useSecrets(
     owner || '',
     repo || '',
   );
+  const createOrUpdateSecret = useCreateOrUpdateSecret();
+  const [editedData, setEditedData] = useState<WorkflowNodeData>(nodeData);
+  const [configFields, setConfigFields] = useState<ConfigField[]>([]);
+  const [configText, setConfigText] = useState<string>('');
+  const [configError, setConfigError] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('fields');
+  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+  const [showSecretForm, setShowSecretForm] = useState(false);
+  const [secretsToCreate, setSecretsToCreate] = useState<SecretFormData[]>([]);
+  const [isCreatingSecrets, setIsCreatingSecrets] = useState(false);
 
   // nodeData 변경 감지를 위한 메모이제이션
   const nodeDataKey = useMemo(() => {
     return `${JSON.stringify(nodeData)}-${JSON.stringify(nodeData.config)}`;
   }, [nodeData]);
 
-  // 초기 데이터 설정 (무한 렌더링 방지)
+  // 초기 데이터 설정
   useEffect(() => {
     setEditedData(nodeData);
     setConfigText(JSON.stringify(nodeData.config, null, 2));
     setConfigError('');
     const fields = parseConfigFields(nodeData.config);
     setConfigFields(fields);
-  }, [nodeDataKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nodeDataKey]);
 
-  // 도메인/태스크 자동 추론
-  const inferDomainAndTask = useCallback((config: Record<string, unknown>) => {
-    const result: { domain?: string; task?: string[] } = {};
-    const uses = typeof config?.uses === 'string' ? (config.uses as string) : undefined;
-    const run = typeof config?.run === 'string' ? (config.run as string) : undefined;
-
-    if (uses) {
-      if (uses.startsWith('actions/')) {
-        result.domain = 'github';
-        const actionName = uses.split('/')[1]?.split('@')[0] || 'action';
-        result.task = [actionName];
-      } else if (uses.includes('docker')) {
-        result.domain = 'docker';
-        result.task = ['docker'];
-      }
-    }
-
-    if (!result.domain && run) {
-      if (/\b(mvn|maven|gradle)\b/i.test(run)) {
-        result.domain = 'java';
-        const tasks: string[] = [];
-        if (/gradle\s+(build|test|publish)/i.test(run)) {
-          const m = run.match(/gradle\s+(build|test|publish)/i);
-          if (m) tasks.push(m[1].toLowerCase());
-        }
-        if (/mvn\s+([a-z:-]+)/i.test(run)) {
-          const m = run.match(/mvn\s+([a-z:-]+)/i);
-          if (m) tasks.push(m[1].toLowerCase());
-        }
-        if (tasks.length > 0) result.task = tasks;
-      } else if (/\b(npm|yarn|pnpm)\b/i.test(run)) {
-        result.domain = 'node';
-        const m = run.match(/\b(npm|yarn|pnpm)\s+(run\s+)?([a-zA-Z0-9:_-]+)/i);
-        if (m && m[3]) result.task = [m[3].toLowerCase()];
-      } else if (/\bpython\b|pip|poetry/i.test(run)) {
-        result.domain = 'python';
-      }
-    }
-
-    return result;
-  }, []);
-
-  // step 기본 메타 자동완성 (미설정 시에만) - 무한 렌더링 방지
-  useEffect(() => {
-    if (nodeType === 'step' && editedData.config) {
-      const needsDomain = !editedData.domain || editedData.domain.trim() === '';
-      const needsTask = !editedData.task || editedData.task.length === 0;
-
-      if (needsDomain || needsTask) {
-        const inferred = inferDomainAndTask(editedData.config);
-        const shouldUpdate =
-          (needsDomain && inferred.domain) || (needsTask && inferred.task);
-
-        if (shouldUpdate) {
-          setEditedData((prev) => ({
-            ...prev,
-            ...(needsDomain && inferred.domain ? { domain: inferred.domain } : {}),
-            ...(needsTask && inferred.task ? { task: inferred.task } : {}),
-          }));
-        }
-      }
-    }
-  }, [
-    nodeType,
-    editedData.label,
-    editedData.domain,
-    editedData.task,
-    JSON.stringify(editedData.config),
-    inferDomainAndTask,
-  ]);
-
-  // Config 변경 시 secrets 감지 (캐시 문제 해결을 위한 개선)
+  // Config 변경 시 secrets 감지
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
-      // API 응답 구조에 맞게 수정 (groupedSecrets 사용)
       const userSecrets: string[] = [];
       if (secretsData?.data?.groupedSecrets) {
-        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: any) => {
           if (Array.isArray(group)) {
-            group.forEach((secret: unknown) => {
-              if (
-                secret &&
-                typeof secret === 'object' &&
-                'name' in secret &&
-                typeof secret.name === 'string'
-              ) {
-                userSecrets.push(secret.name);
-              }
+            group.forEach((secret: any) => {
+              if (secret.name) userSecrets.push(secret.name);
             });
           }
         });
       }
-
-      // console.log('🔍 시크릿 감지 디버그:', {
-      //   requiredSecrets,
-      //   userSecrets,
-      //   secretsDataStructure: secretsData?.data,
-      //   missing: findMissingSecrets(requiredSecrets, userSecrets),
-      // });
-
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
-
-      // 누락된 시크릿이 있지만 최근에 생성되었을 가능성이 있으면 재시도
-      if (missing.length > 0 && requiredSecrets.length > 0) {
-        // 2초 후 한 번 더 확인 (시크릿 생성 직후의 캐시 지연 대응)
-        const retryTimer = setTimeout(async () => {
-          try {
-            await refetchSecrets();
-            // console.log('🔄 시크릿 목록 재확인 완료');
-          } catch (error) {
-            console.warn('시크릿 재확인 실패:', error);
-          }
-        }, 2000);
-
-        // 컴포넌트 언마운트 시 타이머 정리
-        return () => clearTimeout(retryTimer);
-      }
-
-      // 누락된 secrets가 있으면 토스트 표시 (첫 번째 감지에서만)
-      if (missing.length > 0) {
-        toast.warning(
-          `${missing.length}개의 Secret이 누락되었습니다. 설정에서 확인하세요.`,
-          {
-            position: 'top-right',
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          },
-        );
-      }
+      setMissingSecrets(missing);
     }
-  }, [JSON.stringify(editedData.config), nodeType, secretsData, refetchSecrets]);
+  }, [JSON.stringify(editedData.config), nodeType, secretsData]);
 
   // config 필드 파싱 (재귀적으로 중첩 객체 처리)
   const parseConfigFields = React.useCallback(
@@ -298,7 +759,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           type = 'array';
         } else if (value && typeof value === 'object') {
           type = 'object';
-          // 중첩된 객체의 경우 재귀적으로 파싱
           children = parseConfigFields(value as Record<string, unknown>);
         }
 
@@ -306,7 +766,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           key,
           value: value as string | object | string[],
           type,
-          isExpanded: false,
+          isExpanded: true,
           children,
         });
       });
@@ -328,46 +788,33 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       case 'job':
         return {
           name: 'Job 설정',
-          description: '사용자 정의 job-id와 실행 환경을 설정하는 블록입니다.',
+          description: 'GitHub Actions Job의 기본 설정을 구성합니다.',
         };
       case 'step':
         return {
           name: 'Step 설정',
-          description: '워크플로우 실행 단계를 설정하는 블록입니다.',
+          description: 'GitHub Actions Step의 실행 명령어와 설정을 구성합니다.',
         };
       default:
-        return { name: '', description: '' };
+        return {
+          name: '노드 설정',
+          description: '노드의 설정을 구성합니다.',
+        };
     }
   };
 
-  // 타입별 편집 가능한 필드 정의
-  const getEditableFields = (type: NodeType) => {
-    switch (type) {
-      case 'workflowTrigger':
-        return ['label'];
-      case 'job':
-        return ['label', 'jobName'];
-      case 'step':
-        return ['label', 'jobName', 'domain', 'task'];
-      default:
-        return [];
-    }
-  };
-
-  // config 유효성 검사
+  // Config 유효성 검사
   const validateConfig = (configStr: string): boolean => {
     try {
       JSON.parse(configStr);
-      setConfigError('');
       return true;
-    } catch {
-      setConfigError('유효하지 않은 JSON 형식입니다.');
+    } catch (error) {
       return false;
     }
   };
 
-  // 중첩된 필드 값 변경
-  const handleConfigFieldChange = (
+  // 필드 값 변경
+  const handleFieldChange = (
     index: number,
     value: string | object | string[],
     parentIndex?: number,
@@ -398,11 +845,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     fields.forEach((field) => {
       if (field.type === 'object' && field.children) {
-        const nestedConfig: Record<string, unknown> = {};
+        const objValue: Record<string, unknown> = {};
         field.children.forEach((child) => {
-          nestedConfig[child.key] = child.value;
+          objValue[child.key] = child.value;
         });
-        newConfig[field.key] = nestedConfig;
+        newConfig[field.key] = objValue;
       } else {
         newConfig[field.key] = field.value;
       }
@@ -412,347 +859,474 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       ...prev,
       config: newConfig,
     }));
-
     setConfigText(JSON.stringify(newConfig, null, 2));
   };
 
-  // 필드 확장/축소 토글
-  const toggleFieldExpansion = (index: number) => {
+  // 필드 추가
+  const addField = (parentIndex?: number) => {
     const newFields = [...configFields];
-    newFields[index].isExpanded = !newFields[index].isExpanded;
-    setConfigFields(newFields);
-  };
-
-  // 동적 필드 추가
-  const handleAddConfigField = () => {
     const newField: ConfigField = {
-      key: `field_${configFields.length + 1}`,
+      key: 'new_field',
       value: '',
       type: 'string',
+      isExpanded: true,
     };
-    const newFields = [...configFields, newField];
-    setConfigFields(newFields);
-    updateConfigFromFields(newFields);
-  };
 
-  // 동적 필드 삭제
-  const handleRemoveConfigField = (index: number) => {
-    const newFields = configFields.filter((_, i) => i !== index);
-    setConfigFields(newFields);
-    updateConfigFromFields(newFields);
-  };
-
-  // 저장 핸들러
-  const handleSave = () => {
-    if (!validateConfig(configText)) {
-      return;
-    }
-
-    try {
-      const config = JSON.parse(configText);
-      const updatedData: WorkflowNodeData = {
-        ...editedData,
-        config,
-      };
-      onSave(updatedData);
-      toast.success('노드가 저장되었습니다.');
-
-      // 저장 시 시크릿 누락 확인 후, 별도 편집창 열기
-      if (canNodeUseSecrets(nodeType)) {
-        const required = detectSecretsInConfig(config);
-        const existing: string[] = [];
-        if (secretsData?.data?.groupedSecrets) {
-          Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
-            if (Array.isArray(group)) {
-              group.forEach((secret: unknown) => {
-                if (
-                  secret &&
-                  typeof secret === 'object' &&
-                  'name' in secret &&
-                  typeof secret.name === 'string'
-                ) {
-                  existing.push(secret.name);
-                }
-              });
-            }
-          });
-        }
-        const missing = findMissingSecrets(required, existing);
-        if (missing.length > 0 && onMissingSecrets) {
-          onMissingSecrets(missing);
-        }
+    if (parentIndex !== undefined) {
+      const parent = newFields[parentIndex];
+      if (parent.children) {
+        parent.children.push(newField);
+        const parentValue: Record<string, unknown> = {};
+        parent.children.forEach((child) => {
+          parentValue[child.key] = child.value;
+        });
+        parent.value = parentValue;
       }
-    } catch {
-      setConfigError('설정 저장 중 오류가 발생했습니다.');
+    } else {
+      newFields.push(newField);
     }
+
+    setConfigFields(newFields);
+    updateConfigFromFields(newFields);
   };
 
-  // 필드 값 렌더링
-  const renderFieldValue = (field: ConfigField, index: number, parentIndex?: number) => {
-    switch (field.type) {
-      case 'string':
-        return (
+  // 필드 삭제
+  const removeField = (index: number, parentIndex?: number) => {
+    const newFields = [...configFields];
+
+    if (parentIndex !== undefined) {
+      const parent = newFields[parentIndex];
+      if (parent.children) {
+        parent.children.splice(index, 1);
+        const parentValue: Record<string, unknown> = {};
+        parent.children.forEach((child) => {
+          parentValue[child.key] = child.value;
+        });
+        parent.value = parentValue;
+      }
+    } else {
+      newFields.splice(index, 1);
+    }
+
+    setConfigFields(newFields);
+    updateConfigFromFields(newFields);
+  };
+
+  // 필드 확장/축소 토글
+  const toggleFieldExpansion = (index: number, parentIndex?: number) => {
+    const newFields = [...configFields];
+
+    if (parentIndex !== undefined) {
+      const parent = newFields[parentIndex];
+      if (parent.children) {
+        parent.children[index].isExpanded = !parent.children[index].isExpanded;
+      }
+    } else {
+      newFields[index].isExpanded = !newFields[index].isExpanded;
+    }
+
+    setConfigFields(newFields);
+  };
+
+  // 필드 타입 변경
+  const changeFieldType = (
+    index: number,
+    newType: 'string' | 'object' | 'array',
+    parentIndex?: number,
+  ) => {
+    const newFields = [...configFields];
+
+    if (parentIndex !== undefined) {
+      const parent = newFields[parentIndex];
+      if (parent.children) {
+        const field = parent.children[index];
+        field.type = newType;
+        field.isExpanded = true;
+
+        if (newType === 'object') {
+          field.value = {};
+          field.children = [];
+        } else if (newType === 'array') {
+          field.value = [];
+        } else {
+          field.value = '';
+          field.children = undefined;
+        }
+
+        const parentValue: Record<string, unknown> = {};
+        parent.children.forEach((child) => {
+          parentValue[child.key] = child.value;
+        });
+        parent.value = parentValue;
+      }
+    } else {
+      const field = newFields[index];
+      field.type = newType;
+      field.isExpanded = true;
+
+      if (newType === 'object') {
+        field.value = {};
+        field.children = [];
+      } else if (newType === 'array') {
+        field.value = [];
+      } else {
+        field.value = '';
+        field.children = undefined;
+      }
+    }
+
+    setConfigFields(newFields);
+    updateConfigFromFields(newFields);
+  };
+
+  // 필드 렌더링 (재귀적)
+  const renderField = (field: ConfigField, index: number, parentIndex?: number) => {
+    const isNested = parentIndex !== undefined;
+    const indentClass = isNested ? 'ml-4' : '';
+
+    return (
+      <div
+        key={`${parentIndex || 'root'}-${index}`}
+        className={`space-y-2 ${indentClass}`}
+      >
+        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
           <Input
-            value={String(field.value)}
-            onChange={(e) => handleConfigFieldChange(index, e.target.value, parentIndex)}
-            placeholder="값을 입력하세요"
-            className="mt-1"
+            value={field.key}
+            onChange={(e) => {
+              const newFields = [...configFields];
+              if (parentIndex !== undefined) {
+                newFields[parentIndex].children![index].key = e.target.value;
+              } else {
+                newFields[index].key = e.target.value;
+              }
+              setConfigFields(newFields);
+              updateConfigFromFields(newFields);
+            }}
+            className="flex-1 text-sm"
+            placeholder="필드명"
           />
-        );
-      case 'object':
-        return (
+
+          <select
+            value={field.type}
+            onChange={(e) =>
+              changeFieldType(
+                index,
+                e.target.value as 'string' | 'object' | 'array',
+                parentIndex,
+              )
+            }
+            className="text-xs border rounded px-2 py-1"
+          >
+            <option value="string">String</option>
+            <option value="object">Object</option>
+            <option value="array">Array</option>
+          </select>
+
+          {(field.type === 'object' || field.type === 'array') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => toggleFieldExpansion(index, parentIndex)}
+            >
+              {field.isExpanded ? <Minus size={14} /> : <Plus size={14} />}
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => removeField(index, parentIndex)}
+            className="text-red-500 hover:text-red-700"
+          >
+            <Trash2 size={14} />
+          </Button>
+        </div>
+
+        {/* 필드 값 입력 */}
+        {field.type === 'string' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => toggleFieldExpansion(index)}
-                className="p-1"
-              >
-                {field.isExpanded ? (
-                  <span className="text-xs text-gray-500">접기</span>
-                ) : (
-                  <span className="text-xs text-gray-500">펼치기</span>
-                )}
-              </Button>
-              <span className="text-xs text-gray-500">객체 (클릭하여 확장)</span>
-            </div>
-            {field.isExpanded && field.children && (
-              <div className="ml-4 space-y-2 border-l-2 border-gray-200 pl-4">
-                {field.children.map((child, childIndex) => (
-                  <div key={childIndex} className="border rounded p-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={child.key}
-                          onChange={(e) => {
-                            const newFields = [...configFields];
-                            if (newFields[index].children) {
-                              newFields[index].children![childIndex].key = e.target.value;
-                              setConfigFields(newFields);
-                              updateConfigFromFields(newFields);
-                            }
-                          }}
-                          className="w-32 text-sm"
-                          placeholder="필드명"
-                        />
-                        <Badge variant="outline" className="text-xs">
-                          {child.type}
-                        </Badge>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Minus size={14} />
-                      </Button>
-                    </div>
-                    {renderFieldValue(child, childIndex, index)}
-                  </div>
-                ))}
+            <Input
+              value={field.value as string}
+              onChange={(e) => handleFieldChange(index, e.target.value, parentIndex)}
+              className="text-sm"
+              placeholder="값 입력"
+            />
+            {/* 시크릿 선택 드롭다운 */}
+            {secretsData?.data?.groupedSecrets && (
+              <div className="relative">
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleFieldChange(index, `${{ secrets.${e.target.value} }}`, parentIndex);
+                    }
+                  }}
+                  className="w-full text-xs border rounded px-2 py-1 bg-gray-50"
+                  defaultValue=""
+                >
+                  <option value="">시크릿 선택...</option>
+                  {Object.entries(secretsData.data.groupedSecrets).map(([groupName, groupSecrets]) => (
+                    <optgroup key={groupName} label={`${groupName} 그룹`}>
+                      {Array.isArray(groupSecrets) && groupSecrets.map((secret: any) => (
+                        <option key={secret.name} value={secret.name}>
+                          {secret.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
             )}
           </div>
-        );
-      case 'array':
-        return (
-          <Input
-            value={
-              Array.isArray(field.value) ? field.value.join(', ') : String(field.value)
-            }
-            onChange={(e) => {
-              const values = e.target.value.split(',').map((v) => v.trim());
-              handleConfigFieldChange(index, values, parentIndex);
-            }}
-            placeholder="쉼표로 구분하여 입력하세요"
-            className="mt-1"
-          />
-        );
-      default:
-        return (
-          <Input
-            value={String(field.value)}
-            onChange={(e) => handleConfigFieldChange(index, e.target.value, parentIndex)}
-            placeholder="값을 입력하세요"
-            className="mt-1"
-          />
-        );
-    }
+        )}
+
+        {field.type === 'array' && (
+          <div className="space-y-2">
+            <Input
+              value={Array.isArray(field.value) ? field.value.join(', ') : ''}
+              onChange={(e) => {
+                const arrayValue = e.target.value
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean);
+                handleFieldChange(index, arrayValue, parentIndex);
+              }}
+              className="text-sm"
+              placeholder="값1, 값2, 값3"
+            />
+          </div>
+        )}
+
+        {/* 중첩된 객체/배열 필드들 */}
+        {field.type === 'object' && field.isExpanded && field.children && (
+          <div className="space-y-2 border-l-2 border-gray-200 pl-4">
+            {field.children.map((child, childIndex) =>
+              renderField(
+                child,
+                childIndex,
+                parentIndex !== undefined ? parentIndex : index,
+              ),
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => addField(parentIndex !== undefined ? parentIndex : index)}
+              className="w-full"
+            >
+              <Plus size={14} className="mr-2" />
+              필드 추가
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const fixedLabels = getFixedLabels(nodeType);
-  const editableFields = getEditableFields(nodeType);
+  const labels = getFixedLabels(nodeType);
 
   return (
-    <div className="space-y-6">
-      {/* 고정 필드 섹션 */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Palette size={16} className="text-blue-600" />
-          <h3 className="text-sm font-medium text-gray-700">고정 정보</h3>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-600">이름</label>
-            <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
-              {fixedLabels.name}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600">설명</label>
-            <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
-              {fixedLabels.description}
-            </div>
-          </div>
+    <div className="p-4 space-y-4">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{labels.name}</h3>
+          <p className="text-sm text-gray-600">{labels.description}</p>
         </div>
       </div>
 
-      {/* 편집 가능한 필드 섹션 */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Edit size={16} className="text-green-600" />
-          <h3 className="text-sm font-medium text-gray-700">편집 가능한 정보</h3>
+      {/* Secrets 경고 */}
+      {missingSecrets.length > 0 && (
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1 bg-orange-100 rounded">
+              <Lock className="w-4 h-4 text-orange-600" />
+            </div>
+            <span className="text-sm font-medium text-orange-800">
+              {missingSecrets.length}개의 Secret이 누락되었습니다
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {missingSecrets.map((secret) => (
+              <Badge
+                key={secret}
+                variant="secondary"
+                className="text-xs bg-orange-100 text-orange-700 border-orange-200"
+              >
+                {secret}
+              </Badge>
+            ))}
+          </div>
         </div>
-        <div className="space-y-3">
-          {/* 라벨 */}
-          {editableFields.includes('label') && (
+      )}
+
+      {/* 탭 네비게이션 */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        defaultValue="fields"
+        className="w-full h-full flex flex-col"
+      >
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="fields" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            <span>필드 편집</span>
+          </TabsTrigger>
+          <TabsTrigger value="config" className="flex items-center gap-2">
+            <Code className="h-4 w-4" />
+            <span>Config 편집</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="fields" className="space-y-4">
+          {/* 기본 정보 */}
+          <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-gray-600">표시 이름</label>
+              <label className="text-sm font-medium text-gray-700">라벨</label>
               <Input
                 value={editedData.label}
-                onChange={(e) => setEditedData({ ...editedData, label: e.target.value })}
-                placeholder="노드 표시 이름을 입력하세요"
-                className="mt-1"
-              />
-            </div>
-          )}
-
-          {/* Job 이름 */}
-          {editableFields.includes('jobName') && (
-            <div>
-              <label className="text-xs font-medium text-gray-600">Job 이름</label>
-              <Input
-                value={editedData.jobName || ''}
                 onChange={(e) =>
-                  setEditedData({ ...editedData, jobName: e.target.value })
+                  setEditedData((prev) => ({ ...prev, label: e.target.value }))
                 }
-                placeholder="jobName을 입력하세요"
                 className="mt-1"
               />
             </div>
-          )}
 
-          {/* 도메인 */}
-          {editableFields.includes('domain') && (
             <div>
-              <label className="text-xs font-medium text-gray-600">도메인</label>
+              <label className="text-sm font-medium text-gray-700">설명</label>
               <Input
-                value={editedData.domain || ''}
-                onChange={(e) => setEditedData({ ...editedData, domain: e.target.value })}
-                placeholder="도메인을 입력하세요 (예: github, java, docker)"
-                className="mt-1"
-              />
-            </div>
-          )}
-
-          {/* 태스크 */}
-          {editableFields.includes('task') && (
-            <div>
-              <label className="text-xs font-medium text-gray-600">
-                태스크 (쉼표로 구분)
-              </label>
-              <Input
-                value={editedData.task?.join(', ') || ''}
+                value={editedData.description || ''}
                 onChange={(e) =>
-                  setEditedData({
-                    ...editedData,
-                    task: e.target.value.split(',').map((t) => t.trim()),
-                  })
+                  setEditedData((prev) => ({ ...prev, description: e.target.value }))
                 }
-                placeholder="태스크를 쉼표로 구분하여 입력하세요 (예: checkout, build)"
                 className="mt-1"
               />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Config 편집 섹션 */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Code size={16} className="text-purple-600" />
-          <h3 className="text-sm font-medium text-gray-700">설정 (Config)</h3>
-        </div>
-        <Tabs defaultValue="fields">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="fields">동적 필드 편집</TabsTrigger>
-            <TabsTrigger value="json">JSON 편집</TabsTrigger>
-          </TabsList>
+            {nodeType === 'job' && (
+              <div>
+                <label className="text-sm font-medium text-gray-700">Job Name</label>
+                <Input
+                  value={editedData.jobName || ''}
+                  onChange={(e) =>
+                    setEditedData((prev) => ({ ...prev, jobName: e.target.value }))
+                  }
+                  className="mt-1"
+                />
+              </div>
+            )}
 
-          <TabsContent value="fields" className="space-y-4">
-            <div className="space-y-3">
-              {configFields.map((field, index) => (
-                <div key={index} className="border rounded p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={field.key}
-                        onChange={(e) => {
-                          const newFields = [...configFields];
-                          newFields[index].key = e.target.value;
-                          setConfigFields(newFields);
-                          updateConfigFromFields(newFields);
-                        }}
-                        className="w-32 text-sm"
-                        placeholder="필드명"
-                      />
-                      <Badge variant="outline" className="text-xs">
-                        {field.type}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveConfigField(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X size={14} />
-                    </Button>
-                  </div>
-                  {renderFieldValue(field, index)}
+            {nodeType === 'step' && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">도메인</label>
+                  <Input
+                    value={editedData.domain || ''}
+                    onChange={(e) =>
+                      setEditedData((prev) => ({ ...prev, domain: e.target.value }))
+                    }
+                    className="mt-1"
+                  />
                 </div>
-              ))}
-              <Button variant="outline" onClick={handleAddConfigField} className="w-full">
-                <Plus size={14} className="mr-1" />
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700">태스크</label>
+                  <Input
+                    value={
+                      Array.isArray(editedData.task) ? editedData.task.join(', ') : ''
+                    }
+                    onChange={(e) => {
+                      const tasks = e.target.value
+                        .split(',')
+                        .map((task) => task.trim())
+                        .filter(Boolean);
+                      setEditedData((prev) => ({ ...prev, task: tasks }));
+                    }}
+                    className="mt-1"
+                    placeholder="task1, task2, task3"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Config 필드들 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-gray-700">설정</h4>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => addField()}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 transition-colors duration-200"
+              >
+                <Plus size={14} className="mr-2" />
                 필드 추가
               </Button>
             </div>
-          </TabsContent>
 
-          <TabsContent value="json">
-            <div className="space-y-2">
-              <span className="text-xs text-gray-600">JSON 형식으로 직접 편집</span>
-              <textarea
-                value={configText}
-                onChange={(e) => {
-                  setConfigText(e.target.value);
-                  validateConfig(e.target.value);
-                }}
-                className="w-full h-32 p-3 border rounded font-mono text-xs"
-                placeholder="JSON 형식으로 설정을 입력하세요"
-              />
-              {configError && <div className="text-xs text-red-500">{configError}</div>}
+            <div className="space-y-2 max-h-48 overflow-auto">
+              {configFields.map((field, index) => renderField(field, index))}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </TabsContent>
 
-      {/* 저장 버튼 */}
-      <Button onClick={handleSave} disabled={!!configError} className="w-full">
-        <Save size={16} className="mr-2" />
-        저장
-      </Button>
+        <TabsContent value="config" className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
+              Config JSON
+            </label>
+            <textarea
+              value={configText}
+              onChange={(e) => {
+                setConfigText(e.target.value);
+                if (validateConfig(e.target.value)) {
+                  setConfigError('');
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    setEditedData((prev) => ({ ...prev, config: parsed }));
+                  } catch (error) {
+                    setConfigError('JSON 파싱 오류');
+                  }
+                } else {
+                  setConfigError('잘못된 JSON 형식');
+                }
+              }}
+              className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm resize-none"
+              placeholder="JSON 형식으로 config를 입력하세요..."
+            />
+            {configError && <p className="text-red-600 text-sm mt-1">{configError}</p>}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* 액션 버튼들 */}
+      <div className="flex gap-2 pt-4 border-t">
+        <Button
+          onClick={() => onSave(editedData)}
+          className="flex-1 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 transition-colors duration-200"
+        >
+          저장
+        </Button>
+        <Button
+          onClick={onCancel}
+          variant="outline"
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          취소
+        </Button>
+        <Button
+          onClick={() => {
+            if (
+              window.confirm('이 노드를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')
+            ) {
+              onDelete();
+            }
+          }}
+          variant="outline"
+          className="border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400"
+        >
+          삭제
+        </Button>
+      </div>
     </div>
   );
 };
@@ -765,11 +1339,10 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   selectedNode,
   blocks,
   isOpen,
-  onClose,
   onSaveWorkflow,
   onClearWorkspace,
-  onNodeSelect: _onNodeSelect,
-  onNodeEdit: _onNodeEdit,
+  onNodeSelect,
+  onNodeEdit,
   onNodeDelete,
   onBlockUpdate,
   hasNodes,
@@ -779,93 +1352,229 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   onWorkflowNameChange,
 }) => {
   const { owner, repo, isConfigured } = useRepository();
-  const createPipelineMutation = useCreatePipeline();
-  const createOrUpdateSecret = useCreateOrUpdateSecret();
-  // Secrets API 훅 (IntegratedSidePanel 전체에서 사용)
+
+  // Secrets API 훅
   const { data: secretsData, refetch: refetchSecrets } = useSecrets(
     owner || '',
     repo || '',
   );
-  const [workflowName, setWorkflowName] = useState<string>(initialWorkflowName || '');
-  const [viewMode, setViewMode] = useState<'yaml' | 'settings'>('settings');
+  const createOrUpdateSecret = useCreateOrUpdateSecret();
+  const deleteSecret = useDeleteSecret();
+
+  // 상태 관리
+  const [workflowName, setWorkflowName] = useState(initialWorkflowName || '');
+  const [activeTab, setActiveTab] = useState<'library' | 'editor' | 'yaml'>('library');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingNode, setEditingNode] = useState<AreaNodeData | null>(null);
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
-  const [editableYaml, setEditableYaml] = useState<string>('');
-  const [isSaving, setIsSaving] = useState(false);
-  // local save status only used for YAML editing button states
-  const [, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [isYamlEditing, setIsYamlEditing] = useState<boolean>(false);
-  const [yamlError, setYamlError] = useState<string>('');
-  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
-  const [missingSecretsState, setMissingSecretsState] = useState<string[]>([]);
-  const [newSecretValues, setNewSecretValues] = useState<Record<string, string>>({});
 
-  // Secrets 관리 상태 - 실제 누락된 시크릿 계산
-  const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
+  // 시크릿 관련 상태
+  const [showSecretForm, setShowSecretForm] = useState(false);
+  const [secretsToCreate, setSecretsToCreate] = useState<SecretFormData[]>([]);
+  const [isCreatingSecrets, setIsCreatingSecrets] = useState(false);
 
-  // 선택된 노드의 시크릿 감지
+  // 노드 선택 시 편집 탭으로 자동 전환 및 편집 모드 시작
   useEffect(() => {
-    if (
-      selectedNode &&
-      canNodeUseSecrets(selectedNode.type) &&
-      selectedNode.data.config
-    ) {
-      const requiredSecrets = detectSecretsInConfig(selectedNode.data.config);
+    if (selectedNode) {
+      setActiveTab('editor');
+      setEditingNode(selectedNode);
+      setIsEditing(true);
+    }
+  }, [selectedNode]);
+
+  // 워크플로우 이름 변경 핸들러
+  const handleWorkflowNameChange = (name: string) => {
+    setWorkflowName(name);
+    onWorkflowNameChange?.(name);
+  };
+
+  // 노드 편집 시작
+  const handleEditNode = (node: AreaNodeData) => {
+    setEditingNode(node);
+    setIsEditing(true);
+    setActiveTab('editor');
+  };
+
+  // 노드 편집 완료
+  const handleSaveNode = (updatedData: WorkflowNodeData) => {
+    // 시크릿 검사
+    if (canNodeUseSecrets(editingNode?.type || 'step') && updatedData.config) {
+      const requiredSecrets = detectSecretsInConfig(updatedData.config);
       const userSecrets: string[] = [];
       if (secretsData?.data?.groupedSecrets) {
-        Object.values(secretsData.data.groupedSecrets).forEach((group: unknown) => {
+        Object.values(secretsData.data.groupedSecrets).forEach((group: any) => {
           if (Array.isArray(group)) {
-            group.forEach((secret: unknown) => {
-              if (
-                secret &&
-                typeof secret === 'object' &&
-                'name' in secret &&
-                typeof secret.name === 'string'
-              ) {
-                userSecrets.push(secret.name);
-              }
+            group.forEach((secret: any) => {
+              if (secret.name) userSecrets.push(secret.name);
             });
           }
         });
       }
       const missing = findMissingSecrets(requiredSecrets, userSecrets);
-      setMissingSecrets(missing);
+
+      if (missing.length > 0) {
+        // 누락된 시크릿이 있으면 생성 유도
+        const shouldCreate = window.confirm(
+          `${
+            missing.length
+          }개의 Secret이 누락되었습니다.\n\n누락된 Secrets:\n${missing.join(
+            ', ',
+          )}\n\n지금 생성하시겠습니까?`,
+        );
+
+        if (shouldCreate) {
+          const newSecrets = missing.map((name) => ({
+            name,
+            value: '',
+          }));
+          setSecretsToCreate(newSecrets);
+          setShowSecretForm(true);
+          return; // 시크릿 생성 후 저장
+        }
+      }
+    }
+
+    // 시크릿이 없거나 사용자가 생성하지 않기로 선택한 경우 저장 진행
+    if (editingNode && updateNodeData) {
+      updateNodeData(editingNode.id, updatedData);
+      onNodeEdit({
+        ...editingNode,
+        data: updatedData,
+      });
+      toast.success('노드가 저장되었습니다.');
+    }
+    setIsEditing(false);
+    setEditingNode(null);
+  };
+
+  // 노드 편집 취소
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingNode(null);
+  };
+
+  // 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
+  const extractGroup = (secretName: string): string => {
+    if (!secretName) return 'UNKNOWN';
+    const parts = secretName.split('_');
+    return parts.length > 1 ? parts[0] : 'UNKNOWN';
+  };
+
+  // 시크릿 관련 핸들러들
+  const handleCreateMissingSecrets = (secretNames: string[]) => {
+    if (secretNames.length > 0) {
+      const newSecrets = secretNames.map((name) => ({
+        name,
+        value: '',
+      }));
+      setSecretsToCreate(newSecrets);
+      setShowSecretForm(true);
     } else {
-      setMissingSecrets([]);
+      setSecretsToCreate([{ name: '', value: '' }]);
+      setShowSecretForm(true);
     }
-  }, [selectedNode, secretsData]);
+  };
 
-  // AreaNodeData를 ServerBlock로 변환하는 함수
-  const convertAreaNodeToServerBlock = useCallback((node: AreaNodeData): ServerBlock => {
-    return {
-      name: node.data.label,
-      type:
-        node.type === 'workflowTrigger'
-          ? 'trigger'
-          : (node.type as 'trigger' | 'job' | 'step'),
-      description: node.data.description,
-      jobName: node.data.jobName,
-      config: node.data.config || {},
-    };
-  }, []);
+  const handleAddSecretForm = () => {
+    setSecretsToCreate([...secretsToCreate, { name: '', value: '' }]);
+  };
 
-  // 편집 모드가 활성화되면 YAML을 편집 가능한 상태로 설정
-  useEffect(() => {
-    if (isYamlEditing && yamlViewMode === 'block' && selectedNode) {
-      const serverBlock = convertAreaNodeToServerBlock(selectedNode);
-      const yaml = generateBlockYaml(serverBlock);
-      setEditableYaml(yaml);
-      setYamlError('');
+  const handleRemoveSecretForm = (index: number) => {
+    const newSecrets = secretsToCreate.filter((_, i) => i !== index);
+    setSecretsToCreate(newSecrets);
+  };
+
+  const handleUpdateSecretForm = (
+    index: number,
+    field: keyof SecretFormData,
+    value: string,
+  ) => {
+    const newSecrets = [...secretsToCreate];
+    newSecrets[index] = { ...newSecrets[index], [field]: value };
+    setSecretsToCreate(newSecrets);
+  };
+
+  const handleCloseSecretForm = () => {
+    setShowSecretForm(false);
+    setSecretsToCreate([]);
+
+    // 시크릿 생성 취소 시에도 노드 저장 진행
+    if (editingNode && updateNodeData) {
+      const updatedData = editingNode.data;
+      updateNodeData(editingNode.id, updatedData);
+      onNodeEdit({
+        ...editingNode,
+        data: updatedData,
+      });
+      toast.success('노드가 저장되었습니다.');
+      setIsEditing(false);
+      setEditingNode(null);
     }
-  }, [isYamlEditing, yamlViewMode, selectedNode, convertAreaNodeToServerBlock]);
+  };
+
+  const handleCreateSecrets = async () => {
+    const validSecrets = secretsToCreate.filter((s) => s.name.trim() && s.value.trim());
+
+    if (validSecrets.length === 0) {
+      return;
+    }
+
+    setIsCreatingSecrets(true);
+
+    try {
+      await Promise.all(
+        validSecrets.map((secret) =>
+          createOrUpdateSecret.mutateAsync({
+            owner: owner || '',
+            repo: repo || '',
+            secretName: secret.name.trim(),
+            data: { value: secret.value.trim() },
+          }),
+        ),
+      );
+
+      refetchSecrets();
+      toast.success(`${validSecrets.length}개의 Secret이 생성되었습니다.`);
+
+      // 시크릿 생성 후 자동으로 노드 저장 진행
+      if (editingNode && updateNodeData) {
+        const updatedData = editingNode.data;
+        updateNodeData(editingNode.id, updatedData);
+        onNodeEdit({
+          ...editingNode,
+          data: updatedData,
+        });
+        toast.success('노드가 저장되었습니다.');
+        setIsEditing(false);
+        setEditingNode(null);
+      }
+
+      // 다이얼로그 닫기
+      handleCloseSecretForm();
+    } catch (error) {
+      toast.error(`Secret 생성 실패: ${error}`);
+    } finally {
+      setIsCreatingSecrets(false);
+    }
+  };
 
   // YAML 생성 함수들
   const getBlockYaml = useCallback(() => {
     if (selectedNode) {
-      const serverBlock = convertAreaNodeToServerBlock(selectedNode);
+      const serverBlock: ServerBlock = {
+        name: selectedNode.data.label,
+        type:
+          selectedNode.type === 'workflowTrigger'
+            ? 'trigger'
+            : (selectedNode.type as 'trigger' | 'job' | 'step'),
+        description: selectedNode.data.description,
+        jobName: selectedNode.data.jobName,
+        config: selectedNode.data.config || {},
+      };
       return generateBlockYaml(serverBlock);
     }
     return '# 블록을 선택하여 YAML을 확인하세요';
-  }, [selectedNode, convertAreaNodeToServerBlock]);
+  }, [selectedNode]);
 
   const getFullYaml = useCallback(() => {
     if (blocks && blocks.length > 0) {
@@ -883,613 +1592,316 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     }
   }, [yamlViewMode, getBlockYaml, getFullYaml]);
 
-  // YAML 편집 핸들러
-  const handleYamlChange = useCallback((value: string) => {
-    setEditableYaml(value);
-    const result = parseYamlToConfigStrict(value);
-    setYamlError(result.success ? '' : result.error || '');
-  }, []);
-
-  // YAML 파싱 함수 (엄격)
-  const parseYamlToConfig = useCallback((yaml: string): Record<string, unknown> => {
-    const result = parseYamlToConfigStrict(yaml);
-    if (!result.success) {
-      throw new Error(result.error || 'YAML 파싱 실패');
-    }
-    return result.data || {};
-  }, []);
-
-  // 편집된 YAML 저장 핸들러
-  const handleSaveYaml = useCallback(async () => {
-    if (!editableYaml.trim()) return;
-
-    setIsSaving(true);
-    setSaveStatus('saving');
-
-    try {
-      if (selectedNode && onBlockUpdate) {
-        const parsedConfig = parseYamlToConfig(editableYaml);
-        const baseBlock = convertAreaNodeToServerBlock(selectedNode);
-        const updatedBlock: ServerBlock = { ...baseBlock, config: parsedConfig };
-        onBlockUpdate(updatedBlock);
-        setSaveStatus('success');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-        setIsYamlEditing(false);
-      }
-    } catch (e) {
-      console.error('YAML 파싱 오류:', e);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [
-    editableYaml,
-    selectedNode,
-    onBlockUpdate,
-    parseYamlToConfig,
-    convertAreaNodeToServerBlock,
-  ]);
-
-  const handleFormatYaml = useCallback(() => {
-    setEditableYaml((prev) => formatYaml(prev));
-  }, []);
-
   // YAML 복사
   const copyYaml = useCallback(() => {
     const yaml = getCurrentYaml();
     navigator.clipboard.writeText(yaml).then(() => {
-      console.log('YAML이 클립보드에 복사되었습니다.');
+      toast.success('YAML이 클립보드에 복사되었습니다.');
     });
   }, [getCurrentYaml]);
-
-  // 서버에 워크플로우 저장 핸들러
-  const handleSaveWorkflowToServer = useCallback(async () => {
-    if (!isConfigured) {
-      toast.error('저장소가 설정되지 않았습니다. 먼저 저장소를 설정해주세요.');
-      return;
-    }
-
-    if (!hasNodes || blocks.length === 0) {
-      toast.error('저장할 워크플로우가 없습니다.');
-      return;
-    }
-
-    // 워크플로우 이름이 없으면 기본값 사용
-    const finalWorkflowName = workflowName.trim() || `workflow-${Date.now()}`;
-
-    try {
-      await createPipelineMutation.mutateAsync({
-        owner: owner!,
-        repo: repo!,
-        workflowName: finalWorkflowName,
-        inputJson: blocks as unknown as Record<string, unknown>[],
-        description: 'PipeMate로 생성된 워크플로우',
-      });
-
-      toast.success('워크플로우가 성공적으로 저장되었습니다!');
-      setWorkflowName(''); // 저장 후 입력 필드 초기화
-    } catch (e) {
-      console.error('워크플로우 저장 실패:', e);
-      toast.error('워크플로우 저장에 실패했습니다. 다시 시도해주세요.');
-    }
-  }, [owner, repo, isConfigured, hasNodes, blocks, workflowName, createPipelineMutation]);
-
-  useEffect(() => {
-    // blocks의 trigger 블록에서 이름 자동완성: x_name 혹은 name 필드를 사용할 수 있다면 확장 가능
-    // 현재는 편집 페이지에서 전달된 initialWorkflowName 우선
-    if (initialWorkflowName && !workflowName) {
-      setWorkflowName(initialWorkflowName);
-    }
-    if (onWorkflowNameChange) {
-      onWorkflowNameChange(workflowName);
-    }
-  }, [initialWorkflowName, workflowName, onWorkflowNameChange]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-96 lg:w-[450px] xl:w-[500px] bg-white border-l border-gray-200 flex flex-col overflow-hidden shadow-xl z-50">
-      {/* 헤더 */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center gap-2">
-          <Layers size={20} className="text-blue-600" />
-          <h3 className="text-base font-semibold text-gray-900 truncate">
-            {selectedNode ? `${selectedNode.data.label} - 노드 패널` : '워크플로우 패널'}
-          </h3>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="h-8 w-8 p-0 hover:bg-gray-100"
+    <div className="w-full h-full flex flex-col">
+      {/* 탭 네비게이션 */}
+      <div className="border-b border-gray-200 flex-shrink-0 p-2">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value as any);
+            // 편집 탭 클릭 시 선택된 노드가 있으면 바로 편집 모드로 전환
+            if (value === 'editor' && selectedNode && !isEditing) {
+              setEditingNode(selectedNode);
+              setIsEditing(true);
+            }
+          }}
+          defaultValue="library"
+          className="w-full h-full flex flex-col"
         >
-          <X size={16} />
-        </Button>
-      </div>
-
-      {/* 뷰 모드 탭: 설정 / YAML */}
-      <div className="flex border-b border-gray-200 bg-gray-50">
-        <button
-          onClick={() => setViewMode('yaml')}
-          className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === 'yaml'
-              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <Code size={14} className="mr-1" />
-          YAML
-        </button>
-
-        <button
-          onClick={() => setViewMode('settings')}
-          className={`flex-1 px-3 py-3 text-xs font-medium transition-all duration-200 ${
-            viewMode === 'settings'
-              ? 'bg-white text-blue-700 border-b-2 border-blue-700 shadow-sm'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-        >
-          <Settings size={14} className="mr-1" />
-          설정
-        </button>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="library" className="flex items-center gap-2">
+              <Blocks className="h-4 w-4" />
+              <span>라이브러리</span>
+            </TabsTrigger>
+            <TabsTrigger value="editor" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span>편집</span>
+            </TabsTrigger>
+            <TabsTrigger value="yaml" className="flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              <span>YAML</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* 컨텐츠 영역 */}
-      <div className="flex-1 overflow-auto">
-        {/* control 탭 제거됨: settings에 통합 */}
-
-        {viewMode === 'yaml' && (
-          <div className="p-4 space-y-4">
-            {/* YAML 뷰 모드 선택 */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Code size={16} className="text-blue-600" />
-                <span className="text-sm font-medium text-gray-700">YAML 미리보기</span>
-              </div>
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setYamlViewMode('block')}
-                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                    yamlViewMode === 'block'
-                      ? 'bg-white text-blue-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  블록
-                </button>
-                <button
-                  onClick={() => setYamlViewMode('full')}
-                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                    yamlViewMode === 'full'
-                      ? 'bg-white text-blue-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  전체
-                </button>
-              </div>
+      <div className="flex-1 overflow-hidden min-h-0">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as any)}
+          defaultValue="library"
+          className="w-full h-full flex flex-col"
+        >
+          {/* 블록 라이브러리 탭 */}
+          <TabsContent value="library" className="h-full mt-0 flex-1 min-h-0">
+            <div className="h-full overflow-y-auto min-h-0">
+              <DragDropSidebar nodePanelOpen={false} onRequestCloseNodePanel={() => {}} />
             </div>
+          </TabsContent>
 
-            {/* YAML 내용/편집 */}
-            {yamlViewMode === 'block' ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={isYamlEditing ? 'outline' : 'default'}
-                    onClick={() => setIsYamlEditing((v) => !v)}
-                  >
-                    {isYamlEditing ? '미리보기' : '편집'}
-                  </Button>
-                  {isYamlEditing && (
-                    <>
-                      <Button size="sm" variant="secondary" onClick={handleFormatYaml}>
-                        포맷
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveYaml}
-                        disabled={!!yamlError || isSaving}
-                      >
-                        {isSaving ? '저장 중...' : '저장'}
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {yamlError && <div className="text-xs text-red-500">{yamlError}</div>}
-                {isYamlEditing ? (
-                  <textarea
-                    value={editableYaml}
-                    onChange={(e) => handleYamlChange(e.target.value)}
-                    className="w-full h-64 p-3 border rounded font-mono text-xs bg-slate-50 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder="블록 YAML을 편집하세요"
-                  />
-                ) : (
-                  <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
-                    <pre className="whitespace-pre-wrap break-words">
-                      {getCurrentYaml()}
-                    </pre>
+          {/* 편집 탭 */}
+          <TabsContent value="editor" className="h-full mt-0 flex-1 min-h-0">
+            <div className="h-full overflow-y-auto min-h-0">
+              {selectedNode ? (
+                <NodeEditor
+                  nodeData={selectedNode.data}
+                  nodeType={selectedNode.type}
+                  onSave={handleSaveNode}
+                  onCancel={handleCancelEdit}
+                  onDelete={() => onNodeDelete(selectedNode.id)}
+                  onMissingSecrets={handleCreateMissingSecrets}
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                  <div className="p-4 text-center">
+                    <Edit className="w-12 h-12 text-gray-300 mb-4 mx-auto" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">
+                      편집할 노드를 선택하세요
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      워크플로우에서 편집할 블록을 클릭하면 여기서 편집할 수 있습니다.
+                    </p>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 p-4 rounded-lg max-h-96 overflow-auto border border-slate-800 shadow-inner">
-                <pre className="whitespace-pre-wrap break-words">{getCurrentYaml()}</pre>
-              </div>
-            )}
-
-            {/* 액션 버튼들 */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={copyYaml}
-                size="sm"
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Copy size={14} />
-                복사
-              </Button>
-              <Button
-                onClick={() => {
-                  const yaml = getCurrentYaml();
-                  const blob = new Blob([yaml], { type: 'text/yaml' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = yamlViewMode === 'block' ? 'block.yaml' : 'workflow.yaml';
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Download size={14} />
-                다운로드
-              </Button>
-              <Button
-                onClick={() => {
-                  const yaml = getCurrentYaml();
-                  const newWindow = window.open();
-                  if (newWindow) {
-                    newWindow.document.write(`
-                      <html>
-                        <head>
-                          <title>YAML 미리보기</title>
-                          <style>
-                            :root { color-scheme: dark; }
-                            body {
-                              margin: 0;
-                              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-                              background: #0f172a; /* slate-900 */
-                              color: #f1f5f9; /* slate-100 */
-                              padding: 20px;
-                            }
-                            .container {
-                              background: #0f172a; /* slate-900 */
-                              border: 1px solid #1e293b; /* slate-800 */
-                              border-radius: 8px;
-                              box-shadow: inset 0 1px 2px rgba(0,0,0,0.35);
-                              padding: 16px;
-                              max-height: 80vh;
-                              overflow: auto;
-                            }
-                            pre {
-                              margin: 0;
-                              white-space: pre-wrap;
-                              word-break: break-word;
-                              font-size: 11px;
-                              line-height: 1.4;
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="container">
-                            <pre>${yaml.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-                          </div>
-                        </body>
-                      </html>
-                    `);
-                  }
-                }}
-                size="sm"
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Eye size={14} />새 창에서 보기
-              </Button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          </TabsContent>
 
-        {/* tree/edit 탭 제거됨: 노드 편집은 settings 탭의 노드 섹션에서 수행 */}
-
-        {/* 설정 탭 */}
-        {viewMode === 'settings' && (
-          <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Settings size={16} className="text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">설정</span>
-            </div>
-
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="general">일반</TabsTrigger>
-                <TabsTrigger value="node">노드</TabsTrigger>
-                <TabsTrigger value="secrets">
-                  Secrets
-                  {missingSecrets.length > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {missingSecrets.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="general" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">워크플로우 설정</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* 저장소 상태 */}
-                    <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-600">상태:</span>
-                        <span
-                          className={`font-medium ${
-                            isConfigured ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {isConfigured ? '설정됨' : '미설정'}
+          {/* YAML 탭 */}
+          <TabsContent value="yaml" className="h-full mt-0 flex-1 min-h-0">
+            <div className="h-full flex flex-col min-h-0">
+              {selectedNode ? (
+                <>
+                  <div className="p-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Code size={14} className="text-orange-600" />
+                        <span className="text-sm font-medium text-gray-700">
+                          YAML 미리보기
                         </span>
                       </div>
-                      {isConfigured && (
-                        <>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">소유자:</span>
-                            <span className="font-medium">{owner}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">저장소:</span>
-                            <span className="font-medium">{repo}</span>
-                          </div>
-                        </>
-                      )}
+                      <div className="flex bg-gray-100 rounded-lg p-1">
+                        <button
+                          onClick={() => setYamlViewMode('block')}
+                          className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                            yamlViewMode === 'block'
+                              ? 'bg-white text-orange-700 shadow-sm'
+                              : 'text-gray-600 hover:text-gray-800'
+                          }`}
+                        >
+                          블록
+                        </button>
+                        <button
+                          onClick={() => setYamlViewMode('full')}
+                          className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                            yamlViewMode === 'full'
+                              ? 'bg-white text-orange-700 shadow-sm'
+                              : 'text-gray-600 hover:text-gray-800'
+                          }`}
+                        >
+                          전체
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600">
-                        워크플로우 이름
-                      </label>
-                      <Input
-                        value={workflowName}
-                        onChange={(e) => setWorkflowName(e.target.value)}
-                        placeholder="workflow-name"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={copyYaml}
+                        size="sm"
+                        className="flex items-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs border-orange-600 transition-colors duration-200"
+                      >
+                        <Copy size={12} />
+                        복사
+                      </Button>
                       <Button
                         onClick={() => {
-                          onSaveWorkflow();
-                          toast.success(
-                            `임시 저장되었습니다${
-                              workflowName ? `: ${workflowName}` : ''
-                            }.`,
-                          );
-                          if (onWorkflowNameChange) onWorkflowNameChange(workflowName);
+                          const yaml = getCurrentYaml();
+                          const blob = new Blob([yaml], { type: 'text/yaml' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download =
+                            yamlViewMode === 'block' ? 'block.yaml' : 'workflow.yaml';
+                          a.click();
+                          URL.revokeObjectURL(url);
                         }}
-                        disabled={isSaving}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                        title="현재 워크스페이스 구성(블록) 상태를 임시 저장합니다."
-                      >
-                        <Save size={14} />
-                        {isSaving ? '임시 저장 중...' : '임시 저장'}
-                      </Button>
-                      <Button
-                        onClick={onClearWorkspace}
-                        variant="outline"
                         size="sm"
-                        className="flex items-center gap-2"
-                        title="워크스페이스의 블록을 모두 초기화합니다."
+                        variant="outline"
+                        className="flex items-center gap-1 text-xs border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400 transition-colors duration-200"
                       >
-                        <Trash2 size={14} />
-                        워크스페이스 초기화
+                        <Download size={12} />
+                        다운로드
                       </Button>
-                      {mode === 'create' && (
-                        <Button
-                          onClick={handleSaveWorkflowToServer}
-                          disabled={
-                            createPipelineMutation.isPending || !isConfigured || !hasNodes
-                          }
-                          size="sm"
-                          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
-                          title="새 워크플로우 파일을 생성하여 서버에 저장합니다."
+                    </div>
+                  </div>
+
+                  <div className="flex-1 p-3 overflow-hidden">
+                    <div className="bg-slate-900 text-slate-100 font-mono text-[10px] leading-4 p-3 rounded border border-slate-800 h-full overflow-auto min-h-0">
+                      <pre className="whitespace-pre-wrap break-words">
+                        {getCurrentYaml()}
+                      </pre>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                  <div className="p-4 text-center">
+                    <Code className="w-12 h-12 text-gray-300 mb-4 mx-auto" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">
+                      YAML을 확인할 노드를 선택하세요
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      워크플로우에서 YAML을 확인할 블록을 클릭하면 여기서 YAML을 볼 수
+                      있습니다.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* 시크릿 생성 다이얼로그 */}
+      <Dialog open={showSecretForm} onOpenChange={setShowSecretForm}>
+        <DialogContent className="w-[90vw] max-w-2xl h-[85vh] max-h-[700px] p-0 flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between px-6 py-0">
+            <DialogTitle className="text-xl font-semibold">
+              누락된 Secrets 생성
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 px-6 py-4 overflow-hidden">
+            <div className="h-full flex flex-col">
+              {/* 노드 정보 */}
+              {editingNode && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1 bg-orange-100 rounded">
+                      <Edit className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <span className="text-sm font-medium text-orange-800">
+                      편집 중인 노드
+                    </span>
+                  </div>
+                  <div className="text-sm text-orange-700">
+                    <strong>노드:</strong> {editingNode.data.label}
+                    <br />
+                    <strong>타입:</strong> {editingNode.type}
+                  </div>
+                </div>
+              )}
+
+              {/* 시크릿 폼 */}
+              <div className="flex-1 space-y-4 overflow-y-auto min-h-0">
+                {secretsToCreate.map((secret, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    {/* 시크릿 헤더 */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-gray-900">
+                          시크릿 #{index + 1}
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-gray-100 text-gray-700"
                         >
-                          <Save size={14} />
-                          {createPipelineMutation.isPending
-                            ? '신규 생성 중...'
-                            : '신규 생성'}
-                        </Button>
-                      )}
-                      {mode === 'edit' && (
+                          {secret.name ? extractGroup(secret.name) : 'UNKNOWN'}
+                        </Badge>
+                      </div>
+                      {secretsToCreate.length > 1 && (
                         <Button
-                          onClick={() => {
-                            toast.info('편집 중: 상단 저장 버튼으로 서버에 적용됩니다.');
-                          }}
-                          variant="outline"
                           size="sm"
-                          title="편집 모드에서는 상단 저장 버튼으로 서버에 적용됩니다."
+                          variant="ghost"
+                          onClick={() => handleRemoveSecretForm(index)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
-                          서버 저장 안내
+                          <X size={16} />
                         </Button>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
-              <TabsContent value="node" className="space-y-4">
-                {!selectedNode ? (
-                  <Card>
-                    <CardContent className="p-4 text-sm text-gray-600">
-                      편집할 노드를 좌측에서 선택하세요.
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">노드 편집</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <NodeEditor
-                        nodeData={selectedNode.data}
-                        nodeType={selectedNode.type}
-                        onSave={(updatedData) => {
-                          if (updateNodeData) {
-                            updateNodeData(selectedNode.id, updatedData);
-                          }
-                          toast.success('노드가 저장되었습니다.');
+                    {/* 시크릿 이름 입력 */}
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block font-medium">
+                        이름 (예: AWS_ACCESS_KEY, DOCKER_PASSWORD)
+                      </label>
+                      <Input
+                        value={secret.name}
+                        onChange={(e) => {
+                          const value = e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9_]/g, '');
+                          handleUpdateSecretForm(index, 'name', value);
                         }}
-                        onCancel={() => {}}
+                        placeholder="AWS_ACCESS_KEY"
+                        className="font-mono border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       />
-                      <div className="mt-3">
-                        <Button
-                          onClick={() => onNodeDelete(selectedNode.id)}
-                          size="sm"
-                          variant="destructive"
-                          className="w-full flex items-center justify-center gap-2 shadow-sm"
-                        >
-                          <Trash2 size={16} />
-                          노드 삭제
-                        </Button>
+                    </div>
+
+                    {/* 시크릿 값 입력 */}
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block font-medium">
+                        값
+                      </label>
+                      <Input
+                        value={secret.value}
+                        onChange={(e) =>
+                          handleUpdateSecretForm(index, 'value', e.target.value)
+                        }
+                        placeholder="시크릿 값을 입력하세요..."
+                        type="password"
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {/* 준비 완료 표시 */}
+                    {secret.name && secret.value && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                        <CheckCircle className="h-4 w-4" />
+                        준비 완료
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+                    )}
+                  </div>
+                ))}
+              </div>
 
-              <TabsContent value="secrets" className="space-y-4">
-                {selectedNode && canNodeUseSecrets(selectedNode.type) ? (
-                  <SecretManagementPanel
-                    requiredSecrets={detectSecretsInConfig(selectedNode.data.config)}
-                    onSecretsUpdated={async () => {
-                      // 시크릿 업데이트 후 새로고침 및 재검증
-                      try {
-                        await refetchSecrets();
-                        // 약간의 지연 후 재검증
-                        setTimeout(() => {
-                          if (
-                            selectedNode &&
-                            canNodeUseSecrets(selectedNode.type) &&
-                            selectedNode.data.config
-                          ) {
-                            const requiredSecrets = detectSecretsInConfig(
-                              selectedNode.data.config,
-                            );
-                            const userSecrets: string[] = [];
-                            if (secretsData?.data?.groupedSecrets) {
-                              Object.values(secretsData.data.groupedSecrets).forEach(
-                                (group: unknown) => {
-                                  if (Array.isArray(group)) {
-                                    group.forEach((secret: unknown) => {
-                                      if (
-                                        secret &&
-                                        typeof secret === 'object' &&
-                                        'name' in secret &&
-                                        typeof secret.name === 'string'
-                                      ) {
-                                        userSecrets.push(secret.name);
-                                      }
-                                    });
-                                  }
-                                },
-                              );
-                            }
-                            const missing = findMissingSecrets(
-                              requiredSecrets,
-                              userSecrets,
-                            );
-                            setMissingSecrets(missing);
-                          }
-                        }, 500);
-                      } catch (error) {
-                        console.error('시크릿 업데이트 후 새로고침 실패:', error);
-                      }
-                    }}
-                  />
-                ) : (
-                  <Card>
-                    <CardContent className="p-6 text-center">
-                      <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">
-                        이 노드 타입에서는 시크릿을 사용할 수 없습니다.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-            </Tabs>
+              {/* 액션 버튼들 */}
+              <div className="flex gap-3 flex-shrink-0 pt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={handleAddSecretForm}
+                  className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-800 transition-colors duration-200"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  시크릿 추가
+                </Button>
+                <Button
+                  onClick={handleCreateSecrets}
+                  disabled={isCreatingSecrets || secretsToCreate.length === 0}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white border-orange-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 transition-colors duration-200"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isCreatingSecrets ? '생성 중...' : '저장'}
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* 누락된 Secrets 생성 다이얼로그 */}
-      <Dialog open={secretDialogOpen} onOpenChange={setSecretDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>누락된 Secrets 생성</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {missingSecretsState.length === 0 ? (
-              <div className="text-sm text-gray-600">누락된 Secret이 없습니다.</div>
-            ) : (
-              missingSecretsState.map((name) => (
-                <div key={name} className="space-y-1">
-                  <div className="text-xs font-medium text-gray-700">{name}</div>
-                  <Input
-                    type="password"
-                    placeholder={`${name} 값 입력`}
-                    value={newSecretValues[name] || ''}
-                    onChange={(e) =>
-                      setNewSecretValues((prev) => ({ ...prev, [name]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={async () => {
-                if (!owner || !repo) return;
-                const entries = Object.entries(newSecretValues).filter(
-                  ([, v]) => v && v.trim(),
-                );
-                for (const [secretName, value] of entries) {
-                  try {
-                    await createOrUpdateSecret.mutateAsync({
-                      owner,
-                      repo,
-                      secretName,
-                      data: { value },
-                    });
-                  } catch (e) {
-                    console.error('Secret 생성 실패:', secretName, e);
-                  }
-                }
-                setSecretDialogOpen(false);
-                setMissingSecretsState([]);
-                setNewSecretValues({});
-                // 시크릿 목록 즉시 새로고침
-                refetchSecrets();
-                toast.success('누락된 Secrets가 저장되었습니다.');
-              }}
-              disabled={!isConfigured || missingSecretsState.length === 0}
-            >
-              저장
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

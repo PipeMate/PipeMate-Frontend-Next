@@ -33,7 +33,9 @@ function GitHubActionsFlowContent() {
   const [isEditing, setIsEditing] = useState(false);
 
   //* 워크플로우 이름
-  const [workflowName, setWorkflowName] = useState<string>('');
+  const [workflowName, setWorkflowName] = useState<string>(
+    `workflow-${new Date().toISOString().slice(0, 10)}`,
+  );
 
   //* ========================================
   //* Hook 호출 (모든 Hook을 조건부 렌더링 전에 호출)
@@ -238,7 +240,7 @@ function GitHubActionsFlowContent() {
 
   return (
     <ErrorBoundary>
-      <div className="w-full h-full min-h-0 min-w-0 flex">
+      <div className="w-full h-full min-h-0 min-w-0 flex md:pr-80 xl:pr-96">
         {/* 영역 기반 워크플로우 에디터 */}
         <Suspense fallback={SuspenseFallback}>
           <AreaBasedWorkflowEditor
@@ -248,6 +250,8 @@ function GitHubActionsFlowContent() {
             isEditing={isEditing}
             initialBlocks={blocks}
             onBlockUpdate={handleBlockUpdate}
+            initialWorkflowName={workflowName}
+            onWorkflowNameChange={handleWorkflowNameChange}
           />
         </Suspense>
       </div>
