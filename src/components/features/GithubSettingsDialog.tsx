@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Github, GitBranch, Lock } from 'lucide-react';
+import { Github, GitBranch, Lock, ExternalLink, AlertCircle } from 'lucide-react';
 import { STORAGES } from '@/config/appConstants';
 import {
   setCookie,
@@ -84,6 +84,11 @@ export function GithubSettingsDialog({
   // 기존 API 훅 (호환성 유지)
   const { data: secretsData, isLoading } = useSecrets(owner || '', repo || '');
 
+  // 조건부 탭 활성화를 위한 상태 확인
+  const hasToken = !!savedToken;
+  const hasRepository = !!(savedOwner && savedRepo);
+  const canAccessSecrets = hasToken && hasRepository;
+
   useEffect(() => {
     if (open) {
       // 토큰 정보 로드
@@ -100,93 +105,109 @@ export function GithubSettingsDialog({
     }
   }, [open]);
 
-  // 시크릿 새로고침 (레포지토리 변경 시)
-  useEffect(() => {
-    if (open && owner && repo) {
-      refreshSecrets();
-    }
-  }, [open, owner, repo, refreshSecrets]);
-
-  // 토큰 관련 핸들러
-  const handleSaveToken = () => {
+  // 토큰 저장 핸들러
+  const handleSaveToken = async () => {
     if (!token.trim()) {
       setTokenError('토큰을 입력해주세요.');
       return;
     }
-    setCookie(STORAGES.GITHUB_TOKEN, token.trim(), { days: 30 });
-    setSavedToken(token.trim());
-    setTokenError('');
-    onTokenChange?.(token.trim());
-  };
-
-  const handleDeleteToken = () => {
-    deleteCookie(STORAGES.GITHUB_TOKEN);
-    setSavedToken(null);
-    setToken('');
-    setTokenError('');
-    onTokenChange?.(null);
-  };
-
-  // 레포지토리 관련 핸들러
-  const handleSaveRepository = () => {
-    if (!owner.trim()) {
-      setRepoError('소유자를 입력해주세요.');
-      return;
-    }
-    if (!repo.trim()) {
-      setRepoError('레포지토리를 입력해주세요.');
-      return;
-    }
-
-    setRepositoryConfig(owner.trim(), repo.trim());
-    setSavedOwner(owner.trim());
-    setSavedRepo(repo.trim());
-    setRepository(owner.trim(), repo.trim());
-    setRepoError('');
-  };
-
-  const handleDeleteRepository = () => {
-    deleteRepositoryConfig();
-    setSavedOwner(null);
-    setSavedRepo(null);
-    setOwner('');
-    setRepo('');
-    setRepository('', '');
-    setRepoError('');
-  };
-
-  // 시크릿 관련 핸들러
-  const handleDeleteSecret = async (secretName: string) => {
-    if (!owner || !repo) return;
 
     try {
+      setCookie(STORAGES.GITHUB_TOKEN, token.trim());
+      setSavedToken(token.trim());
+      setTokenError('');
+      onTokenChange?.(token.trim());
+    } catch (error) {
+      setTokenError('토큰 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 토큰 삭제 핸들러
+  const handleDeleteToken = () => {
+    try {
+      deleteCookie(STORAGES.GITHUB_TOKEN);
+      setSavedToken(null);
+      setToken('');
+      setTokenError('');
+      onTokenChange?.(null);
+    } catch (error) {
+      setTokenError('토큰 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 레포지토리 저장 핸들러
+  const handleSaveRepository = () => {
+    if (!owner.trim() || !repo.trim()) {
+      setRepoError('소유자와 레포지토리 이름을 모두 입력해주세요.');
+      return;
+    }
+
+    if (!hasToken) {
+      setRepoError('먼저 GitHub 토큰을 설정해주세요.');
+      return;
+    }
+
+    try {
+      setRepositoryConfig(owner.trim(), repo.trim());
+      setSavedOwner(owner.trim());
+      setSavedRepo(repo.trim());
+      setRepository(owner.trim(), repo.trim());
+      setRepoError('');
+    } catch (error) {
+      setRepoError('레포지토리 설정 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 레포지토리 삭제 핸들러
+  const handleDeleteRepository = () => {
+    try {
+      deleteRepositoryConfig();
+      setSavedOwner(null);
+      setSavedRepo(null);
+      setOwner('');
+      setRepo('');
+      setRepoError('');
+    } catch (error) {
+      setRepoError('레포지토리 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 시크릿 삭제 핸들러
+  const handleDeleteSecret = async (secretName: string) => {
+    try {
       await deleteSecretMutation.mutateAsync({
-        owner,
-        repo,
+        owner: savedOwner || '',
+        repo: savedRepo || '',
         secretName,
       });
       refreshSecrets();
     } catch (error) {
-      console.error('Secret 삭제 실패:', error);
+      console.error('시크릿 삭제 실패:', error);
     }
   };
 
+  // 누락된 시크릿 생성 핸들러
   const handleCreateMissingSecrets = (secretNames: string[]) => {
     if (secretNames.length > 0) {
-      const initialSecrets = secretNames.map((name) => ({
+      // 누락된 시크릿 이름으로 폼 생성
+      const newSecrets = secretNames.map((name) => ({
         name,
         value: '',
-        description: '',
       }));
-      setSecretsToCreate(initialSecrets);
+      setSecretsToCreate(newSecrets);
+      setShowValues({});
+      setShowSecretForm(true);
     } else {
-      setSecretsToCreate([{ name: '', value: '', description: '' }]);
+      // 빈 시크릿 폼 생성
+      setSecretsToCreate([{ name: '', value: '' }]);
+      setShowValues({});
+      setShowSecretForm(true);
     }
-    setShowSecretForm(true);
   };
 
+  // 시크릿 폼 관련 핸들러들
   const handleAddSecretForm = () => {
-    setSecretsToCreate([...secretsToCreate, { name: '', value: '', description: '' }]);
+    setSecretsToCreate([...secretsToCreate, { name: '', value: '' }]);
   };
 
   const handleRemoveSecretForm = (index: number) => {
@@ -314,6 +335,7 @@ export function GithubSettingsDialog({
                     savedOwner,
                     savedRepo,
                     error: repoError,
+                    hasToken,
                   }}
                   handlers={{
                     onOwnerChange: setOwner,
@@ -325,31 +347,67 @@ export function GithubSettingsDialog({
               </TabsContent>
 
               <TabsContent value="secrets" className="h-full mt-0">
-                <SecretsTab
-                  data={{
-                    availableSecrets,
-                    missingSecrets,
-                    loading: secretsLoading,
-                    error: secretsError,
-                    groupedSecrets: secretsData?.data?.groupedSecrets,
-                  }}
-                  form={{
-                    showForm: showSecretForm,
-                    secretsToCreate,
-                    showValues,
-                    isCreating: isCreatingSecrets,
-                  }}
-                  handlers={{
-                    onDeleteSecret: handleDeleteSecret,
-                    onCreateMissingSecrets: handleCreateMissingSecrets,
-                    onAddSecretForm: handleAddSecretForm,
-                    onRemoveSecretForm: handleRemoveSecretForm,
-                    onUpdateSecretForm: handleUpdateSecretForm,
-                    onToggleValueVisibility: handleToggleValueVisibility,
-                    onCloseSecretForm: handleCloseSecretForm,
-                    onCreateSecrets: handleCreateSecrets,
-                  }}
-                />
+                {!canAccessSecrets ? (
+                  <div className="h-full flex flex-col items-center justify-center space-y-4">
+                    <div className="p-4 bg-orange-100 rounded-full">
+                      <AlertCircle className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <div className="text-center space-y-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        설정이 필요합니다
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        시크릿을 관리하려면 GitHub 토큰과 레포지토리 설정이 필요합니다.
+                      </p>
+                      <div className="flex gap-2 justify-center">
+                        {!hasToken && (
+                          <Button
+                            onClick={() => setActiveTab('token')}
+                            variant="outline"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          >
+                            토큰 설정
+                          </Button>
+                        )}
+                        {!hasRepository && hasToken && (
+                          <Button
+                            onClick={() => setActiveTab('repository')}
+                            variant="outline"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                          >
+                            레포지토리 설정
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <SecretsTab
+                    data={{
+                      availableSecrets,
+                      missingSecrets,
+                      loading: secretsLoading,
+                      error: secretsError,
+                      groupedSecrets: secretsData?.data?.groupedSecrets,
+                    }}
+                    form={{
+                      showForm: showSecretForm,
+                      secretsToCreate,
+                      showValues,
+                      isCreating: isCreatingSecrets,
+                    }}
+                    handlers={{
+                      onDeleteSecret: handleDeleteSecret,
+                      onCreateMissingSecrets: handleCreateMissingSecrets,
+                      onAddSecretForm: handleAddSecretForm,
+                      onRemoveSecretForm: handleRemoveSecretForm,
+                      onUpdateSecretForm: handleUpdateSecretForm,
+                      onToggleValueVisibility: handleToggleValueVisibility,
+                      onCloseSecretForm: handleCloseSecretForm,
+                      onCreateSecrets: handleCreateSecrets,
+                    }}
+                  />
+                )}
               </TabsContent>
             </div>
           </Tabs>
