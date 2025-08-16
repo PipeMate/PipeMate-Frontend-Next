@@ -7,12 +7,14 @@ import {
   Play,
   Eye,
   Monitor,
+  Shapes,
+  Shield,
 } from 'lucide-react';
 
 // * 브랜드 정보
 export const BRAND = {
   name: 'PipeMate',
-  description: '워크플로우 에디터',
+  description: '블록으로 간편하게 파이프라인 구축',
   logo: {
     icon: Workflow,
     color: 'text-blue-600',
@@ -23,8 +25,13 @@ export const BRAND = {
 export const ROUTES = {
   HOME: {
     url: '/',
-    label: '대시보드',
+    label: '홈',
     icon: Home,
+  },
+  ACTION_FLOW: {
+    url: '/editor',
+    label: '워크플로우 에디터',
+    icon: Shapes,
   },
   WORKFLOWS: {
     url: '/workflows',
@@ -36,58 +43,63 @@ export const ROUTES = {
     label: '로그 모니터링',
     icon: Monitor,
   },
-  ACTION_FLOW: {
-    url: '/github-actions-flow',
-    label: '워크플로우 에디터',
-    icon: Github,
-  },
 } as const;
 
 // * 홈 페이지 정보
 export const HOME = {
   hero: {
-    title: '블록으로 쉽게 만드는 GitHub Actions 워크플로우',
+    title: 'PipeMate',
+    subTitle: '블록으로 간편하게 파이프라인 구축',
+    description:
+      'CI/CD 워크플로우에 대한 사전 지식이 없어도 괜찮습니다. 블록을 이용하여 파이프라인을 구축하고, 실시간으로 실행 상태를 확인하세요. 누구나 손쉽게 효율적인 개발 환경을 경험할 수 있습니다.',
+    image: {
+      src: '/워크플로우에디터_샘플.png',
+      alt: 'PipeMate 워크플로우 에디터 미리보기',
+    },
   },
   features: [
     {
-      icon: Github,
-      title: 'GitHub 연동',
+      icon: Workflow,
+      title: '직관적인 워크플로우 설계',
       description:
-        'GitHub 계정과 연결하여 저장소의 워크플로우를 직접 관리하고 실행할 수 있습니다.',
-      color: 'text-gray-700',
-    },
-    {
-      icon: Blocks,
-      title: '블록 기반 편집기',
-      description:
-        '드래그 앤 드롭으로 워크플로우를 구성하세요. 복잡한 YAML 문법을 몰라도 쉽게 만들 수 있습니다.',
+        '드래그 앤 드롭으로 Trigger, Job, Step 블록을 연결하여 워크플로우를 시각적으로 설계합니다. 복잡한 YAML 문법 없이도 파이프라인의 구조를 한눈에 파악할 수 있어요.',
       color: 'text-blue-600',
+      action: {
+        title: '에디터 시작하기',
+        url: ROUTES.ACTION_FLOW.url,
+        color: 'bg-blue-600 hover:bg-blue-700',
+      },
     },
     {
-      icon: FileText,
-      title: 'YAML 자동 생성',
+      icon: Monitor,
+      title: '실시간 실행 시각화',
       description:
-        '블록을 조합하면 완벽한 GitHub Actions YAML 파일이 자동으로 생성됩니다.',
+        '구축한 워크플로우의 실행 과정을 실시간으로 모니터링하고, 각 단계별 로그와 성공/실패 여부를 시각화된 화면에서 한눈에 파악할 수 있어 문제 해결이 빠릅니다.',
       color: 'text-green-600',
+      action: {
+        title: '모니터링 보기',
+        url: ROUTES.MONITORING.url,
+        color: 'bg-green-600 hover:bg-green-700',
+      },
     },
     {
-      icon: Play,
-      title: 'Action API 실행',
-      description: '생성된 워크플로우를 GitHub Actions API로 원클릭 실행할 수 있습니다.',
-      color: 'text-purple-600',
-    },
-    {
-      icon: Eye,
-      title: '시각적 미리보기',
-      description: '실행 전 워크플로우 구조를 한눈에 확인하고 검증할 수 있습니다.',
+      icon: Shield,
+      title: '안전한 보안 관리',
+      description:
+        '민감한 개인 정보를 GitHub Secret과 연동하여 안전하게 관리합니다. Docker 로그인, AWS 배포 등 보안이 중요한 작업도 워크플로우 블록에서 간편하게 활용할 수 있어요.',
       color: 'text-orange-600',
+      action: {
+        title: '관리하기',
+        url: ROUTES.WORKFLOWS.url,
+        color: 'bg-orange-600 hover:bg-orange-700',
+      },
     },
   ],
   cta: {
-    title: '지금 블록으로 워크플로우를 만들어보세요',
+    title: '지금 바로 워크플로우를 만들어보세요!',
     description:
-      '복잡한 YAML 문법을 몰라도 됩니다. 블록을 조합하여 워크플로우를 만들고 GitHub Actions API로 실행해보세요.',
-    button: '워크플로우 만들기 시작',
+      'PipeMate와 함께라면, 복잡한 CI/CD 개념에 얽매이지 않고 오직 개발에만 집중할 수 있습니다.',
+    button: '에디터 시작하기',
     url: ROUTES.ACTION_FLOW.url,
   },
 } as const;
