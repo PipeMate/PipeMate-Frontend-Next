@@ -220,6 +220,7 @@ function FeaturesSection() {
 
       {/* * 설정 관리 모달 */}
       <GithubSettingsDialog
+        trigger={null}
         open={showSettingsModal}
         onOpenChange={setShowSettingsModal}
         onTokenChange={(token) => {
