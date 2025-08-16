@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useLayout } from '@/components/layout/LayoutContext';
+import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useWorkflows, useWorkflowRuns, useDispatchWorkflow, WorkflowItem } from '@/api';
 import {
@@ -23,19 +23,37 @@ import {
   RefreshCw,
   Edit,
   X,
+  Home,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useSetupGuard } from '@/hooks/useSetupGuard';
+import { FullScreenLoading } from '@/components/ui';
 
 export default function WorkflowsPage() {
-  const { setHeaderExtra, setHeaderRight } = useLayout();
+  const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const { owner, repo, isConfigured } = useRepository();
   const WorkflowsIcon = ROUTES.WORKFLOWS.icon;
   const [searchTerm, setSearchTerm] = useState('');
   const [_selectedWorkflow] = useState<WorkflowItem | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
-  // 훅 사용
+  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
+    requireToken: true,
+    requireRepository: true,
+    redirectTo: '/setup',
+    onSetupChange: (tokenExists, repositoryExists) => {
+      // 설정이 변경되면 페이지 상태를 업데이트
+      if (!tokenExists || !repositoryExists) {
+        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        router.push('/setup');
+      }
+    },
+  });
+
+  // 훅 사용 - 모든 훅을 조건부 렌더링 전에 호출
   const {
     data: workflowsData,
     isLoading: workflowsLoading,
@@ -55,31 +73,26 @@ export default function WorkflowsPage() {
     ? (runsResponse!.workflow_runs as any[])
     : [];
 
-  // 헤더 설정(좌측 타이틀, 우측 컨트롤 분리)
+  // * 페이지 헤더 설정
   useEffect(() => {
-    setHeaderExtra(
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="inline-flex items-center justify-center rounded-md bg-blue-100 text-blue-700 p-2">
-          <WorkflowsIcon className="w-4 h-4" />
-        </span>
-        <div className="min-w-0">
-          <div className="text-base md:text-lg font-semibold text-slate-900 leading-tight">
-            {ROUTES.WORKFLOWS.label}
-          </div>
-          <div className="text-xs md:text-sm text-slate-500 truncate">
-            {owner && repo ? (
-              <span className="text-slate-700">
-                {owner}/{repo}
-              </span>
-            ) : (
-              'GitHub Actions 워크플로우 관리 및 실행'
-            )}
-          </div>
-        </div>
-      </div>,
-    );
-    setHeaderRight(
-      <div className="flex items-center gap-2.5">
+    setPageHeader({
+      title: ROUTES.WORKFLOWS.label,
+      description: 'GitHub Actions 워크플로우 관리 및 실행',
+      breadcrumbs: [
+        { label: '홈', href: '/', icon: Home },
+        { label: ROUTES.WORKFLOWS.label, icon: WorkflowsIcon },
+      ],
+      badges: [
+        {
+          label: `${workflows.length} 워크플로우`,
+          variant: 'secondary',
+          color: 'blue',
+        },
+      ],
+    });
+
+    setPageActions(
+      <div className="flex items-center gap-2">
         <IconBadge icon={<GitBranch className="w-4 h-4" />} variant="outline" size="sm">
           {workflows.length} 워크플로우
         </IconBadge>
@@ -96,20 +109,30 @@ export default function WorkflowsPage() {
         </Button>
       </div>,
     );
+
     return () => {
-      setHeaderExtra(null);
-      setHeaderRight(null);
+      clearPageHeader();
     };
   }, [
-    setHeaderExtra,
-    setHeaderRight,
-    owner,
-    repo,
+    setPageHeader,
+    setPageActions,
+    clearPageHeader,
     workflows.length,
     workflowsLoading,
     refetchWorkflows,
-    WorkflowsIcon,
   ]);
+
+  // 설정이 필요하면 리다이렉트
+  useEffect(() => {
+    if (!isChecking && isSetupValid) {
+      // 설정이 유효하면 페이지 상태를 업데이트
+    }
+  }, [isChecking, isSetupValid, pathname]);
+
+  // 설정이 유효하지 않으면 로딩 표시
+  if (isChecking || !isSetupValid) {
+    return <FullScreenLoading />;
+  }
 
   // 워크플로우 필터링
   const filteredWorkflows = workflows.filter((workflow) => {

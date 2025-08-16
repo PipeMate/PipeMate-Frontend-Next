@@ -4,7 +4,7 @@ import githubClient from '../githubClient';
 import { API_ENDPOINTS } from '@/config';
 import { PipelineRequest, PipelineResponse } from './types';
 import { removeYmlExtension } from '@/lib/utils';
-import { ServerBlock } from '@/app/github-actions-flow/types';
+import { ServerBlock } from '@/app/editor/types';
 
 export const pipelineAPI = {
   // * 파이프라인 생성

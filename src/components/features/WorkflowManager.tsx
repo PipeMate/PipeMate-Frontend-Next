@@ -13,7 +13,7 @@ import {
 import { useWorkflows, usePipeline, useUpdatePipeline } from '@/api';
 import { WorkflowItem } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { GithubTokenDialog } from './GithubTokenDialog';
+import { GithubTokenDialog } from './GithubSettingsDialog';
 
 export default function WorkflowManager() {
   const { owner, repo, isConfigured } = useRepository();
