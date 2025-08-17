@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, X } from 'lucide-react';
 import { getStatusIcon, getStatusBadge } from './Status';
 import RunOverviewChips from './RunOverviewChips';
 import JobsList from './JobsList';
@@ -27,14 +28,19 @@ interface RunDetailProps {
   onClose: () => void;
 }
 
-// 실행 번호 안전하게 가져오기
-const getRunNumber = (run: WorkflowRun) => {
-  return (
-    run.run_number ||
-    (run as { run_number?: number }).run_number ||
-    (run as { number?: number }).number ||
-    'N/A'
-  );
+// 워크플로우 이름을 표시용으로 포맷팅
+const formatWorkflowName = (name: string, path: string) => {
+  // name이 ".github/workflows/xxx.yml" 형태인 경우 파일명만 추출
+  if (name.startsWith('.github/workflows/')) {
+    return name.split('/').pop()?.replace('.yml', '') || name;
+  }
+  // name이 "Deploy Monitor" 같은 형태인 경우 그대로 사용
+  return name;
+};
+
+// 브랜치명 안전하게 가져오기
+const getBranchName = (run: WorkflowRun) => {
+  return run.head_branch || 'N/A';
 };
 
 export default function RunDetail({
@@ -53,25 +59,41 @@ export default function RunDetail({
   const jobs = Array.isArray(runJobsData) ? runJobsData : [];
   const statistics = calculateRunStatistics(jobs);
   const successRate = calculateSuccessRate(statistics);
+  const workflowName = formatWorkflowName(selectedRun.name, selectedRun.path);
+  const branchName = getBranchName(selectedRun);
 
   return (
-    <Card className="border-slate-200 shadow-sm h-full flex flex-col">
+    <Card className="h-full flex flex-col border shadow-sm overflow-hidden">
       {!compact && (
         <CardHeader className="pb-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-slate-500">실행 상세</div>
+              <div className="text-sm text-muted-foreground">실행 상세</div>
               <CardTitle className="text-lg mt-1 flex items-center gap-2">
                 {getStatusIcon(selectedRun.status, selectedRun.conclusion)}
                 <span className="truncate">
-                  {selectedRun.name} #{getRunNumber(selectedRun)}
+                  {workflowName}
+                  <span className="text-sm text-muted-foreground font-normal ml-1">
+                    #{selectedRun.id}
+                  </span>
                 </span>
               </CardTitle>
+              <div className="text-sm text-muted-foreground mt-1">
+                <span className="text-xs bg-muted px-2 py-1 rounded mr-2">
+                  {branchName}
+                </span>
+                {selectedRun.path}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {!isMobile() && (
-                <Button size="sm" variant="outline" onClick={onClose}>
-                  닫기
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onClose}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
                 </Button>
               )}
             </div>
@@ -79,10 +101,10 @@ export default function RunDetail({
         </CardHeader>
       )}
 
-      <CardContent className="pt-5 flex-1 flex flex-col min-h-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-0 overflow-hidden">
         {/* 개요 요약 */}
-        {jobs.length > 0 && (
-          <div className="mb-4 flex-shrink-0">
+        {jobs.length > 0 && !compact && (
+          <div className="p-4 border-b flex-shrink-0">
             <RunOverviewChips
               statistics={statistics}
               statusBadge={getStatusBadge(selectedRun.status, selectedRun.conclusion)}
@@ -96,16 +118,19 @@ export default function RunDetail({
           defaultValue={activeTab}
           value={activeTab}
           onValueChange={(value) => onActiveTabChange(value as ActiveTab)}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex-1 flex flex-col w-full min-h-0 overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+          <TabsList className="grid grid-cols-2 flex-shrink-0 mx-4 mt-4">
             <TabsTrigger value="execution">실행</TabsTrigger>
             <TabsTrigger value="details">상세</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="execution" className="flex-1 flex flex-col min-h-0 mt-4">
+          <TabsContent
+            value="execution"
+            className="flex-1 flex flex-col min-h-0 mt-4 px-4 pb-4 overflow-hidden"
+          >
             {jobsLoading ? (
-              <div className="text-center py-6 text-gray-500 flex-shrink-0">
+              <div className="text-center py-6 text-muted-foreground flex-shrink-0">
                 <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
                 Job 정보를 불러오는 중...
               </div>
@@ -116,14 +141,17 @@ export default function RunDetail({
             )}
           </TabsContent>
 
-          <TabsContent value="details" className="flex-1 flex flex-col min-h-0 mt-4">
+          <TabsContent
+            value="details"
+            className="flex-1 flex flex-col min-h-0 mt-4 px-4 pb-4 overflow-hidden"
+          >
             {logsLoading ? (
-              <div className="text-center py-6 text-gray-500 flex-shrink-0">
+              <div className="text-center py-6 text-muted-foreground flex-shrink-0">
                 <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
                 로그를 불러오는 중...
               </div>
             ) : (
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 overflow-auto min-h-0">
                 <LogViewer
                   raw={String(runLogsData || '')}
                   filename={`workflow-run-${selectedRun.id}-logs.txt`}

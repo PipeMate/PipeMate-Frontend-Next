@@ -2,14 +2,26 @@
 
 // * React 및 UI 컴포넌트 import
 import { useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 
 // * 컨텍스트 및 설정 import
 import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { Monitor, Clock, RefreshCw, AlertTriangle, Loader2, Home } from 'lucide-react';
+import {
+  Monitor,
+  Clock,
+  RefreshCw,
+  AlertTriangle,
+  Loader2,
+  Home,
+  Activity,
+  CheckCircle,
+  XCircle,
+  Play,
+} from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 
 // * 유틸리티 및 타입 import
@@ -209,14 +221,14 @@ export default function MonitoringPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-background">
       {/* * 새로고침 성공/실패 토스트 메시지 */}
       <RefreshFeedback feedback={refreshFeedback} />
 
       {/* ? 초기 로딩 중일 때만 표시되는 통합 로딩 화면 */}
       {isFullLoading && (
-        <div className="container mx-auto px-4 py-6">
-          <div className="text-center py-24 text-gray-500">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
             <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin" />
             <p className="text-lg font-medium mb-2">
               워크플로우 모니터링을 준비하고 있습니다
@@ -228,8 +240,8 @@ export default function MonitoringPage() {
 
       {/* ? 리포지토리가 설정되지 않았을 때 안내 메시지 */}
       {showRepositoryNotConfigured && (
-        <div className="container mx-auto px-4 py-6">
-          <Card className="border-amber-200 bg-amber-50">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="border-amber-200 bg-amber-50 max-w-md">
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 text-amber-800">
                 <AlertTriangle className="w-5 h-5" />
@@ -245,29 +257,50 @@ export default function MonitoringPage() {
 
       {/* * 메인 워크플로우 모니터링 컨텐츠 */}
       {showWorkflowContent && (
-        <div className="container mx-auto px-4 py-6">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* * 데스크톱: 실행 목록(3/5) + 상세 패널(2/5) 레이아웃 */}
-          <div className="hidden lg:grid lg:grid-cols-5 lg:gap-6">
-            <div className="lg:col-span-3">
-              <WorkflowRunsList
-                workflowRuns={workflowRuns}
-                runningWorkflows={runningWorkflows}
-                completedWorkflows={completedWorkflows}
-                displayedCompletedRuns={displayedCompletedRuns}
-                runsLoading={runsLoading}
-                runsError={runsError}
-                isManualRefreshing={isManualRefreshing}
-                selectedRunId={selectedRunId}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onSelectRun={handleShowDetails}
-                onManualRefresh={() => handleManualRefresh(refetchRuns)}
-                onPageChange={setCurrentPage}
-              />
+          <div className="hidden lg:grid lg:grid-cols-5 lg:gap-6 h-full p-6">
+            <div className="lg:col-span-3 h-full overflow-hidden">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>워크플로우 실행</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        <Activity className="w-3 h-3 mr-1" />
+                        {runningWorkflows.length} 실행 중
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {completedWorkflows.length} 완료
+                      </Badge>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <div className="h-full overflow-y-auto px-6 pb-6">
+                    <WorkflowRunsList
+                      workflowRuns={workflowRuns}
+                      runningWorkflows={runningWorkflows}
+                      completedWorkflows={completedWorkflows}
+                      displayedCompletedRuns={displayedCompletedRuns}
+                      runsLoading={runsLoading}
+                      runsError={runsError}
+                      isManualRefreshing={isManualRefreshing}
+                      selectedRunId={selectedRunId}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onSelectRun={handleShowDetails}
+                      onManualRefresh={() => handleManualRefresh(refetchRuns)}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* ? 선택된 실행이 있으면 상세 패널, 없으면 안내 메시지 */}
-            <div className="lg:col-span-2 h-[calc(100vh-200px)]">
+            <div className="lg:col-span-2 h-full overflow-hidden">
               {selectedRun ? (
                 <RunDetail
                   selectedRun={selectedRun}
@@ -280,10 +313,10 @@ export default function MonitoringPage() {
                   onClose={() => setSelectedRun(null)}
                 />
               ) : (
-                <Card className="border-dashed h-full">
-                  <CardContent className="p-10 text-center text-gray-500 h-full flex items-center justify-center">
-                    <div>
-                      <Monitor className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <Card className="border-dashed h-full flex flex-col">
+                  <CardContent className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center text-muted-foreground">
+                      <Monitor className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                       <div className="text-lg font-medium mb-2">실행 상세</div>
                       <div className="text-sm">
                         좌측에서 실행을 선택하면 이 영역에 상세 정보가 표시됩니다.
@@ -296,26 +329,47 @@ export default function MonitoringPage() {
           </div>
 
           {/* * 태블릿: 실행 목록(2/3) + 상세 패널(1/3) 레이아웃 */}
-          <div className="hidden md:grid lg:hidden md:grid-cols-3 md:gap-4">
-            <div className="md:col-span-2">
-              <WorkflowRunsList
-                workflowRuns={workflowRuns}
-                runningWorkflows={runningWorkflows}
-                completedWorkflows={completedWorkflows}
-                displayedCompletedRuns={displayedCompletedRuns}
-                runsLoading={runsLoading}
-                runsError={runsError}
-                isManualRefreshing={isManualRefreshing}
-                selectedRunId={selectedRunId}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onSelectRun={handleShowDetails}
-                onManualRefresh={() => handleManualRefresh(refetchRuns)}
-                onPageChange={setCurrentPage}
-              />
+          <div className="hidden md:grid lg:hidden md:grid-cols-3 md:gap-4 h-full p-4">
+            <div className="md:col-span-2 h-full overflow-hidden">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>워크플로우 실행</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        <Activity className="w-3 h-3 mr-1" />
+                        {runningWorkflows.length}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {completedWorkflows.length}
+                      </Badge>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <div className="h-full overflow-y-auto px-4 pb-4">
+                    <WorkflowRunsList
+                      workflowRuns={workflowRuns}
+                      runningWorkflows={runningWorkflows}
+                      completedWorkflows={completedWorkflows}
+                      displayedCompletedRuns={displayedCompletedRuns}
+                      runsLoading={runsLoading}
+                      runsError={runsError}
+                      isManualRefreshing={isManualRefreshing}
+                      selectedRunId={selectedRunId}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onSelectRun={handleShowDetails}
+                      onManualRefresh={() => handleManualRefresh(refetchRuns)}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="md:col-span-1 h-[calc(100vh-200px)]">
+            <div className="md:col-span-1 h-full overflow-hidden">
               {selectedRun ? (
                 <RunDetail
                   selectedRun={selectedRun}
@@ -328,10 +382,10 @@ export default function MonitoringPage() {
                   onClose={() => setSelectedRun(null)}
                 />
               ) : (
-                <Card className="border-dashed h-full">
-                  <CardContent className="p-6 text-center text-gray-500 h-full flex items-center justify-center">
-                    <div>
-                      <Monitor className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <Card className="border-dashed h-full flex flex-col">
+                  <CardContent className="flex-1 flex items-center justify-center p-4">
+                    <div className="text-center text-muted-foreground">
+                      <Monitor className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
                       <div className="text-sm font-medium mb-1">실행 상세</div>
                       <div className="text-xs">좌측에서 실행을 선택하세요.</div>
                     </div>
@@ -342,22 +396,43 @@ export default function MonitoringPage() {
           </div>
 
           {/* * 모바일: 실행 목록만 표시 (상세는 시트로) */}
-          <div className="md:hidden">
-            <WorkflowRunsList
-              workflowRuns={workflowRuns}
-              runningWorkflows={runningWorkflows}
-              completedWorkflows={completedWorkflows}
-              displayedCompletedRuns={displayedCompletedRuns}
-              runsLoading={runsLoading}
-              runsError={runsError}
-              isManualRefreshing={isManualRefreshing}
-              selectedRunId={selectedRunId}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onSelectRun={handleShowDetails}
-              onManualRefresh={() => handleManualRefresh(refetchRuns)}
-              onPageChange={setCurrentPage}
-            />
+          <div className="md:hidden h-full flex flex-col p-4">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
+                <CardTitle className="flex items-center justify-between">
+                  <span>워크플로우 실행</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Activity className="w-3 h-3 mr-1" />
+                      {runningWorkflows.length}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      {completedWorkflows.length}
+                    </Badge>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden p-0">
+                <div className="h-full overflow-y-auto px-4 pb-4">
+                  <WorkflowRunsList
+                    workflowRuns={workflowRuns}
+                    runningWorkflows={runningWorkflows}
+                    completedWorkflows={completedWorkflows}
+                    displayedCompletedRuns={displayedCompletedRuns}
+                    runsLoading={runsLoading}
+                    runsError={runsError}
+                    isManualRefreshing={isManualRefreshing}
+                    selectedRunId={selectedRunId}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onSelectRun={handleShowDetails}
+                    onManualRefresh={() => handleManualRefresh(refetchRuns)}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
@@ -367,16 +442,9 @@ export default function MonitoringPage() {
         <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
           <SheetContent side="right" className="w-full sm:max-w-lg p-0">
             <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+              <SheetHeader className="flex-shrink-0 p-4 border-b">
                 <SheetTitle className="text-lg font-semibold">실행 상세</SheetTitle>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsDetailOpen(false)}
-                >
-                  닫기
-                </Button>
-              </div>
+              </SheetHeader>
               <div className="flex-1 overflow-hidden p-4">
                 <RunDetail
                   selectedRun={selectedRun}
