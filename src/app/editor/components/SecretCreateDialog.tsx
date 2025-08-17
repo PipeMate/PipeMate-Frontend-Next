@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,20 +10,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-// Label 컴포넌트 대신 div 사용
-// Textarea 컴포넌트 대신 textarea 엘리먼트 사용
 import { Badge } from '@/components/ui/badge';
 import { useSecretManager } from '../hooks/useSecretManager';
-import {
-  Lock,
-  Plus,
-  AlertCircle,
-  CheckCircle,
-  Eye,
-  EyeOff,
-  Copy,
-  Key,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Shield, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface SecretCreateDialogProps {
@@ -36,7 +25,6 @@ interface SecretCreateDialogProps {
 interface SecretForm {
   name: string;
   value: string;
-  description?: string;
 }
 
 export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
@@ -51,31 +39,42 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
   const [showValues, setShowValues] = useState<Record<number, boolean>>({});
   const [isCreating, setIsCreating] = useState(false);
 
+  // * 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
+  const extractGroup = (secretName: string): string => {
+    if (!secretName) return 'UNKNOWN';
+    const parts = secretName.split('_');
+    return parts.length > 1 ? parts[0] : 'UNKNOWN';
+  };
+
+  // * 그룹별로 정렬된 시크릿 - 시크릿을 그룹별로 분류하여 정렬
+  const groupedSecrets = useMemo(() => {
+    const groups: { [key: string]: { secret: SecretForm; index: number }[] } = {};
+
+    secrets.forEach((secret, index) => {
+      const group = extractGroup(secret.name);
+      if (!groups[group]) {
+        groups[group] = [];
+      }
+      groups[group].push({ secret, index });
+    });
+
+    // * 그룹명으로 정렬
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [secrets]);
+
   // 누락된 시크릿을 기반으로 초기 폼 설정
   useEffect(() => {
     if (isOpen && missingSecrets.length > 0) {
       const initialSecrets = missingSecrets.map((name) => ({
         name,
         value: '',
-        description: '',
       }));
       setSecrets(initialSecrets);
     } else if (isOpen && secrets.length === 0) {
       // 새 시크릿 추가
-      setSecrets([{ name: '', value: '', description: '' }]);
+      setSecrets([{ name: '', value: '' }]);
     }
   }, [isOpen, missingSecrets, secrets.length]);
-
-  // 시크릿 추가
-  const addSecret = () => {
-    setSecrets([...secrets, { name: '', value: '', description: '' }]);
-  };
-
-  // 시크릿 제거
-  const removeSecret = (index: number) => {
-    const newSecrets = secrets.filter((_, i) => i !== index);
-    setSecrets(newSecrets);
-  };
 
   // 시크릿 업데이트
   const updateSecret = (index: number, field: keyof SecretForm, value: string) => {
@@ -90,16 +89,6 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
       ...prev,
       [index]: !prev[index],
     }));
-  };
-
-  // 시크릿 값 복사
-  const copyValue = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success('값이 클립보드에 복사되었습니다.');
-    } catch {
-      toast.error('복사에 실패했습니다.');
-    }
   };
 
   // 시크릿 생성
@@ -143,18 +132,23 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-blue-500" />
-            시크릿 생성
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Shield className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold">시크릿 생성</span>
+              <span className="text-sm text-gray-500">누락된 시크릿을 추가하세요</span>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* 안내 메시지 */}
           {missingSecrets.length > 0 && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-4">
               <div className="flex items-center gap-2 text-sm text-yellow-800">
                 <AlertCircle className="h-4 w-4" />
                 다음 시크릿들이 누락되었습니다:
@@ -171,7 +165,7 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
 
           {/* 에러 메시지 */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md mb-4">
               <div className="flex items-center gap-2 text-sm text-red-800">
                 <AlertCircle className="h-4 w-4" />
                 {error}
@@ -180,143 +174,113 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
           )}
 
           {/* 시크릿 폼들 */}
-          <div className="space-y-4">
-            {secrets.map((secret, index) => (
-              <div
-                key={index}
-                className="p-4 border border-gray-200 rounded-lg space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">시크릿 #{index + 1}</div>
-                  {secrets.length > 1 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeSecret(index)}
-                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                    >
-                      ×
-                    </Button>
-                  )}
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {groupedSecrets.map(([groupName, groupSecrets]) => (
+              <div key={groupName} className="space-y-3">
+                {/* * 그룹 헤더 */}
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-gray-700">
+                    {groupName} 그룹
+                  </h4>
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    {groupSecrets.length}개
+                  </Badge>
                 </div>
 
-                {/* 시크릿 이름 */}
-                <div>
-                  <label
-                    htmlFor={`secret-name-${index}`}
-                    className="text-xs text-gray-600"
+                {/* * 그룹 내 시크릿들 */}
+                {groupSecrets.map(({ secret, index }) => (
+                  <div
+                    key={index}
+                    className="p-4 border border-gray-200 rounded-lg space-y-3 bg-white shadow-sm hover:shadow-md transition-shadow"
                   >
-                    이름 (대문자, 숫자, 언더스코어만 사용)
-                  </label>
-                  <Input
-                    id={`secret-name-${index}`}
-                    value={secret.name}
-                    onChange={(e) => {
-                      // 대문자, 숫자, 언더스코어만 허용
-                      const value = e.target.value
-                        .toUpperCase()
-                        .replace(/[^A-Z0-9_]/g, '');
-                      updateSecret(index, 'name', value);
-                    }}
-                    placeholder="SECRET_NAME"
-                    className="font-mono"
-                  />
-                </div>
-
-                {/* 시크릿 값 */}
-                <div>
-                  <label
-                    htmlFor={`secret-value-${index}`}
-                    className="text-xs text-gray-600"
-                  >
-                    값
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      id={`secret-value-${index}`}
-                      value={secret.value}
-                      onChange={(e) => updateSecret(index, 'value', e.target.value)}
-                      placeholder="시크릿 값을 입력하세요..."
-                      className={`flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-20 ${
-                        showValues[index] ? '' : 'font-mono'
-                      }`}
-                      style={{
-                        fontFamily: showValues[index] ? 'inherit' : 'monospace',
-                        color: showValues[index] ? 'inherit' : 'transparent',
-                        textShadow: showValues[index] ? 'none' : '0 0 0 #000',
-                      }}
-                      rows={3}
-                    />
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => toggleVisibility(index)}
+                    {/* * 시크릿 헤더 */}
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-gray-900">
+                        시크릿 #{index + 1}
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-gray-100 text-gray-700"
                       >
-                        {showValues[index] ? (
-                          <EyeOff className="h-3 w-3" />
-                        ) : (
-                          <Eye className="h-3 w-3" />
-                        )}
-                      </Button>
-                      {secret.value && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={() => copyValue(secret.value)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      )}
+                        {groupName}
+                      </Badge>
                     </div>
-                  </div>
-                </div>
 
-                {/* 설명 (선택사항) */}
-                <div>
-                  <label
-                    htmlFor={`secret-desc-${index}`}
-                    className="text-xs text-gray-600"
-                  >
-                    설명 (선택사항)
-                  </label>
-                  <Input
-                    id={`secret-desc-${index}`}
-                    value={secret.description || ''}
-                    onChange={(e) => updateSecret(index, 'description', e.target.value)}
-                    placeholder="시크릿에 대한 설명..."
-                  />
-                </div>
+                    {/* * 시크릿 이름 입력 필드 */}
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block font-medium">
+                        이름 (예: AWS_ACCESS_KEY, DOCKER_PASSWORD)
+                      </label>
+                      <Input
+                        value={secret.name}
+                        onChange={(e) => {
+                          // * 대문자와 언더스코어만 허용하도록 필터링
+                          const value = e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9_]/g, '');
+                          updateSecret(index, 'name', value);
+                        }}
+                        placeholder="AWS_ACCESS_KEY"
+                        className="font-mono border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
 
-                {/* 상태 표시 */}
-                {secret.name && secret.value && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4" />
-                    준비 완료
+                    {/* * 시크릿 값 입력 필드 */}
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block font-medium">
+                        값
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type={showValues[index] ? 'text' : 'password'}
+                          value={secret.value}
+                          onChange={(e) => updateSecret(index, 'value', e.target.value)}
+                          placeholder="시크릿 값을 입력하세요..."
+                          className="pr-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        />
+                        {/* * 값 표시/숨김 토글 버튼 */}
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() => toggleVisibility(index)}
+                          >
+                            {showValues[index] ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* * 준비 완료 표시 */}
+                    {secret.name && secret.value && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                        <CheckCircle className="h-4 w-4" />
+                        준비 완료
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             ))}
           </div>
-
-          {/* 시크릿 추가 버튼 */}
-          <Button type="button" variant="outline" onClick={addSecret} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            시크릿 추가
-          </Button>
         </div>
 
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex gap-3 flex-shrink-0 pt-4 border-t border-gray-200 mt-4">
           <Button
             type="button"
             variant="outline"
             onClick={handleClose}
             disabled={isCreating}
+            className="flex-1"
           >
             취소
           </Button>
@@ -324,17 +288,17 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
             type="button"
             onClick={handleCreate}
             disabled={!isValid || isCreating || isLoading}
-            className="flex items-center gap-2"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 transition-colors duration-200"
           >
             {isCreating ? (
               <>
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                 생성 중...
               </>
             ) : (
               <>
-                <Lock className="h-4 w-4" />
-                시크릿 생성
+                <Save className="h-4 w-4 mr-2" />
+                저장
               </>
             )}
           </Button>

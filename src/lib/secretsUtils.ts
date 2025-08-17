@@ -13,7 +13,9 @@ export const secretsUtils = {
     try {
       logger.info('Secrets 목록 조회 시작', { owner, repo });
       const response = await secretsAPI.getList(owner, repo);
-      logger.info('Secrets 목록 조회 성공', { count: response.data?.secrets?.length });
+      logger.info('Secrets 목록 조회 성공', {
+        count: Object.values(response.data?.groupedSecrets || {}).flat().length,
+      });
       return { success: true, data: response.data };
     } catch (error) {
       const errorInfo = extractErrorInfo(error);

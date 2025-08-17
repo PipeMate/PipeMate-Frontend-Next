@@ -1,24 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { ServerBlock, WorkflowNodeData } from '../types';
-import { convertNodesToServerBlocks } from '../utils/dataConverter';
-import { DragDropSidebar } from './DragDropSidebar';
-import { NodeEditorModal } from './NodeEditorModal';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import React, { useState, useCallback } from 'react';
+import { ServerBlock } from '../types';
+
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {
-  Package,
-  Play,
-  Database,
-  Cloud,
-  Zap,
-  Settings,
-  Code,
-  Save,
-  RotateCcw,
-} from 'lucide-react';
+import { Settings, RotateCcw } from 'lucide-react';
 
 //* 새로운 구조의 컴포넌트들과 훅들 import
 import {
@@ -27,7 +14,7 @@ import {
   AreaNodes,
 } from './area-editor/types';
 import { useAreaNodes } from './area-editor/hooks/useAreaNodes';
-import { useDragDrop } from './area-editor/hooks/useDragDrop';
+
 import { useDropHandlers } from './area-editor/hooks/useDropHandlers';
 import { IntegratedSidePanel } from './IntegratedSidePanel';
 import { DropArea } from './area-editor/components/DropArea';
@@ -43,12 +30,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   onWorkflowChange,
   initialBlocks,
   onNodeSelect,
-  onEditModeToggle,
-  isEditing,
-  onBlockUpdate,
-  mode = 'create',
-  initialWorkflowName,
-  onWorkflowNameChange,
 }) => {
   //* ========================================
   //* 커스텀 훅 사용
@@ -58,24 +39,12 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     areaNodes,
     addNode,
     deleteNode,
-    updateNode,
     updateNodeData,
-    getAllNodes,
-    getServerBlocks,
     getServerBlocksInOrder,
     clearWorkspace,
-    updateStepJobNames,
   } = useAreaNodes(initialBlocks, onWorkflowChange);
 
   const {
-    draggedNode,
-    parseDropData,
-    convertBlockToNodeData,
-    convertBlockTypeToNodeType,
-  } = useDragDrop();
-
-  const {
-    handleDrop,
     handleAreaDrop,
     handleJobStepDrop,
     dragOverArea,
@@ -84,11 +53,8 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     handleJobDragOver,
     handleDragLeave,
     handleJobDragLeave,
-    handleDragEnd,
     getDragOverStyle,
-  } = useDropHandlers(areaNodes, addNode, () => {
-    // 드래그 상태 초기화는 useDropHandlers에서 처리
-  });
+  } = useDropHandlers(areaNodes, addNode);
 
   //* ========================================
   //* 상태 관리
@@ -96,12 +62,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
 
   //* 선택된 노드 상태
   const [selectedNode, setSelectedNode] = useState<AreaNodeData | null>(null);
-
-  //* 편집 중인 노드 상태
-  const [editingNode, setEditingNode] = useState<AreaNodeData | null>(null);
-
-  //* 컨트롤 패널 열림/닫힘 상태
-  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
 
   //* 글로벌 레이아웃 사이드바 주입 제거: 라이브러리는 에디터 우측 컬럼에 직접 렌더링
 
@@ -114,8 +74,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   const handleNodeSelect = useCallback(
     (node: AreaNodeData) => {
       setSelectedNode(node);
-      // 노드 선택 시 컨트롤 패널 자동으로 열기
-      setIsControlPanelOpen(true);
 
       if (onNodeSelect) {
         const selectedBlock: ServerBlock = {
@@ -134,37 +92,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [onNodeSelect],
   );
 
-  // * 노드 편집 시작
-  const handleNodeEdit = useCallback((node: AreaNodeData) => {
-    setEditingNode(node);
-  }, []);
-
-  // * 노드 편집 저장
-  const handleNodeEditSave = useCallback(
-    (updatedData: WorkflowNodeData) => {
-      if (editingNode) {
-        updateNodeData(editingNode.id, updatedData);
-
-        //* Job의 jobName이 변경된 경우 하위 Step들도 업데이트
-        if (
-          editingNode.type === 'job' &&
-          updatedData.jobName !== editingNode.data.jobName &&
-          updatedData.jobName
-        ) {
-          updateStepJobNames(editingNode.id, updatedData.jobName);
-        }
-
-        setEditingNode(null);
-      }
-    },
-    [editingNode, updateNodeData, updateStepJobNames],
-  );
-
-  // * 노드 편집 취소
-  const handleNodeEditCancel = useCallback(() => {
-    setEditingNode(null);
-  }, []);
-
   // * 워크스페이스 클릭 핸들러
   // * 외부 클릭 시 선택된 노드 해제
   const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
@@ -174,32 +101,8 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
       !(e.target as Element).closest('[data-radix-popover-content]')
     ) {
       setSelectedNode(null);
-      setIsControlPanelOpen(false);
     }
   }, []);
-
-  // * 워크플로우 저장
-  const handleSaveWorkflow = useCallback(() => {
-    if (onWorkflowChange) {
-      //* getServerBlocks 의존성 제거하여 무한 루프 방지
-      const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
-      const blocks = convertNodesToServerBlocks(
-        allNodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          position: { x: 0, y: 0 },
-          data: n.data as unknown as Record<string, unknown>,
-        })),
-      );
-      onWorkflowChange(blocks);
-    }
-  }, [onWorkflowChange, areaNodes.trigger, areaNodes.job, areaNodes.step]);
-
-  // * 워크스페이스 초기화
-  const handleClearWorkspace = useCallback(() => {
-    clearWorkspace();
-    setSelectedNode(null);
-  }, [clearWorkspace]);
 
   // * 노드 삭제
   const handleNodeDelete = useCallback(
@@ -338,23 +241,15 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   );
 
   // * 노드 드래그 시작 핸들러
-  const handleNodeDragStart = useCallback((node: AreaNodeData) => {
+  const handleNodeDragStart = useCallback((_node: AreaNodeData) => {
     // 드래그 시작 시 필요한 처리
   }, []);
 
   // * 노드 드래그 핸들러
-  const handleNodeDrag = useCallback((e: React.DragEvent, node: AreaNodeData) => {
+  const handleNodeDrag = useCallback((e: React.DragEvent, _node: AreaNodeData) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
-
-  // * 키보드 네비게이션 래퍼 (제거됨)
-  const handleKeyNavigationWrapper = useCallback(
-    (e: React.KeyboardEvent, nodeId: string) => {
-      // 키보드 네비게이션 기능 제거
-    },
-    [],
-  );
 
   //* ========================================
   //* 사이드 이펙트
@@ -370,8 +265,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   //* ========================================
   //* 렌더링
   //* ========================================
-
-  const hasNodes = getAllNodes().length > 0;
 
   return (
     <div
@@ -396,13 +289,10 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <input
-                value={
-                  initialWorkflowName ||
-                  `workflow-${new Date().toISOString().slice(0, 10)}`
-                }
-                onChange={(e) => onWorkflowNameChange?.(e.target.value)}
+                value={`workflow-${new Date().toISOString().slice(0, 10)}`}
                 placeholder="워크플로우 이름"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                readOnly
               />
             </div>
 
@@ -413,26 +303,12 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               <RotateCcw size={14} />
               초기화
             </button>
-            {mode === 'create' && (
-              <button
-                onClick={() => {
-                  // 실제 워크플로우 저장 로직
-                  toast.success('워크플로우가 저장되었습니다.');
-                }}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-md flex items-center gap-2"
-              >
-                <Save size={14} />
-                워크플로우 저장
-              </button>
-            )}
           </div>
         </div>
 
         {/* 영역별 배치 */}
         <div
-          className={`flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300 ${
-            isControlPanelOpen ? 'mr-0' : ''
-          }`}
+          className="flex-1 flex flex-col gap-6 p-6 overflow-auto transition-all duration-300"
           onClick={handleWorkspaceClick}
         >
           {/* Trigger 영역 - 컴팩트하게 */}
@@ -456,7 +332,6 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
-              onNodeEdit={handleNodeEdit}
               onAddBlock={createDefaultBlock}
             />
           </div>
@@ -481,21 +356,11 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
               renderEmptyState={renderEmptyState}
               dragOverArea={dragOverArea}
               dragOverJobId={dragOverJobId}
-              onNodeEdit={handleNodeEdit}
               onAddBlock={createDefaultBlock}
             />
           </div>
         </div>
       </div>
-
-      {/* 노드 편집기 모달 */}
-      <NodeEditorModal
-        isOpen={!!editingNode}
-        nodeData={editingNode?.data || null}
-        nodeType={editingNode?.type || null}
-        onClose={handleNodeEditCancel}
-        onSave={handleNodeEditSave}
-      />
 
       <ToastContainer
         position="top-right"
@@ -518,17 +383,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           selectedNode={selectedNode}
           blocks={getServerBlocksInOrder()}
           isOpen={true}
-          onSaveWorkflow={handleSaveWorkflow}
-          onClearWorkspace={handleClearWorkspace}
-          onNodeSelect={handleNodeSelect}
-          onNodeEdit={handleNodeEdit}
+          onNodeEdit={() => {}}
           onNodeDelete={handleNodeDelete}
-          onBlockUpdate={onBlockUpdate}
-          hasNodes={hasNodes}
           updateNodeData={updateNodeData}
-          mode={mode}
-          initialWorkflowName={initialWorkflowName}
-          onWorkflowNameChange={onWorkflowNameChange}
         />
       </div>
     </div>
