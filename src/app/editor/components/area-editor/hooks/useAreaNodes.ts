@@ -4,6 +4,36 @@ import { ServerBlock, WorkflowNodeData } from '../../../types';
 import { AreaNodeData, AreaNodes, NodeType } from '../types';
 import { convertNodesToServerBlocks } from '../../../utils/dataConverter';
 
+// * 깊은 비교 유틸리티 함수
+const deepCompare = (a: unknown, b: unknown): boolean => {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (typeof a !== typeof b) return false;
+
+  if (typeof a === 'object') {
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) return false;
+      return a.every((item, index) => deepCompare(item, b[index]));
+    }
+
+    const keysA = Object.keys(a as Record<string, unknown>);
+    const keysB = Object.keys(b as Record<string, unknown>);
+
+    if (keysA.length !== keysB.length) return false;
+
+    return keysA.every((key) =>
+      deepCompare(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      ),
+    );
+  }
+
+  return false;
+};
+
 // * 영역별 노드 상태 관리 훅
 // * @param initialBlocks 최초 마운트 시에만 areaNodes 초기화에 사용
 // * @param onWorkflowChange 노드 변경 시 호출할 콜백
@@ -83,9 +113,101 @@ export const useAreaNodes = (
     buildAreaNodesFromBlocks(initialBlocks),
   );
 
+  // * 모든 노드 가져오기
+  const getAllNodes = useCallback(() => {
+    return [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
+  }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
+
+  // * ServerBlock 배열로 변환 (순서 보존)
+  const getServerBlocks = useCallback(() => {
+    const allNodes = getAllNodes();
+    return convertNodesToServerBlocks(
+      allNodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: { x: 0, y: 0 },
+        data: n.data as unknown as Record<string, unknown>,
+      })),
+    );
+  }, [getAllNodes]);
+
+  // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (jobName 기준 그룹화)
+  const getServerBlocksInOrder = useCallback(() => {
+    // 모든 노드를 하나의 배열로 합치기
+    const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
+
+    // order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
+    const sortedNodes = allNodes.sort((a, b) => a.order - b.order);
+
+    // jobName을 기준으로 그룹화
+    const groupedBlocks: ServerBlock[] = [];
+
+    // trigger는 먼저 추가
+    const triggerNodes = sortedNodes.filter((node) => node.type === 'workflowTrigger');
+    groupedBlocks.push(
+      ...triggerNodes.map((node) => ({
+        name: node.data.label,
+        type: 'trigger' as const,
+        description: node.data.description,
+        jobName: node.data.jobName,
+        domain: node.data.domain,
+        task: node.data.task,
+        config: node.data.config,
+      })),
+    );
+
+    // job과 관련 step들을 jobName 기준으로 그룹화
+    const jobNodes = sortedNodes.filter((node) => node.type === 'job');
+
+    jobNodes.forEach((jobNode) => {
+      const jobName = jobNode.data.jobName;
+
+      // 해당 jobName을 가진 step들 찾기
+      const relatedSteps = sortedNodes.filter(
+        (node) => node.type === 'step' && node.data.jobName === jobName,
+      );
+
+      // step들을 config.steps 배열로 변환
+      const stepsConfig = relatedSteps.map((stepNode) => ({
+        name: stepNode.data.label,
+        ...stepNode.data.config,
+      }));
+
+      // job 노드 추가 (config에 steps 포함)
+      groupedBlocks.push({
+        name: jobNode.data.label,
+        type: 'job' as const,
+        description: jobNode.data.description,
+        jobName: jobName,
+        domain: jobNode.data.domain,
+        task: jobNode.data.task,
+        config: {
+          ...jobNode.data.config,
+          steps: stepsConfig,
+        },
+      });
+    });
+
+    return groupedBlocks;
+  }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
+
   // initialBlocks 변경 시 워크스페이스를 재구성 (편집 페이지에서 비동기 로드 반영)
+  // 깊은 비교를 통해 실제 내용이 변경된 경우에만 재초기화
   useEffect(() => {
-    setAreaNodes(buildAreaNodesFromBlocks(initialBlocks));
+    // initialBlocks가 없으면 초기화하지 않음
+    if (!initialBlocks) return;
+
+    const currentBlocks = getServerBlocksInOrder();
+    // 간단한 비교로 변경: 길이와 첫 번째 블록의 id만 비교
+    const shouldReinitialize =
+      currentBlocks.length !== initialBlocks.length ||
+      (currentBlocks.length > 0 &&
+        initialBlocks.length > 0 &&
+        currentBlocks[0]?.id !== initialBlocks[0]?.id);
+
+    if (shouldReinitialize) {
+      setAreaNodes(buildAreaNodesFromBlocks(initialBlocks));
+    }
   }, [initialBlocks, buildAreaNodesFromBlocks]);
 
   //* onWorkflowChange 호출을 위한 상태
@@ -126,14 +248,18 @@ export const useAreaNodes = (
           nodeData.jobName = jobName;
         }
 
-        //* config의 jobs 객체에서 jobName을 올바르게 설정
+        //* config에서 jobs 객체를 제거하고 직접 job 속성들을 config에 설정
+        //* 이렇게 하면 job의 config가 올바른 GitHub Actions YAML 구조를 가짐
         if (nodeData.config && nodeData.config.jobs) {
-          const jobConfig = Object.values(nodeData.config.jobs)[0];
+          const jobConfig = Object.values(nodeData.config.jobs)[0] as Record<
+            string,
+            unknown
+          >;
+          // jobs 객체를 제거하고 job 속성들을 직접 config에 설정
+          const { jobs, ...restConfig } = nodeData.config;
           nodeData.config = {
-            ...nodeData.config,
-            jobs: {
-              [nodeData.jobName]: jobConfig,
-            },
+            ...restConfig,
+            ...jobConfig, // job의 실제 속성들 (runs-on, steps 등)을 config에 직접 설정
           };
         }
       }
@@ -436,87 +562,6 @@ export const useAreaNodes = (
     },
     [scheduleWorkflowChange],
   );
-
-  // * 모든 노드 가져오기
-  const getAllNodes = useCallback(() => {
-    return [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
-  }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
-
-  // * ServerBlock 배열로 변환 (순서 보존)
-  const getServerBlocks = useCallback(() => {
-    const allNodes = getAllNodes();
-    return convertNodesToServerBlocks(
-      allNodes.map((n) => ({
-        id: n.id,
-        type: n.type,
-        position: { x: 0, y: 0 },
-        data: n.data as unknown as Record<string, unknown>,
-      })),
-    );
-  }, [getAllNodes]);
-
-  // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (jobName 기준 그룹화)
-  const getServerBlocksInOrder = useCallback(() => {
-    // 모든 노드를 하나의 배열로 합치기
-    const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
-
-    // order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
-    const sortedNodes = allNodes.sort((a, b) => a.order - b.order);
-
-    // jobName을 기준으로 그룹화
-    const groupedBlocks: ServerBlock[] = [];
-
-    // trigger는 먼저 추가
-    const triggerNodes = sortedNodes.filter((node) => node.type === 'workflowTrigger');
-    groupedBlocks.push(
-      ...triggerNodes.map((node) => ({
-        name: node.data.label,
-        type: 'trigger' as const,
-        description: node.data.description,
-        jobName: node.data.jobName,
-        domain: node.data.domain,
-        task: node.data.task,
-        config: node.data.config,
-      })),
-    );
-
-    // job과 관련 step들을 jobName 기준으로 그룹화
-    const jobNodes = sortedNodes.filter((node) => node.type === 'job');
-
-    jobNodes.forEach((jobNode) => {
-      const jobName = jobNode.data.jobName;
-
-      // job 노드 추가
-      groupedBlocks.push({
-        name: jobNode.data.label,
-        type: 'job' as const,
-        description: jobNode.data.description,
-        jobName: jobName,
-        domain: jobNode.data.domain,
-        task: jobNode.data.task,
-        config: jobNode.data.config,
-      });
-
-      // 해당 jobName을 가진 step들 추가
-      const relatedSteps = sortedNodes.filter(
-        (node) => node.type === 'step' && node.data.jobName === jobName,
-      );
-
-      groupedBlocks.push(
-        ...relatedSteps.map((node) => ({
-          name: node.data.label,
-          type: 'step' as const,
-          description: node.data.description,
-          jobName: node.data.jobName,
-          domain: node.data.domain,
-          task: node.data.task,
-          config: node.data.config,
-        })),
-      );
-    });
-
-    return groupedBlocks;
-  }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
   // * 워크스페이스 초기화
   const clearWorkspace = useCallback(() => {

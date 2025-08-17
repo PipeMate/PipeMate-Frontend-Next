@@ -298,6 +298,7 @@ export const convertNodesToServerBlocks = (
     //* 노드 타입에 따른 블록 생성
     if (nodeData.type === 'workflow_trigger') {
       blocks.push({
+        id: node.id, // id 보존
         name: nodeData.label,
         type: 'trigger',
         domain: nodeData.domain,
@@ -328,6 +329,7 @@ export const convertNodesToServerBlocks = (
       };
 
       blocks.push({
+        id: node.id, // id 보존
         name: nodeData.label,
         type: 'job',
         domain: nodeData.domain,
@@ -355,6 +357,7 @@ export const convertNodesToServerBlocks = (
       }
 
       blocks.push({
+        id: node.id, // id 보존
         name: nodeData.label,
         type: 'step',
         domain: nodeData.domain,

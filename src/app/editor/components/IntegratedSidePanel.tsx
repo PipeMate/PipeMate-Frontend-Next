@@ -27,6 +27,9 @@ interface IntegratedSidePanelProps {
   onNodeEdit: (node: AreaNodeData) => void;
   onNodeDelete: (nodeId: string) => void;
   updateNodeData?: (nodeId: string, data: WorkflowNodeData) => void;
+  mode?: 'create' | 'edit';
+  initialWorkflowName?: string;
+  onWorkflowNameChange?: (name: string) => void;
 }
 
 //* ========================================

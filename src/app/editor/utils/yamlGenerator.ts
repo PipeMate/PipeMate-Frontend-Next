@@ -16,6 +16,88 @@ const toJobId = (raw: string) =>
     .replace(/[^a-z0-9-_]/g, '');
 
 //* ========================================
+//* 기존 데이터 변환
+//* ========================================
+
+//* 기존 워크플로우 데이터를 개선된 형태로 변환
+//? 기존 YAML 구조를 새로운 블록 기반 구조로 변환
+export const convertLegacyWorkflow = (legacyYaml: any): ServerBlock[] => {
+  const blocks: ServerBlock[] = [];
+
+  // Trigger 블록 생성
+  if (legacyYaml.on) {
+    blocks.push({
+      id: `trigger-${Date.now()}`,
+      name: legacyYaml.x_name || '워크플로우 트리거',
+      type: 'trigger',
+      domain: 'github',
+      task: ['trigger'],
+      description: legacyYaml.x_description || 'GitHub Actions 워크플로우 트리거',
+      config: {
+        name: legacyYaml.name || 'CI',
+        on: legacyYaml.on,
+      },
+    });
+  }
+
+  // Jobs 블록들 생성
+  if (legacyYaml.jobs && typeof legacyYaml.jobs === 'object') {
+    Object.entries(legacyYaml.jobs).forEach(([jobId, jobConfig]: [string, any]) => {
+      if (typeof jobConfig === 'object' && jobConfig !== null) {
+        // Job 블록 생성
+        const jobBlock: ServerBlock = {
+          id: `job-${jobId}-${Date.now()}`,
+          name: jobConfig.x_name || jobId,
+          type: 'job',
+          domain: 'github',
+          task: ['job'],
+          description: jobConfig.x_description || `${jobId} 작업`,
+          jobName: jobId,
+          config: {
+            'runs-on': jobConfig['runs-on'] || 'ubuntu-latest',
+            ...(jobConfig.needs && { needs: jobConfig.needs }),
+            ...(jobConfig.if && { if: jobConfig.if }),
+            ...(jobConfig.timeout && { timeout: jobConfig.timeout }),
+          },
+        };
+        blocks.push(jobBlock);
+
+        // Steps 블록들 생성
+        if (jobConfig.steps && Array.isArray(jobConfig.steps)) {
+          jobConfig.steps.forEach((stepConfig: any, stepIndex: number) => {
+            if (typeof stepConfig === 'object' && stepConfig !== null) {
+              const stepBlock: ServerBlock = {
+                id: `step-${jobId}-${stepIndex}-${Date.now()}`,
+                name: stepConfig.x_name || stepConfig.name || `Step ${stepIndex + 1}`,
+                type: 'step',
+                domain: stepConfig.x_domain || 'github',
+                task: stepConfig.x_task || ['step'],
+                description: stepConfig.x_description || '워크플로우 단계',
+                jobName: jobId,
+                config: {
+                  name: stepConfig.name || stepConfig.x_name || `Step ${stepIndex + 1}`,
+                  ...(stepConfig.uses && { uses: stepConfig.uses }),
+                  ...(stepConfig.run && { run: stepConfig.run }),
+                  ...(stepConfig.with && { with: stepConfig.with }),
+                  ...(stepConfig.env && { env: stepConfig.env }),
+                  ...(stepConfig.if && { if: stepConfig.if }),
+                  ...(stepConfig['continue-on-error'] && {
+                    'continue-on-error': stepConfig['continue-on-error'],
+                  }),
+                },
+              };
+              blocks.push(stepBlock);
+            }
+          });
+        }
+      }
+    });
+  }
+
+  return blocks;
+};
+
+//* ========================================
 //* 단일 블록 YAML 생성
 //* ========================================
 
@@ -48,8 +130,6 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
     if (triggerBlock.config && typeof triggerBlock.config === 'object') {
       Object.assign(doc, triggerBlock.config);
     }
-    if (triggerBlock.name) (doc as any).x_name = triggerBlock.name;
-    if (triggerBlock.description) (doc as any).x_description = triggerBlock.description;
   }
 
   // Jobs
@@ -61,8 +141,6 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
       const jobObj: Record<string, unknown> = {
         ...(jobBlock.config || {}),
       };
-      if (jobBlock.name) (jobObj as any).x_name = jobBlock.name;
-      if (jobBlock.description) (jobObj as any).x_description = jobBlock.description;
 
       // Steps attached to this job
       const stepBlocks = blocks.filter(
@@ -79,12 +157,6 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
             if (k === 'name') return;
             (stepObj as any)[k] = v;
           });
-          if (stepBlock.name) (stepObj as any).x_name = stepBlock.name;
-          if (stepBlock.description)
-            (stepObj as any).x_description = stepBlock.description;
-          if (stepBlock.domain) (stepObj as any).x_domain = stepBlock.domain;
-          if (Array.isArray(stepBlock.task) && stepBlock.task.length > 0)
-            (stepObj as any).x_task = stepBlock.task;
           stepsArr.push(stepObj);
         }
         (jobObj as any).steps = stepsArr;

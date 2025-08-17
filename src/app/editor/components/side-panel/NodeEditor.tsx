@@ -262,7 +262,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           <Input
             value={field.key}
             onChange={(e) => {
-              const value = e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+              const value = e.target.value;
               const newFields = [...configFields];
               if (parentIndex !== undefined) {
                 newFields[parentIndex].children![index].key = value;
@@ -273,7 +273,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
               updateConfigFromFields(newFields);
             }}
             className="flex-1 text-sm font-mono"
-            placeholder="필드명 (예: AWS_ACCESS_KEY)"
+            placeholder="필드명"
           />
 
           <select
@@ -318,19 +318,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             <Input
               value={field.value as string}
               onChange={(e) => {
-                let value = e.target.value;
-                // 시크릿 이름 형식인 경우 대문자로 변환하고 특수문자 제거
-                if (value.includes('${{') && value.includes('}}')) {
-                  // 시크릿 참조는 그대로 유지
-                  handleFieldChange(index, value, parentIndex);
-                } else if (value.match(/^[A-Z0-9_]+$/)) {
-                  // 시크릿 이름 형식인 경우 대문자로 변환
-                  value = value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
-                  handleFieldChange(index, value, parentIndex);
-                } else {
-                  // 일반 텍스트는 그대로 유지
-                  handleFieldChange(index, value, parentIndex);
-                }
+                const value = e.target.value;
+                handleFieldChange(index, value, parentIndex);
               }}
               className="text-sm font-mono"
               placeholder="값을 입력하거나 ${{ secrets.SECRET_NAME }} 형태로 시크릿 사용"

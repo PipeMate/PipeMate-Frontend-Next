@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ServerBlock } from '../types';
 
 import { toast, ToastContainer } from 'react-toastify';
@@ -30,6 +30,12 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   onWorkflowChange,
   initialBlocks,
   onNodeSelect,
+  onEditModeToggle,
+  isEditing,
+  onBlockUpdate,
+  mode = 'create',
+  initialWorkflowName,
+  onWorkflowNameChange,
 }) => {
   //* ========================================
   //* 커스텀 훅 사용
@@ -62,6 +68,30 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
 
   //* 선택된 노드 상태
   const [selectedNode, setSelectedNode] = useState<AreaNodeData | null>(null);
+
+  //* 워크플로우 이름 상태
+  const [workflowName, setWorkflowName] = useState<string>(
+    initialWorkflowName || `workflow-${new Date().toISOString().slice(0, 10)}`,
+  );
+
+  //* 워크플로우 이름 변경 핸들러
+  const handleWorkflowNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newName = e.target.value;
+      setWorkflowName(newName);
+      if (onWorkflowNameChange) {
+        onWorkflowNameChange(newName);
+      }
+    },
+    [onWorkflowNameChange],
+  );
+
+  //* initialWorkflowName이 변경되면 워크플로우 이름 업데이트
+  useEffect(() => {
+    if (initialWorkflowName) {
+      setWorkflowName(initialWorkflowName);
+    }
+  }, [initialWorkflowName]);
 
   //* 글로벌 레이아웃 사이드바 주입 제거: 라이브러리는 에디터 우측 컬럼에 직접 렌더링
 
@@ -289,10 +319,10 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <input
-                value={`workflow-${new Date().toISOString().slice(0, 10)}`}
+                value={workflowName}
+                onChange={handleWorkflowNameChange}
                 placeholder="워크플로우 이름"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                readOnly
               />
             </div>
 
@@ -386,6 +416,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           onNodeEdit={() => {}}
           onNodeDelete={handleNodeDelete}
           updateNodeData={updateNodeData}
+          mode={mode}
+          initialWorkflowName={workflowName}
+          onWorkflowNameChange={onWorkflowNameChange}
         />
       </div>
     </div>
