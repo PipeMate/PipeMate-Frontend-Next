@@ -170,13 +170,13 @@ export default function WorkflowManager() {
                 <div>
                   <span className="font-medium text-gray-700">생성일:</span>
                   <p className="text-gray-600">
-                    {new Date(selectedWorkflow.createdAt).toLocaleDateString()}
+                    {new Date(selectedWorkflow.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">수정일:</span>
                   <p className="text-gray-600">
-                    {new Date(selectedWorkflow.updatedAt).toLocaleDateString()}
+                    {new Date(selectedWorkflow.updated_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>

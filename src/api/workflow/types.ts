@@ -11,19 +11,19 @@ export interface WorkflowItem {
   // * 워크플로우 상태
   state: string;
   // * 생성 시간
-  createdAt: string;
+  created_at: string;
   // * 수정 시간
-  updatedAt: string;
+  updated_at: string;
   // * API URL
   url: string;
   // * HTML URL
-  htmlUrl: string;
+  html_url: string;
   // * 배지 URL
-  badgeUrl: string;
+  badge_url: string;
   // * 수동 실행 가능 여부
-  manualDispatchEnabled: boolean;
+  manual_dispatch_enabled: boolean;
   // * 사용 가능한 브랜치 목록
-  availableBranches: string[];
+  available_branches: string[];
   // * 파일명
   fileName: string;
 }
