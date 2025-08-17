@@ -271,19 +271,19 @@ export default function LogViewer({
   };
 
   return (
-    <div className="bg-white rounded border border-slate-200 p-3 h-full flex flex-col">
+    <div className="h-full flex flex-col bg-card rounded border border-border overflow-hidden">
       {/* 헤더 */}
-      <div className="mb-2 flex items-center justify-between gap-2 flex-shrink-0">
-        <div className="font-medium text-slate-900">Logs</div>
+      <div className="p-3 border-b flex items-center justify-between gap-2 flex-shrink-0">
+        <div className="font-medium text-foreground">Logs</div>
         <div className="flex items-center gap-1">
           {/* 검색 */}
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="검색"
-              className="h-7 pl-6 pr-2 text-[11px] rounded border bg-white outline-none focus:ring-1 focus:ring-slate-300 placeholder:text-slate-400 w-24 sm:w-32"
+              className="h-7 pl-6 pr-2 text-[11px] rounded border bg-background outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground w-24 sm:w-32"
             />
           </div>
 
@@ -323,7 +323,7 @@ export default function LogViewer({
       </div>
 
       {/* 로그 내용 */}
-      <div className="flex-1 overflow-auto rounded border border-slate-800 bg-slate-950 p-2 min-h-0">
+      <div className="flex-1 overflow-auto rounded border border-slate-800 bg-slate-950 m-3 min-h-0">
         <div className="space-y-0">
           {visibleLines.map((line, index) => (
             <div key={index} className={getLineClasses(line.kind)} title={line.kind}>

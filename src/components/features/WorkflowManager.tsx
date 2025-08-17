@@ -13,7 +13,7 @@ import {
 import { useWorkflows, usePipeline, useUpdatePipeline } from '@/api';
 import { WorkflowItem } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { GithubTokenDialog } from './GithubSettingsDialog';
+import { GithubSettingsDialog } from './GithubSettingsDialog';
 
 export default function WorkflowManager() {
   const { owner, repo, isConfigured } = useRepository();
@@ -79,7 +79,7 @@ export default function WorkflowManager() {
                 <li>Repository Name</li>
               </ul>
               <div className="mt-4">
-                <GithubTokenDialog />
+                <GithubSettingsDialog />
               </div>
             </div>
           }
@@ -170,13 +170,13 @@ export default function WorkflowManager() {
                 <div>
                   <span className="font-medium text-gray-700">생성일:</span>
                   <p className="text-gray-600">
-                    {new Date(selectedWorkflow.createdAt).toLocaleDateString()}
+                    {new Date(selectedWorkflow.created_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">수정일:</span>
                   <p className="text-gray-600">
-                    {new Date(selectedWorkflow.updatedAt).toLocaleDateString()}
+                    {new Date(selectedWorkflow.updated_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>

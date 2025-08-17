@@ -33,6 +33,12 @@ export interface UseWorkflowDataParams {
   currentPage: number;
 }
 
+// 실제 API 응답 타입 (snake_case)
+interface WorkflowRunsApiResponse {
+  total_count: number;
+  workflow_runs: WorkflowRun[];
+}
+
 export function useWorkflowData({
   owner,
   repo,
@@ -68,9 +74,8 @@ export function useWorkflowData({
 
   // 데이터 파싱 및 처리
   const processedData = useMemo(() => {
-    const runsResponse = workflowRunsData as unknown as
-      | { workflow_runs?: WorkflowRun[] }
-      | undefined;
+    const runsResponse = workflowRunsData as WorkflowRunsApiResponse | undefined;
+
     const workflowRuns: WorkflowRun[] = Array.isArray(runsResponse?.workflow_runs)
       ? runsResponse!.workflow_runs
       : [];

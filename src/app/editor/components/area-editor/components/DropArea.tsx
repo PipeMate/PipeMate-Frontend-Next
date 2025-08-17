@@ -2,6 +2,8 @@ import React from 'react';
 import { AreaNodeData, AreaNodes } from '../types';
 import { getWorkspaceAreaColor } from '../../../constants/nodeConstants';
 import { AreaNode } from '../../AreaNode';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 interface DropAreaProps {
   areaKey: keyof AreaNodes;
@@ -29,6 +31,7 @@ interface DropAreaProps {
   dragOverArea: string | null;
   dragOverJobId: string | null;
   onNodeEdit?: (node: AreaNodeData) => void;
+  onAddBlock?: (areaKey: keyof AreaNodes, jobId?: string) => void;
 }
 
 // * 드롭 영역 컴포넌트
@@ -52,9 +55,38 @@ export const DropArea: React.FC<DropAreaProps> = ({
   dragOverArea,
   dragOverJobId,
   onNodeEdit,
+  onAddBlock,
 }) => {
   const isDragOver = dragOverArea === areaKey;
   const stepsByJob = getStepsByJob();
+
+  // * 버튼 색상 가져오기
+  const getButtonStyle = () => {
+    switch (areaKey) {
+      case 'trigger':
+        return 'bg-green-500 hover:bg-green-600 text-white border-green-500';
+      case 'job':
+        return 'bg-blue-500 hover:bg-blue-600 text-white border-blue-500';
+      case 'step':
+        return 'border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400';
+      default:
+        return 'border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400';
+    }
+  };
+
+  // * 버튼 텍스트 가져오기
+  const getButtonText = () => {
+    switch (areaKey) {
+      case 'trigger':
+        return 'Trigger 추가';
+      case 'job':
+        return 'Job 추가';
+      case 'step':
+        return 'Step 추가';
+      default:
+        return '블록 추가';
+    }
+  };
 
   return (
     <div
@@ -85,7 +117,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
           <div
             className={
               areaKey === 'job'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4'
                 : 'space-y-3'
             }
           >
@@ -120,7 +152,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
                       {!stepsByJob[node.id] || stepsByJob[node.id].length === 0 ? (
                         //* Step 영역이 비어있을 때
                         renderEmptyState(
-                          areaKey,
+                          'step',
                           'Step',
                           dragOverJobId === node.id,
                           true,
@@ -140,6 +172,20 @@ export const DropArea: React.FC<DropAreaProps> = ({
                               />
                             </div>
                           ))}
+                          {/* Step 추가 버튼 */}
+                          {onAddBlock && (
+                            <div className="pt-2">
+                              <Button
+                                onClick={() => onAddBlock('step', node.id)}
+                                variant="outline"
+                                size="sm"
+                                className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 transition-all duration-200"
+                              >
+                                <Plus size={16} className="mr-1" />
+                                Step 추가
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -147,6 +193,21 @@ export const DropArea: React.FC<DropAreaProps> = ({
                 )}
               </div>
             ))}
+
+            {/* Job 영역에 Job 추가 버튼 */}
+            {areaKey === 'job' && onAddBlock && (
+              <div className="flex items-center justify-center p-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 hover:bg-blue-50/50 transition-all duration-200">
+                <Button
+                  onClick={() => onAddBlock('job')}
+                  variant="default"
+                  size="sm"
+                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-500 transition-all duration-200"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Job 추가
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

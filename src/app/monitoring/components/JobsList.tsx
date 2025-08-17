@@ -73,8 +73,8 @@ export default function JobsList({ jobs, isLoading = false }: JobsListProps) {
   // * 로딩 상태 표시
   if (isLoading) {
     return (
-      <div className="text-center py-6 text-gray-500">
-        <Clock className="w-6 h-6 mx-auto mb-2 text-gray-300 animate-pulse" />
+      <div className="text-center py-6 text-muted-foreground">
+        <Clock className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50 animate-pulse" />
         <p className="text-sm">Job 정보를 불러오는 중...</p>
       </div>
     );
@@ -83,85 +83,87 @@ export default function JobsList({ jobs, isLoading = false }: JobsListProps) {
   // * Job이 없는 경우
   if (!jobs || jobs.length === 0) {
     return (
-      <div className="text-center py-6 text-gray-500">
-        <Clock className="w-6 h-6 mx-auto mb-2 text-gray-300" />
+      <div className="text-center py-6 text-muted-foreground">
+        <Clock className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50" />
         <p className="text-sm">실행된 Job이 없습니다</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {jobs.map((job) => {
-        const isExpanded = expandedJobs.has(job.id);
-        const hasSteps = job.steps && job.steps.length > 0;
+    <div className="h-full overflow-y-auto">
+      <div className="space-y-2">
+        {jobs.map((job) => {
+          const isExpanded = expandedJobs.has(job.id);
+          const hasSteps = job.steps && job.steps.length > 0;
 
-        return (
-          <div
-            key={job.id}
-            className="border border-gray-200 rounded-lg bg-white shadow-sm"
-          >
-            {/* Job 헤더 */}
+          return (
             <div
-              className={`flex items-center p-3 transition-colors duration-150 ${
-                hasSteps ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'
-              }`}
-              onClick={() => hasSteps && toggleJob(job.id)}
+              key={job.id}
+              className="border border-border rounded-lg bg-card shadow-sm"
             >
-              {/* 펼치기/접기 아이콘 */}
-              {hasSteps && (
-                <div className="mr-2 text-gray-400 flex-shrink-0">
-                  {isExpanded ? (
-                    <ChevronDown className="w-3 h-3" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3" />
+              {/* Job 헤더 */}
+              <div
+                className={`flex items-center p-3 transition-colors duration-150 ${
+                  hasSteps ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default'
+                }`}
+                onClick={() => hasSteps && toggleJob(job.id)}
+              >
+                {/* 펼치기/접기 아이콘 */}
+                {hasSteps && (
+                  <div className="mr-2 text-muted-foreground flex-shrink-0">
+                    {isExpanded ? (
+                      <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3" />
+                    )}
+                  </div>
+                )}
+
+                {/* 상태 아이콘 */}
+                <div className="mr-2 flex-shrink-0">
+                  {getJobIcon(job.status, job.conclusion)}
+                </div>
+
+                {/* Job 내용 */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground text-sm truncate">
+                    {job.name}
+                  </div>
+                  {job.startedAt && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {new Date(job.startedAt).toLocaleTimeString()}
+                      {job.completedAt && (
+                        <>
+                          {' - '}
+                          {new Date(job.completedAt).toLocaleTimeString()}
+                          {' ('}
+                          {formatDuration(job.startedAt, job.completedAt)}
+                          {')'}
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* 상태 아이콘 */}
-              <div className="mr-2 flex-shrink-0">
-                {getJobIcon(job.status, job.conclusion)}
-              </div>
-
-              {/* Job 내용 */}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-900 text-sm truncate">
-                  {job.name}
-                </div>
-                {job.startedAt && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(job.startedAt).toLocaleTimeString()}
-                    {job.completedAt && (
-                      <>
-                        {' - '}
-                        {new Date(job.completedAt).toLocaleTimeString()}
-                        {' ('}
-                        {formatDuration(job.startedAt, job.completedAt)}
-                        {')'}
-                      </>
-                    )}
+                {/* Steps 개수 */}
+                {hasSteps && (
+                  <div className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                    {job.steps!.length} steps
                   </div>
                 )}
               </div>
 
-              {/* Steps 개수 */}
-              {hasSteps && (
-                <div className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                  {job.steps!.length} steps
+              {/* Steps 내용 */}
+              {isExpanded && hasSteps && (
+                <div className="border-t border-border bg-muted/30">
+                  <StepsList steps={job.steps!} compact />
                 </div>
               )}
             </div>
-
-            {/* Steps 내용 */}
-            {isExpanded && hasSteps && (
-              <div className="border-t border-gray-100 bg-gray-50">
-                <StepsList steps={job.steps!} compact />
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

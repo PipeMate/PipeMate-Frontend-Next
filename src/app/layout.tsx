@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import '@/styles';
+import { Inter } from 'next/font/google';
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Header, MainLayout, AppSidebar, LayoutProvider } from '@/components/layout';
@@ -7,6 +8,13 @@ import { ErrorBoundaryProvider } from '@/providers';
 import QueryProvider from '@/providers/QueryProvider';
 import ToastProvider from '@/providers/ToastProvider';
 import { RepositoryProvider } from '@/contexts/RepositoryContext';
+
+// Inter 폰트 설정
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'PipeMate',
@@ -27,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
-      <body className="antialiased bg-gray-100 h-full">
+    <html lang="ko" className={`h-full ${inter.variable}`}>
+      <body className="antialiased bg-gray-100 h-full font-sans">
         <ErrorBoundaryProvider>
           <QueryProvider>
             <RepositoryProvider>
