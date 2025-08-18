@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 
-import { ServerBlock } from './types';
+import type { ServerBlock } from './types';
 import { usePageHeader } from '@/components/layout';
 import { ROUTES } from '@/config/appConstants';
-import { Blocks, Save, Home } from 'lucide-react';
+import { Blocks, Home, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useCreatePipeline } from '@/api';

@@ -1,11 +1,11 @@
 import React from 'react';
-import { AreaNodeData } from '../types';
-import { GitBranch, Workflow, Code, Settings, CheckCircle, Clock } from 'lucide-react';
+import type { AreaNodeData } from '../types';
+import { CheckCircle, Clock, Code, GitBranch, Settings, Workflow } from 'lucide-react';
 import {
-  parseTriggerConfig,
   parseJobConfig,
   parseStepConfig,
   parseStepConfigDetail,
+  parseTriggerConfig,
 } from '../utils/configParser';
 
 interface BlockSummaryProps {
@@ -42,8 +42,12 @@ const renderConfigObject = (
             {typeof value === 'string'
               ? truncateString(value)
               : typeof value === 'object' && value !== null
-              ? renderConfigObject(value as Record<string, unknown>, level + 1, maxDepth)
-              : JSON.stringify(value)}
+                ? renderConfigObject(
+                    value as Record<string, unknown>,
+                    level + 1,
+                    maxDepth,
+                  )
+                : JSON.stringify(value)}
           </span>
         </div>
       ))}

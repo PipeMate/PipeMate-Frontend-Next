@@ -2,7 +2,7 @@ import { workflowAPI } from '@/api';
 import { getCookie } from '@/lib/cookieUtils';
 import { STORAGES } from '@/config/appConstants';
 import type { ApiResult } from './types';
-import { logger, extractErrorInfo } from './utils';
+import { extractErrorInfo, logger } from './utils';
 import { AxiosError } from 'axios';
 
 // * GitHub 토큰 검증 유틸리티

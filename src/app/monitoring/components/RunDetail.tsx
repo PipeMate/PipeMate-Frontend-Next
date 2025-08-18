@@ -3,12 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, X } from 'lucide-react';
-import { getStatusIcon, getStatusBadge } from './Status';
+import { getStatusBadge, getStatusIcon } from './Status';
 import RunOverviewChips from './RunOverviewChips';
 import JobsList from './JobsList';
 import LogViewer from './LogViewer';
 import { calculateRunStatistics, calculateSuccessRate, isMobile } from '../utils';
-import type { WorkflowRun, ActiveTab } from '../types';
+import type { ActiveTab, WorkflowRun } from '../types';
 
 interface RunDetailProps {
   selectedRun: WorkflowRun | null;

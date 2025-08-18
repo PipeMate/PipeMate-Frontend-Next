@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // * Repository 컨텍스트 관련 타입 정의
 

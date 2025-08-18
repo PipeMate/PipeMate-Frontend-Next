@@ -1,8 +1,8 @@
 // * Presets 관련 React Query 훅
 import { useQuery } from '@tanstack/react-query';
 import { presetsAPI } from './api';
-import { BlockResponse } from './types';
-import { PipelineResponse } from '../pipeline/types';
+import type { BlockResponse } from './types';
+import type { PipelineResponse } from '../pipeline/types';
 
 // * 프리셋 블록 목록 조회
 export const usePresetBlocks = () =>

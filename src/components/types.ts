@@ -1,6 +1,6 @@
 // * Components 모듈 공통 타입 정의
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // * 기본 컴포넌트 Props 타입
 export interface BaseComponentProps {

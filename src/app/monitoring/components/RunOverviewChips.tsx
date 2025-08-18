@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle, XCircle, MinusCircle, Activity, Clock } from 'lucide-react';
+import { Activity, CheckCircle, Clock, MinusCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { RunStatistics } from '../types';
 

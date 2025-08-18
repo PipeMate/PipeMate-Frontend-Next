@@ -1,4 +1,4 @@
-import { SecretFormData } from './types';
+import type { SecretFormData } from './types';
 
 // 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
 export const extractGroup = (secretName: string): string => {

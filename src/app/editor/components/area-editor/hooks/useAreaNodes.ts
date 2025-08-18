@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ServerBlock, WorkflowNodeData } from '../../../types';
-import { AreaNodeData, AreaNodes, NodeType } from '../types';
+import type { ServerBlock, WorkflowNodeData } from '../../../types';
+import type { AreaNodeData, AreaNodes, NodeType } from '../types';
 import { convertNodesToServerBlocks } from '../../../utils/dataConverter';
 
 // * 깊은 비교 유틸리티 함수
@@ -178,7 +178,7 @@ export const useAreaNodes = (
         name: jobNode.data.label,
         type: 'job' as const,
         description: jobNode.data.description,
-        jobName: jobName,
+        jobName,
         domain: jobNode.data.domain,
         task: jobNode.data.task,
         config: {
@@ -319,8 +319,8 @@ export const useAreaNodes = (
           nodeType === 'workflowTrigger'
             ? 'trigger'
             : nodeType === 'job'
-            ? 'job'
-            : 'step';
+              ? 'job'
+              : 'step';
         const currentNodes = prev[areaKey];
         const newOrder = currentNodes.length;
 

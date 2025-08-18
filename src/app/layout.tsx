@@ -3,7 +3,7 @@ import '@/styles';
 import { Inter } from 'next/font/google';
 
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { Header, MainLayout, AppSidebar, LayoutProvider } from '@/components/layout';
+import { AppSidebar, Header, LayoutProvider, MainLayout } from '@/components/layout';
 import { ErrorBoundaryProvider } from '@/providers';
 import QueryProvider from '@/providers/QueryProvider';
 import ToastProvider from '@/providers/ToastProvider';

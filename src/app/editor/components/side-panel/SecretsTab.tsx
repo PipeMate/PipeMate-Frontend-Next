@@ -2,16 +2,16 @@
 
 import React, { useState } from 'react';
 import {
-  Plus,
-  Lock,
-  Key,
   AlertCircle,
   AlertOctagon,
   AlertTriangle,
-  Trash2,
-  Folder,
   ChevronDown,
   ChevronRight,
+  Folder,
+  Key,
+  Lock,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'react-toastify';
-import { SecretsTabProps } from './types';
+import type { SecretsTabProps } from './types';
 import { formatDate } from './utils';
 import SecretForm from './SecretForm';
 

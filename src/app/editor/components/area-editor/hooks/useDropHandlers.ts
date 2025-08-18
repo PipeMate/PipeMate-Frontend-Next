@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { ServerBlock, WorkflowNodeData } from '../../../types';
-import { AreaNodes, NodeType } from '../types';
+import type { ServerBlock, WorkflowNodeData } from '../../../types';
+import type { AreaNodes, NodeType } from '../types';
 import { toast } from 'react-toastify';
 
 // * 드롭 핸들러 관리 훅
@@ -345,8 +345,8 @@ export const useDropHandlers = (
           block.type === 'trigger'
             ? 'workflowTrigger'
             : block.type === 'job'
-            ? 'job'
-            : 'step';
+              ? 'job'
+              : 'step';
 
         const nodeData: WorkflowNodeData = {
           label: block.name,
@@ -413,8 +413,8 @@ export const useDropHandlers = (
           block.type === 'trigger'
             ? 'workflowTrigger'
             : block.type === 'job'
-            ? 'job'
-            : 'step';
+              ? 'job'
+              : 'step';
 
         const nodeData: WorkflowNodeData = {
           label: block.name,
@@ -489,7 +489,7 @@ export const useDropHandlers = (
             label: block.name,
             type: 'step',
             description: block.description,
-            jobName: jobName,
+            jobName,
             domain: block.domain,
             task: block.task,
             config: block.config,

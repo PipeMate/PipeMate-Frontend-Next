@@ -1,5 +1,5 @@
 import React from 'react';
-import { AreaNodeData, AreaNodes } from '../types';
+import type { AreaNodeData, AreaNodes } from '../types';
 import { getWorkspaceAreaColor } from '../../../constants/nodeConstants';
 import { AreaNode } from '../../AreaNode';
 import { Button } from '@/components/ui/button';

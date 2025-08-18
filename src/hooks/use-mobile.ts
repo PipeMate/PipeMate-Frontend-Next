@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { ResponsiveHookResult, DeviceType } from './types';
+import type { DeviceType, ResponsiveHookResult } from './types';
 import { useWindowSize } from './use-window-size';
 
 // * 브레이크포인트 상수

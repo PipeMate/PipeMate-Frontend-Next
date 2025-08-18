@@ -2,7 +2,7 @@
 // * - 요청 시 쿠키에 저장된 GitHub Token을 Authorization 헤더로 주입
 import axios from 'axios';
 import { getCookie } from '@/lib/cookieUtils';
-import { STORAGES, API_CONFIG } from '@/config';
+import { API_CONFIG, STORAGES } from '@/config';
 
 // * GitHub API 전용 axios 인스턴스
 const githubClient = axios.create({

@@ -2,14 +2,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Monitor,
   Activity,
-  Loader2,
-  XCircle,
-  RefreshCw,
+  AlertCircle,
   ChevronLeft,
   ChevronRight,
-  AlertCircle,
+  Loader2,
+  Monitor,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import WorkflowRunCard from './WorkflowRunCard';
 import type { WorkflowRun } from '../types';

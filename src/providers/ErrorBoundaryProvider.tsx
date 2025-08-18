@@ -4,7 +4,8 @@
 // * - 전역 에러 처리 및 복구
 // * - 타입 안전성 보장
 // * - 사용자 친화적인 에러 메시지
-import React, { Component, ErrorInfo } from 'react';
+import type { ErrorInfo } from 'react';
+import React, { Component } from 'react';
 import type { ProviderProps } from './types';
 
 // * 에러 상태 인터페이스

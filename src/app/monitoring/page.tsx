@@ -11,16 +11,16 @@ import { Badge } from '@/components/ui/badge';
 import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
-  Monitor,
-  Clock,
-  RefreshCw,
-  AlertTriangle,
-  Loader2,
-  Home,
   Activity,
+  AlertTriangle,
   CheckCircle,
-  XCircle,
+  Clock,
+  Home,
+  Loader2,
+  Monitor,
   Play,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 
@@ -30,7 +30,7 @@ import type { WorkflowRun } from './types';
 
 // * 커스텀 훅 및 컴포넌트 import
 import { useMonitoringState, useRefreshFeedback, useWorkflowData } from './hooks';
-import { RefreshFeedback, WorkflowRunsList, RunDetail } from './components';
+import { RefreshFeedback, RunDetail, WorkflowRunsList } from './components';
 import { useSetupGuard } from '@/hooks/useSetupGuard';
 import { FullScreenLoading } from '@/components/ui';
 import { usePathname } from 'next/navigation';

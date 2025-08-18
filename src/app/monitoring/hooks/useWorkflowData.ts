@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import {
-  useWorkflowRuns,
+  useWorkflowRunDetail,
   useWorkflowRunJobs,
   useWorkflowRunLogs,
-  useWorkflowRunDetail,
+  useWorkflowRuns,
 } from '@/api';
 import type { WorkflowRun } from '../types';
 

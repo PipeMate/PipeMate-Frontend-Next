@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useSecrets } from '@/api';
 import {
-  detectSecretsInConfig,
   canNodeUseSecrets,
+  detectSecretsInConfig,
   findMissingSecrets,
 } from '../../utils/secretsDetector';
-import { Edit, Code, Plus, Minus, Trash2, Lock, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Code, Edit, Lock, Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,16 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { NodeEditorProps } from './types';
+import type { NodeEditorProps } from './types';
 import { getFixedLabels } from './utils';
+import type { FieldNode } from './utils/jsonPath';
 import {
   buildFieldsFromJson,
-  getAtPath,
-  setAtPath,
   deleteAtPath,
-  renameKey,
   ensureObjectAt,
-  FieldNode,
+  getAtPath,
+  renameKey,
+  setAtPath,
 } from './utils/jsonPath';
 import { toast } from 'react-toastify';
 import ArrayChipsInput from './components/ArrayChipsInput';
@@ -577,9 +577,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     return (
       <div className="p-4 space-y-4">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/3 mb-4" />
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+          <div className="h-4 bg-gray-200 rounded w-2/3" />
         </div>
       </div>
     );

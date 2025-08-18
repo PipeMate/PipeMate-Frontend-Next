@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Save, Trash2, Key, ExternalLink } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Key, Save, Trash2 } from 'lucide-react';
 
 // * 토큰 데이터 인터페이스
 interface TokenData {

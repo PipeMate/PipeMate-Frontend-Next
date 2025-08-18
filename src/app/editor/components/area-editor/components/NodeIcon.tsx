@@ -1,6 +1,6 @@
-import React from "react";
-import { Zap, Settings, Code, Layers } from "lucide-react";
-import { NodeType } from "../types";
+import React from 'react';
+import { Code, Layers, Settings, Zap } from 'lucide-react';
+import type { NodeType } from '../types';
 
 interface NodeIconProps {
   nodeType: NodeType;
@@ -9,11 +9,11 @@ interface NodeIconProps {
 export const NodeIcon: React.FC<NodeIconProps> = ({ nodeType }) => {
   const getNodeIcon = (nodeType: NodeType) => {
     switch (nodeType) {
-      case "workflowTrigger":
+      case 'workflowTrigger':
         return <Zap size={18} className="text-emerald-600" />;
-      case "job":
+      case 'job':
         return <Settings size={18} className="text-blue-600" />;
-      case "step":
+      case 'step':
         return <Code size={18} className="text-amber-600" />;
       default:
         return <Layers size={18} className="text-gray-600" />;

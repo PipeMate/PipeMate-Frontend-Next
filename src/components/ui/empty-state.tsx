@@ -1,19 +1,20 @@
 import React from 'react';
-import { LucideIcon, Package, AlertCircle, Info } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { AlertCircle, Info, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
-  // *  아이콘 
+  // *  아이콘
   icon?: LucideIcon;
-  // *  제목 
+  // *  제목
   title: string;
-  // *  설명 
+  // *  설명
   description?: string;
-  // *  액션 버튼 
+  // *  액션 버튼
   action?: React.ReactNode;
-  // *  추가 클래스명 
+  // *  추가 클래스명
   className?: string;
-  // *  아이콘 크기 
+  // *  아이콘 크기
   iconSize?: 'sm' | 'md' | 'lg';
 }
 

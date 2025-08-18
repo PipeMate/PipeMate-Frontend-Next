@@ -1,5 +1,5 @@
 // * Pipeline 관련 React Query 훅
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pipelineAPI } from './api';
 
 // * 파이프라인 조회

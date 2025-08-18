@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
-import { AreaNodeData } from './area-editor/types';
+import type { AreaNodeData } from './area-editor/types';
 import { getNodeStyle } from './area-editor/utils/nodeStyles';
 import { NodeIcon } from './area-editor/components/NodeIcon';
 import { BlockSummary } from './area-editor/components/BlockSummary';
-import { Info, GripVertical } from 'lucide-react';
+import { GripVertical, Info } from 'lucide-react';
 
 interface AreaNodeProps {
   node: AreaNodeData;

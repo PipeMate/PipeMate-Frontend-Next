@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { ServerBlock } from '../types';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { ServerBlock } from '../types';
 
-import { toast, ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Settings, RotateCcw } from 'lucide-react';
+import { RotateCcw, Settings } from 'lucide-react';
 
 //* 새로운 구조의 컴포넌트들과 훅들 import
-import {
+import type {
   AreaBasedWorkflowEditorProps,
   AreaNodeData,
   AreaNodes,
@@ -204,7 +204,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
       label: 'build-and-test',
       type: 'job' as const,
       description: '코드를 빌드하고 테스트를 실행',
-      jobName: jobName,
+      jobName,
       config: {
         'runs-on': 'ubuntu-latest',
       },
@@ -223,7 +223,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         label: 'checkout',
         type: 'step' as const,
         description: '저장소 코드를 체크아웃',
-        jobName: jobName,
+        jobName,
         config: {
           name: 'Checkout code',
           uses: 'actions/checkout@v4',

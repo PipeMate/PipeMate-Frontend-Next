@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useSecrets } from '@/api';
 import { toast } from 'react-toastify';
-import { Blocks, Edit, Code } from 'lucide-react';
+import { Blocks, Code, Edit } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AreaNodeData } from './area-editor/types';
-import { ServerBlock } from '../types';
-import { WorkflowNodeData } from '../types';
-import { LibraryTab, EditorTab, YamlTab, SecretCreateDialog } from './side-panel';
+import type { AreaNodeData } from './area-editor/types';
+import type { ServerBlock } from '../types';
+import type { WorkflowNodeData } from '../types';
+import { EditorTab, LibraryTab, SecretCreateDialog, YamlTab } from './side-panel';
 import {
-  detectSecretsInConfig,
   canNodeUseSecrets,
+  detectSecretsInConfig,
   findMissingSecrets,
 } from '../utils/secretsDetector';
 

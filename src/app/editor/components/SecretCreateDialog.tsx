@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useSecretManager } from '../hooks/useSecretManager';
-import { AlertCircle, CheckCircle, Eye, EyeOff, Shield, Save } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Save, Shield } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface SecretCreateDialogProps {

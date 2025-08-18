@@ -1,4 +1,4 @@
-import { ServerBlock, WorkflowNodeData } from '../../types';
+import type { ServerBlock, WorkflowNodeData } from '../../types';
 
 // * ========================================
 // * 타입 정의

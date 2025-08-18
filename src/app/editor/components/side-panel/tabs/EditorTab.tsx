@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Edit } from 'lucide-react';
-import { AreaNodeData } from '../../area-editor/types';
-import { WorkflowNodeData } from '../../../types';
+import type { AreaNodeData } from '../../area-editor/types';
+import type { WorkflowNodeData } from '../../../types';
 import NodeEditor from '../NodeEditor';
 
 interface EditorTabProps {

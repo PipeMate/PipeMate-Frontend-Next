@@ -2,13 +2,13 @@
 
 import React from 'react';
 import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  SkipForward,
   AlertTriangle,
+  CheckCircle,
   ChevronDown,
   ChevronRight,
+  Clock,
+  SkipForward,
+  XCircle,
 } from 'lucide-react';
 import type { JobDetail } from '../types';
 import { formatDuration } from '../utils';
@@ -138,8 +138,7 @@ export default function JobsList({ jobs, isLoading = false }: JobsListProps) {
                           {' - '}
                           {new Date(job.completedAt).toLocaleTimeString()}
                           {' ('}
-                          {formatDuration(job.startedAt, job.completedAt)}
-                          {')'}
+                          {formatDuration(job.startedAt, job.completedAt)})
                         </>
                       )}
                     </div>

@@ -2,8 +2,8 @@
 // * - 프리셋 파이프라인/블록 조회 전용 기능을 제공합니다.
 import apiClient from '../client';
 import { API_ENDPOINTS } from '@/config';
-import { BlockResponse } from './types';
-import { PipelineResponse } from '../pipeline/types';
+import type { BlockResponse } from './types';
+import type { PipelineResponse } from '../pipeline/types';
 
 export const presetsAPI = {
   // * 프리셋 파이프라인 목록 조회

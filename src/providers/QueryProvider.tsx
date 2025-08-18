@@ -7,7 +7,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useMemo } from 'react';
-import type { ProviderProps, QueryClientOptions, DevtoolsConfig } from './types';
+import type { DevtoolsConfig, ProviderProps, QueryClientOptions } from './types';
 
 // * Query Client 설정 상수
 const QUERY_CONFIG: QueryClientOptions = {

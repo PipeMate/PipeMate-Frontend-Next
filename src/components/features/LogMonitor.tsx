@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
-  LoadingSpinner,
   ErrorMessage,
-  WorkflowStatusBadge,
   JobStatusBadge,
+  LoadingSpinner,
+  WorkflowStatusBadge,
 } from '@/components/ui';
 import { workflowUtils } from '@/lib/githubActions';
 import { useRepository } from '@/contexts/RepositoryContext';

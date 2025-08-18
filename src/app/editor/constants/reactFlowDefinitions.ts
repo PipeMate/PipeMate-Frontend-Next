@@ -4,7 +4,7 @@
 //* 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
 //* 노드 타입, 템플릿, 초기 설정을 정의합니다.
 
-import { CustomNode as Node, CustomEdge as Edge } from '../types/customTypes';
+import type { CustomEdge as Edge, CustomNode as Node } from '../types/customTypes';
 
 //* ========================================
 //* 노드 타입 상수
@@ -226,7 +226,7 @@ export const createNode = (
     id,
     type: template.type,
     position,
-    parentId: parentId,
+    parentId,
     data: {
       label: template.label,
       type: template.type as 'workflow_trigger' | 'job' | 'step',

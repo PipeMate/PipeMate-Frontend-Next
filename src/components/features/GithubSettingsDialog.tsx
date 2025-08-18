@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Github, GitBranch, Lock, ExternalLink, AlertCircle } from 'lucide-react';
+import { AlertCircle, ExternalLink, GitBranch, Github, Lock } from 'lucide-react';
 
 // * 커스텀 훅 import
 import { useGithubSettings } from '@/hooks/useGithubSettings';
-import { useSecrets, useDeleteSecret } from '@/api';
+import { useDeleteSecret, useSecrets } from '@/api';
 import { useSecretManager } from '@/app/editor/hooks/useSecretManager';
 
 // * 분리된 탭 컴포넌트들

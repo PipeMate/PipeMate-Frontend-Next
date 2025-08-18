@@ -1,6 +1,7 @@
-import { secretsAPI, GithubSecretRequest } from '@/api';
+import type { GithubSecretRequest } from '@/api';
+import { secretsAPI } from '@/api';
 import type { ApiResult } from './types';
-import { logger, extractErrorInfo } from './utils';
+import { extractErrorInfo, logger } from './utils';
 
 // * GitHub Secrets 관리 유틸리티
 // * - Secrets CRUD 작업

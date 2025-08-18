@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LoadingSpinner, ErrorMessage, IconBadge } from '@/components/ui';
+import { ErrorMessage, IconBadge, LoadingSpinner } from '@/components/ui';
 import {
-  Server,
   Activity,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
+  CheckCircle,
+  Clock,
+  Server,
+  XCircle,
 } from 'lucide-react';
 
 interface ServerInfo {

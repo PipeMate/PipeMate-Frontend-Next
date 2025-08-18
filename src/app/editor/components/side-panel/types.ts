@@ -1,6 +1,6 @@
-import { AreaNodeData } from '../area-editor/types';
-import { WorkflowNodeData } from '../../types';
-import { NodeType } from '../area-editor/types';
+import type { AreaNodeData } from '../area-editor/types';
+import type { WorkflowNodeData } from '../../types';
+import type { NodeType } from '../area-editor/types';
 
 export interface ConfigField {
   key: string;

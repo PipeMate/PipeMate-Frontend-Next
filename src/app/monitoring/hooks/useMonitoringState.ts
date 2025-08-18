@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { WorkflowRun, ActiveTab } from '../types';
+import type { ActiveTab, WorkflowRun } from '../types';
 
 export interface MonitoringState {
   selectedRun: WorkflowRun | null;

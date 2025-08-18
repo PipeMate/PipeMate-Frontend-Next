@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
-import { useSecrets, useCreateOrUpdateSecret, useDeleteSecret } from '@/api';
+import { useCallback, useMemo, useState } from 'react';
+import { useCreateOrUpdateSecret, useDeleteSecret, useSecrets } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { extractSecretsFromObject, findMissingSecrets } from '../utils/secretsDetector';
 import { toast } from 'react-toastify';

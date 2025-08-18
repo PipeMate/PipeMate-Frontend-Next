@@ -4,7 +4,7 @@
 //* 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
 //* 모든 타입 정의를 포함합니다.
 
-import { CustomNode as Node, CustomEdge as Edge } from './customTypes';
+import type { CustomEdge as Edge, CustomNode as Node } from './customTypes';
 
 //* ========================================
 //* 서버 통신 타입

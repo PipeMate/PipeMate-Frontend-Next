@@ -5,8 +5,9 @@
 //* 서버에서 받은 블록 데이터를 React Flow 노드로 변환하고,
 //* React Flow 노드를 서버로 보낼 블록 데이터로 변환합니다.
 
-import { CustomNode as Node, CustomEdge as Edge, MarkerType } from '../types/customTypes';
-import { ServerBlock, WorkflowNodeData } from '../types';
+import type { CustomEdge as Edge, CustomNode as Node } from '../types/customTypes';
+import { MarkerType } from '../types/customTypes';
+import type { ServerBlock, WorkflowNodeData } from '../types';
 
 //* ========================================
 //* 서버 → React Flow 변환
@@ -335,7 +336,7 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        jobName: jobName, //* nodeData.jobName 사용
+        jobName, //* nodeData.jobName 사용
         config: jobConfig,
       });
     } else if (nodeData.type === 'step') {
@@ -363,7 +364,7 @@ export const convertNodesToServerBlocks = (
         domain: nodeData.domain,
         task: nodeData.task,
         description: nodeData.description,
-        jobName: jobName,
+        jobName,
         config: nodeData.config,
       });
     }

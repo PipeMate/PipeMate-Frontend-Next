@@ -4,7 +4,7 @@
 //* 이 파일은 GitHub Actions 워크플로우 에디터의
 //* 노드 제목, 색상, 아이콘, 핸들 설정을 정의합니다.
 
-import { Package, Settings, Layers, Zap, Code } from 'lucide-react';
+import { Code, Layers, Package, Settings, Zap } from 'lucide-react';
 import React from 'react';
 
 //* 커스텀 Position 타입 정의

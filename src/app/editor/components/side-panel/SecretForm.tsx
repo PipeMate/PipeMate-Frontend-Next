@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Save, X, Plus, Eye, EyeOff, Shield, CheckCircle } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Plus, Save, Shield, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { SecretFormProps } from './types';
+import type { SecretFormProps } from './types';
 import { extractGroup } from './utils';
 
 const SecretForm: React.FC<SecretFormProps> = ({
@@ -184,5 +184,3 @@ const SecretForm: React.FC<SecretFormProps> = ({
 };
 
 export default SecretForm;
-
-

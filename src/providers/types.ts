@@ -1,6 +1,6 @@
 // * Providers 모듈 타입 정의
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // * Provider Props 타입
 export interface ProviderProps {

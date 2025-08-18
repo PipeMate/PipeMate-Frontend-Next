@@ -2,15 +2,15 @@
 //* 블록 라이브러리와 파이프라인 라이브러리 역할 - 사용자가 워크스페이스에 추가할 수 있는 블록들과 파이프라인들을 제공
 'use client';
 
-import { useCallback, useState, useEffect, useMemo } from 'react';
-import { ServerBlock, Pipeline } from '../types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Pipeline, ServerBlock } from '../types';
 import {
-  Lightbulb,
-  Filter,
   Blocks,
+  Eye,
+  Filter,
   GitBranch,
   Info,
-  Eye,
+  Lightbulb,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -157,7 +157,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
         'application/reactflow',
         JSON.stringify({
           type: 'pipeline',
-          pipeline: pipeline,
+          pipeline,
           blocks: pipeline.blocks,
         }),
       );
@@ -467,10 +467,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                       ? tab.type === 'trigger'
                         ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
                         : tab.type === 'job'
-                        ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
-                        : tab.type === 'step'
-                        ? 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
-                        : 'bg-white text-gray-600 shadow-sm border-b-2 border-gray-600'
+                          ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                          : tab.type === 'step'
+                            ? 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                            : 'bg-white text-gray-600 shadow-sm border-b-2 border-gray-600'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }
                 `}
@@ -832,8 +832,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                             ? tab.type === 'trigger'
                               ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
                               : tab.type === 'job'
-                              ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
-                              : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                                ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                                : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
                             : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                         }`}
                       >

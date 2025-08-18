@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
-  LoadingSpinner,
   ErrorMessage,
+  LoadingSpinner,
   SetupRequiredEmptyState,
   WorkflowStatusBadge,
 } from '@/components/ui';
-import { useWorkflows, usePipeline, useUpdatePipeline } from '@/api';
-import { WorkflowItem } from '@/api';
+import { usePipeline, useUpdatePipeline, useWorkflows } from '@/api';
+import type { WorkflowItem } from '@/api';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { GithubSettingsDialog } from './GithubSettingsDialog';
 

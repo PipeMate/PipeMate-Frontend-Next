@@ -1,17 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState, Suspense, useMemo, useRef } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { usePipeline, useUpdatePipeline } from '@/api';
 import { AreaBasedWorkflowEditor } from '@/app/editor/components/AreaBasedWorkflowEditor';
-import { ServerBlock } from '@/app/editor/types';
+import type { ServerBlock } from '@/app/editor/types';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/config/appConstants';
 import { usePageHeader } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Save, RefreshCw, Blocks, Edit, Home } from 'lucide-react';
+import { Blocks, Edit, Home, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSetupGuard } from '@/hooks/useSetupGuard';
 import { FullScreenLoading } from '@/components/ui';
@@ -102,7 +102,7 @@ function WorkflowEditContent() {
         cleanFileName,
         finalName,
         blocksCount: blocks.length,
-        blocks: blocks,
+        blocks,
       });
 
       await updatePipelineMutation.mutateAsync({

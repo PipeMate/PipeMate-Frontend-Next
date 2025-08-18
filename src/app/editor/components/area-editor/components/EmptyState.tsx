@@ -1,7 +1,7 @@
 import React from 'react';
-import { Zap, Settings, Code, Plus } from 'lucide-react';
+import { Code, Plus, Settings, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AreaNodes } from '../types';
+import type { AreaNodes } from '../types';
 
 interface EmptyStateProps {
   areaKey: keyof AreaNodes;

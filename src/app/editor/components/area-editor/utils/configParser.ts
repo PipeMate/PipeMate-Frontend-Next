@@ -1,8 +1,8 @@
-import {
-  TriggerConfig,
+import type {
   JobConfig,
   StepConfig,
   StepConfigDetail,
+  TriggerConfig,
 } from '../types/areaNode';
 
 // * 트리거 설정 파싱 함수

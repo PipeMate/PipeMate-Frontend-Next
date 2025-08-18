@@ -2,7 +2,7 @@
 // * - 조회/그룹조회/생성-수정/삭제/퍼블릭키 조회 제공
 import githubClient from '../githubClient';
 import { API_ENDPOINTS } from '@/config';
-import { GroupedGithubSecretListResponse, GithubSecretRequest } from './types';
+import type { GithubSecretRequest, GroupedGithubSecretListResponse } from './types';
 
 export const secretsAPI = {
   // * Secrets 그룹화된 목록 조회

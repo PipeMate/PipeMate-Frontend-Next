@@ -2,9 +2,9 @@
 // * - 파이프라인 생성/조회/수정/삭제 및 블록 기반 워크플로우 저장 기능 제공
 import githubClient from '../githubClient';
 import { API_ENDPOINTS } from '@/config';
-import { PipelineRequest, PipelineResponse } from './types';
+import type { PipelineRequest, PipelineResponse } from './types';
 import { removeYmlExtension } from '@/lib/utils';
-import { ServerBlock } from '@/app/editor/types';
+import type { ServerBlock } from '@/app/editor/types';
 
 export const pipelineAPI = {
   // * 파이프라인 생성

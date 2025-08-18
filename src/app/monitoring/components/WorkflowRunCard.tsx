@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getStatusIcon, getStatusBadge } from './Status';
+import { getStatusBadge, getStatusIcon } from './Status';
 import { formatDuration, formatRelativeTime } from '../utils';
 import type { WorkflowRun } from '../types';
 

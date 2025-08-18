@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { Copy, Download, Code } from 'lucide-react';
+import { Code, Copy, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AreaNodeData } from '../../area-editor/types';
-import { ServerBlock } from '../../../types';
+import type { AreaNodeData } from '../../area-editor/types';
+import type { ServerBlock } from '../../../types';
 import { generateBlockYaml, generateFullYaml } from '../../../utils/yamlGenerator';
 import { toast } from 'react-toastify';
 

@@ -1,1 +1,1 @@
-export * from "./areaNode";
+export * from './areaNode';

@@ -1,6 +1,7 @@
-import { pipelineAPI, PipelineRequest } from '@/api';
+import type { PipelineRequest } from '@/api';
+import { pipelineAPI } from '@/api';
 import type { ApiResult } from './types';
-import { logger, extractErrorInfo } from './utils';
+import { extractErrorInfo, logger } from './utils';
 
 // * 파이프라인 관리 유틸리티
 // * - 파이프라인 CRUD 작업

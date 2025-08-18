@@ -4,7 +4,7 @@
 //* 이 파일은 서버 블록 데이터를 GitHub Actions YAML 형식으로 변환합니다.
 //* 단일 블록의 YAML과 전체 워크플로우 YAML을 생성할 수 있습니다.
 
-import { ServerBlock } from '../types';
+import type { ServerBlock } from '../types';
 import { stringifyYaml } from './yamlUtils';
 
 // 내부 유틸: job-id 생성 (공백→하이픈, 소문자, 안전 문자만 유지)

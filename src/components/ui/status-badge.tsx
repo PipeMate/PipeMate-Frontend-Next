@@ -3,11 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
-  // *  상태 값 
+  // *  상태 값
   status: string;
-  // *  배지 크기 
+  // *  배지 크기
   size?: 'sm' | 'md';
-  // *  추가 클래스명 
+  // *  추가 클래스명
   className?: string;
 }
 
