@@ -64,7 +64,7 @@ export interface NodeEditorProps {
   nodeType: NodeType;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onMissingSecrets?: (missing: string[]) => void;
 }
 
@@ -84,5 +84,3 @@ export interface IntegratedSidePanelProps {
   initialWorkflowName?: string;
   onWorkflowNameChange?: (name: string) => void;
 }
-
-

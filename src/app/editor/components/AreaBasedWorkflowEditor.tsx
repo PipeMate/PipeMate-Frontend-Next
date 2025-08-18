@@ -137,13 +137,25 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   // * 노드 삭제
   const handleNodeDelete = useCallback(
     (nodeId: string) => {
-      if (!confirm('선택한 노드를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+      // NodeEditor에서 이미 확인했으므로 바로 삭제
       deleteNode(nodeId);
       if (selectedNode?.id === nodeId) {
         setSelectedNode(null);
       }
+      toast.success('노드가 삭제되었습니다.');
     },
     [deleteNode, selectedNode],
+  );
+
+  // * 노드 편집 완료 핸들러
+  const handleNodeEdit = useCallback(
+    (updatedNode: AreaNodeData) => {
+      // 선택된 노드가 업데이트된 노드와 같다면 선택된 노드 상태도 업데이트
+      if (selectedNode?.id === updatedNode.id) {
+        setSelectedNode(updatedNode);
+      }
+    },
+    [selectedNode],
   );
 
   //* ========================================
@@ -168,18 +180,15 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   // * 기본 Trigger 블록 생성
   const createDefaultTrigger = useCallback(() => {
     const triggerData = {
-      label: 'push',
+      label: '워크플로우 기본 설정',
       type: 'workflow_trigger' as const,
-      description: 'GitHub 저장소에 push가 발생했을 때 실행',
+      description: 'GitHub Actions 워크플로우 트리거',
       config: {
         on: {
-          push: {
-            branches: ['main', 'develop'],
-          },
-          pull_request: {
-            branches: ['main'],
-          },
+          workflow_dispatch: {},
+          push: { branches: ['main'] },
         },
+        name: 'CI',
       },
     };
     addNode('workflowTrigger', triggerData);
@@ -197,8 +206,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
       description: '코드를 빌드하고 테스트를 실행',
       jobName: jobName,
       config: {
-        runs_on: 'ubuntu-latest',
-        steps: [],
+        'runs-on': 'ubuntu-latest',
       },
     };
     addNode('job', jobData);
@@ -413,7 +421,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           selectedNode={selectedNode}
           blocks={getServerBlocksInOrder()}
           isOpen={true}
-          onNodeEdit={() => {}}
+          onNodeEdit={handleNodeEdit}
           onNodeDelete={handleNodeDelete}
           updateNodeData={updateNodeData}
           mode={mode}

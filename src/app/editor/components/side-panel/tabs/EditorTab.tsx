@@ -10,7 +10,7 @@ interface EditorTabProps {
   selectedNode: AreaNodeData | null;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
-  onDelete: (nodeId: string) => void;
+  onDelete?: (nodeId: string) => void;
   onMissingSecrets: (missing: string[]) => void;
 }
 
@@ -22,14 +22,14 @@ const EditorTab: React.FC<EditorTabProps> = ({
   onMissingSecrets,
 }) => {
   return (
-    <div className="h-full overflow-y-auto min-h-0">
+    <div className="h-full flex flex-col overflow-hidden min-h-0">
       {selectedNode ? (
         <NodeEditor
           nodeData={selectedNode.data}
           nodeType={selectedNode.type}
           onSave={onSave}
           onCancel={onCancel}
-          onDelete={() => onDelete(selectedNode.id)}
+          onDelete={onDelete ? () => onDelete(selectedNode.id) : undefined}
           onMissingSecrets={onMissingSecrets}
         />
       ) : (

@@ -39,8 +39,15 @@ export const groupSecrets = (secrets: SecretFormData[]) => {
 };
 
 // Config 필드 파싱 (재귀적으로 중첩 객체 처리)
-export const parseConfigFields = (config: Record<string, unknown>): any[] => {
+export const parseConfigFields = (
+  config: Record<string, unknown> | undefined | null,
+): any[] => {
   const fields: any[] = [];
+
+  // config가 없거나 빈 객체인 경우 빈 배열 반환
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return fields;
+  }
 
   Object.entries(config).forEach(([key, value]) => {
     let type: 'string' | 'object' | 'array' = 'string';
@@ -48,7 +55,7 @@ export const parseConfigFields = (config: Record<string, unknown>): any[] => {
 
     if (Array.isArray(value)) {
       type = 'array';
-    } else if (value && typeof value === 'object') {
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       type = 'object';
       children = parseConfigFields(value as Record<string, unknown>);
     }
@@ -91,5 +98,3 @@ export const getFixedLabels = (type: string) => {
       };
   }
 };
-
-
