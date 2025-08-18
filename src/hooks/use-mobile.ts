@@ -26,13 +26,13 @@ const getDeviceType = (width: number): DeviceType => {
 export function useResponsive(): ResponsiveHookResult {
   const windowSize = useWindowSize();
 
-  // 디바이스 타입 계산
+  // * 디바이스 타입 계산
   const deviceType = React.useMemo(
     () => getDeviceType(windowSize.width),
     [windowSize.width],
   );
 
-  // 반응형 상태 계산
+  // * 반응형 상태 계산
   const result = React.useMemo(
     () => ({
       isMobile: deviceType === 'mobile',
@@ -75,10 +75,10 @@ export function useBreakpoint(breakpoint: keyof typeof BREAKPOINTS): boolean {
       setMatches(event.matches);
     };
 
-    // 초기 상태 설정
+    // * 초기 상태 설정
     setMatches(mediaQuery.matches);
 
-    // 이벤트 리스너 등록
+    // * 이벤트 리스너 등록
     mediaQuery.addEventListener('change', handleChange);
 
     return () => {
@@ -86,7 +86,7 @@ export function useBreakpoint(breakpoint: keyof typeof BREAKPOINTS): boolean {
     };
   }, [breakpoint]);
 
-  // SSR 중에는 false 반환
+  // * SSR 중에는 false 반환
   if (!isHydrated) {
     return false;
   }

@@ -42,15 +42,15 @@ export default function MonitoringPage() {
   const MonitoringIcon = ROUTES.MONITORING.icon;
   const pathname = usePathname();
 
-  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  // * 설정 가드 - 토큰과 레포지토리 모두 필요
   const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
     requireToken: true,
     requireRepository: true,
     redirectTo: '/setup',
     onSetupChange: (tokenExists, repositoryExists) => {
-      // 설정이 변경되면 페이지 상태를 업데이트
+      // * 설정이 변경되면 페이지 상태를 업데이트
       if (!tokenExists || !repositoryExists) {
-        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        // * 설정이 누락된 경우 setup 페이지로 리다이렉트
         window.location.href = '/setup';
       }
     },
@@ -184,10 +184,10 @@ export default function MonitoringPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [selectedRunId, setIsDetailOpen]);
 
-  // 설정이 필요하면 리다이렉트
+  // * 설정이 필요하면 리다이렉트
   useEffect(() => {
     if (!isChecking && isSetupValid) {
-      // 설정이 유효하면 현재 페이지를 유지
+      // * 설정이 유효하면 현재 페이지를 유지
     }
   }, [isChecking, isSetupValid]);
 
@@ -203,7 +203,7 @@ export default function MonitoringPage() {
     }
   }, [workflowRuns, selectedRunId, selectedRun, selectedRunSnapshot, setSelectedRun]);
 
-  // 설정이 유효하지 않으면 로딩 표시
+  // * 설정이 유효하지 않으면 로딩 표시
   if (isChecking || !isSetupValid) {
     return <FullScreenLoading />;
   }

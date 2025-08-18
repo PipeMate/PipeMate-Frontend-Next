@@ -12,7 +12,7 @@ export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConf
   const paths: string[] = [];
   let workflowName = '';
 
-  //* 워크플로우 이름 추출
+  // * 워크플로우 이름 추출
   if (config.name && typeof config.name === 'string') {
     workflowName = config.name;
   }
@@ -20,7 +20,7 @@ export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConf
   if (config.on && typeof config.on === 'object') {
     const onConfig = config.on as Record<string, unknown>;
 
-    //* 트리거 타입들 추출
+    // * 트리거 타입들 추출
     Object.keys(onConfig).forEach((triggerType) => {
       if (triggerType === 'workflow_dispatch') {
         triggers.push('수동 실행');
@@ -33,7 +33,7 @@ export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConf
       }
     });
 
-    //* 브랜치 정보 추출
+    // * 브랜치 정보 추출
     if (onConfig.push && typeof onConfig.push === 'object') {
       const pushConfig = onConfig.push as Record<string, unknown>;
       if (pushConfig.branches && Array.isArray(pushConfig.branches)) {
@@ -47,7 +47,7 @@ export const parseTriggerConfig = (config: Record<string, unknown>): TriggerConf
       }
     }
 
-    //* 경로 정보 추출
+    // * 경로 정보 추출
     if (onConfig.push && typeof onConfig.push === 'object') {
       const pushConfig = onConfig.push as Record<string, unknown>;
       if (pushConfig.paths && Array.isArray(pushConfig.paths)) {
@@ -95,7 +95,7 @@ export const parseJobConfig = (config: Record<string, unknown>): JobConfig => {
     });
   }
 
-  //* 직접적인 config 속성들도 확인 (다른 형태의 Job 블록을 위해)
+  // * 직접적인 config 속성들도 확인 (다른 형태의 Job 블록을 위해)
   if (config['runs-on']) {
     runsOn.push(String(config['runs-on']));
   }
@@ -118,22 +118,22 @@ export const parseStepConfig = (config: Record<string, unknown>): StepConfig => 
   const run: string[] = [];
   const withParams: Record<string, unknown> = {};
 
-  //* uses 정보 추출
+  // * uses 정보 추출
   if (config.uses) {
     uses.push(String(config.uses));
   }
 
-  //* run 정보 추출
+  // * run 정보 추출
   if (config.run) {
     run.push(String(config.run));
   }
 
-  //* with 파라미터들 추출
+  // * with 파라미터들 추출
   if (config.with && typeof config.with === 'object') {
     Object.assign(withParams, config.with);
   }
 
-  //* steps 배열 내부의 정보들도 확인
+  // * steps 배열 내부의 정보들도 확인
   if (config.steps && Array.isArray(config.steps)) {
     config.steps.forEach((step) => {
       if (typeof step === 'object' && step !== null) {
@@ -161,7 +161,7 @@ export const parseStepConfigDetail = (
 ): StepConfigDetail => {
   const result: StepConfigDetail = {};
 
-  //* 기본 속성들 추출
+  // * 기본 속성들 추출
   if (config.name) {
     result.name = String(config.name);
   }

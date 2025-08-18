@@ -2,13 +2,13 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface LoadingSpinnerProps {
-  // *  스피너 크기
+  // * 스피너 크기
   size?: 'sm' | 'md' | 'lg';
-  // *  로딩 메시지
+  // * 로딩 메시지
   message?: string;
-  // *  추가 클래스명
+  // * 추가 클래스명
   className?: string;
-  // *  전체 컨테이너 클래스명
+  // * 전체 컨테이너 클래스명
   containerClassName?: string;
 }
 

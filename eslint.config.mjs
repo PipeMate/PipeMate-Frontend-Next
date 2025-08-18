@@ -52,6 +52,15 @@ const eslintConfig = [
       'no-var': 'warn',
       'object-shorthand': ['warn', 'always'],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // 주석 스타일: // *, // !, // ? 접두 허용
+      'spaced-comment': [
+        'warn',
+        'always',
+        {
+          markers: ['*', '!', '?'],
+          exceptions: ['*', '!', '?'],
+        },
+      ],
       // React Hooks
       'react-hooks/exhaustive-deps': 'warn',
     },

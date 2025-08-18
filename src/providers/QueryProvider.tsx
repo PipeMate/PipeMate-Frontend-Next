@@ -34,7 +34,7 @@ const DEVTOOLS_CONFIG: DevtoolsConfig = {
 // * - 개발 도구 포함
 // * - 성능 최적화 적용
 export default function QueryProvider({ children }: ProviderProps) {
-  // QueryClient 인스턴스를 메모이제이션하여 불필요한 재생성 방지
+  // * QueryClient 인스턴스를 메모이제이션하여 불필요한 재생성 방지
   const queryClient = useMemo(
     () => new QueryClient({ defaultOptions: QUERY_CONFIG }),
     [],

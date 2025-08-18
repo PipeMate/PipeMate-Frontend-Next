@@ -48,10 +48,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 }) => {
   const { owner, repo } = useRepository();
 
-  // Secrets API 훅
+  // * Secrets API 훅
   const { data: secretsData } = useSecrets(owner || '', repo || '');
 
-  // 클라이언트 사이드 렌더링을 위한 상태
+  // * 클라이언트 사이드 렌더링을 위한 상태
   const [isClient, setIsClient] = useState(false);
   const [editedData, setEditedData] = useState(nodeData);
   const [configFields, setConfigFields] = useState<FieldNode[]>([]);
@@ -61,23 +61,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const [missingSecrets, setMissingSecrets] = useState<string[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // 클라이언트 사이드 렌더링 확인
+  // * 클라이언트 사이드 렌더링 확인
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // nodeData 변경 감지를 위한 메모이제이션
+  // * nodeData 변경 감지를 위한 메모이제이션
   const nodeDataKey = useMemo(() => {
     return `${JSON.stringify(nodeData)}-${JSON.stringify(nodeData.config)}`;
   }, [nodeData]);
 
-  // 초기 데이터 설정
+  // * 초기 데이터 설정
   useEffect(() => {
     if (nodeData && isClient) {
-      // 새로운 노드의 경우 기본 config 구조 제공
+      // * 새로운 노드의 경우 기본 config 구조 제공
       let initialConfig = nodeData.config;
       if (!initialConfig || Object.keys(initialConfig).length === 0) {
-        // 노드 타입별 기본 config 구조
+        // * 노드 타입별 기본 config 구조
         switch (nodeType) {
           case 'workflowTrigger':
             initialConfig = {
@@ -105,7 +105,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             initialConfig = {};
         }
 
-        // 기본 config로 nodeData 업데이트
+        // * 기본 config로 nodeData 업데이트
         const updatedNodeData = {
           ...nodeData,
           config: initialConfig,
@@ -122,7 +122,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [nodeDataKey, isClient, nodeType, nodeData]);
 
-  // 새로운 노드에 기본 필드 추가
+  // * 새로운 노드에 기본 필드 추가
   useEffect(() => {
     if (
       isClient &&
@@ -130,12 +130,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       nodeData &&
       (!nodeData.config || Object.keys(nodeData.config).length === 0)
     ) {
-      // 초기 config가 비어있으면 필드 대신 안내 상태를 유지 (버튼으로 추가)
-      // 자동 필드 생성은 경로 기반 로직과 충돌 소지가 있어 제거
+      // * 초기 config가 비어있으면 필드 대신 안내 상태를 유지 (버튼으로 추가)
+      // * 자동 필드 생성은 경로 기반 로직과 충돌 소지가 있어 제거
     }
   }, [isClient, configFields.length, nodeData]);
 
-  // Config 변경 시 secrets 감지
+  // * Config 변경 시 secrets 감지
   useEffect(() => {
     if (canNodeUseSecrets(nodeType) && editedData.config) {
       const requiredSecrets = detectSecretsInConfig(editedData.config);
@@ -163,7 +163,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [editedData.config, nodeType, secretsData]);
 
-  // Config 유효성 검사
+  // * Config 유효성 검사
   const validateConfig = (configStr: string): boolean => {
     try {
       JSON.parse(configStr);
@@ -173,7 +173,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   };
 
-  // Config 텍스트 변경 핸들러
+  // * Config 텍스트 변경 핸들러
   const handleConfigTextChange = (value: string) => {
     setConfigText(value);
     if (validateConfig(value)) {
@@ -191,7 +191,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   };
 
-  // 경로 기반: config에서 직접 수정 후 필드 재빌드
+  // * 경로 기반: config에서 직접 수정 후 필드 재빌드
   const applyConfig = (nextConfig: Record<string, unknown>) => {
     setEditedData((prev) => ({ ...prev, config: nextConfig }));
     setConfigText(JSON.stringify(nextConfig, null, 2));
@@ -223,7 +223,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   };
 
   const addFieldAtPath = (parentPath: (string | number)[]) => {
-    // 부모를 object로 보장 후 고유 키 생성
+    // * 부모를 object로 보장 후 고유 키 생성
     let root = ensureObjectAt(editedData.config || {}, parentPath);
     const base = 'new_field';
     let candidate = base;
@@ -252,20 +252,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     applyConfig(next as Record<string, unknown>);
   };
 
-  // 최상위 필드 추가
+  // * 최상위 필드 추가
   const addTopLevelField = () => addFieldAtPath([]);
 
-  // 필드 삭제 (경로)
+  // * 필드 삭제 (경로)
   const removeField = (field: FieldNode) => removeFieldAtPath(field);
 
-  // 필드 확장/축소 토글
-  // index 기반 확장 토글 제거 (경로 기반으로 대체됨)
+  // * 필드 확장/축소 토글
+  // * index 기반 확장 토글 제거 (경로 기반으로 대체됨)
 
-  // 필드 타입 변경
+  // * 필드 타입 변경
   const changeFieldType = (field: FieldNode, newType: 'string' | 'object' | 'array') =>
     changeFieldTypeByPath(field, newType);
 
-  // 삭제 확인 핸들러
+  // * 삭제 확인 핸들러
   const handleDeleteConfirm = () => {
     setShowDeleteDialog(false);
     if (onDelete) {
@@ -273,20 +273,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   };
 
-  // 저장 핸들러
+  // * 저장 핸들러
   const handleSave = () => {
     try {
-      // 데이터 유효성 검사
+      // * 데이터 유효성 검사
       const errors: string[] = [];
 
-      // 라벨 필수 입력 검사
+      // * 라벨 필수 입력 검사
       if (!editedData.label.trim()) {
         errors.push('라벨을 입력해주세요.');
       } else if (editedData.label.trim().length > 100) {
         errors.push('라벨은 100자를 초과할 수 없습니다.');
       }
 
-      // Job Name 유효성 검사 - 워크플로우에서 사용할 수 있는 안전한 이름
+      // * Job Name 유효성 검사 - 워크플로우에서 사용할 수 있는 안전한 이름
       if (nodeType === 'job') {
         if (!editedData.jobName || !editedData.jobName.trim()) {
           errors.push('Job Name을 입력해주세요.');
@@ -302,9 +302,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         }
       }
 
-      // Step 블록 유효성 검사
+      // * Step 블록 유효성 검사
       if (nodeType === 'step') {
-        // 도메인 필수 입력 및 유효성 검사
+        // * 도메인 필수 입력 및 유효성 검사
         if (!editedData.domain || !editedData.domain.trim()) {
           errors.push('도메인을 입력해주세요.');
         } else {
@@ -318,7 +318,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           }
         }
 
-        // 태스크 필수 입력 및 유효성 검사
+        // * 태스크 필수 입력 및 유효성 검사
         if (
           !editedData.task ||
           !Array.isArray(editedData.task) ||
@@ -346,13 +346,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         }
       }
 
-      // 브랜치 유효성 검사 (trigger의 경우) - Git 브랜치 네이밍 규칙
+      // * 브랜치 유효성 검사 (trigger의 경우) - Git 브랜치 네이밍 규칙
       if (nodeType === 'workflowTrigger' && editedData.config) {
         const config = editedData.config as {
           on?: Record<string, { branches?: string[]; tags?: string[] }>;
         };
 
-        // 모든 이벤트 타입에 대해 브랜치 검사
+        // * 모든 이벤트 타입에 대해 브랜치 검사
         const events = [
           'push',
           'pull_request',
@@ -387,7 +387,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           }
         }
 
-        // 태그 검사 (push, pull_request 이벤트)
+        // * 태그 검사 (push, pull_request 이벤트)
         const tagEvents = ['push', 'pull_request'];
         for (const event of tagEvents) {
           if (config.on?.[event]?.tags) {
@@ -417,7 +417,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         return;
       }
 
-      // 저장 실행
+      // * 저장 실행
       onSave(editedData);
     } catch (error) {
       console.error('저장 중 오류:', error);
@@ -425,12 +425,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   };
 
-  // 필드 렌더링 (재귀적)
+  // * 필드 렌더링 (재귀적)
   const renderField = (field: FieldNode) => {
     const isNested = field.path.length > 1;
     const indentClass = isNested ? 'ml-4' : '';
 
-    // 브랜치 필드인지 확인 (트리거의 경우)
+    // * 브랜치 필드인지 확인 (트리거의 경우)
     const parentKey = String(field.path[field.path.length - 2] || '');
     const isBranchField =
       field.key === 'branches' && (parentKey === 'push' || parentKey === 'pull_request');
@@ -572,7 +572,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
   const labels = getFixedLabels(nodeType);
 
-  // 클라이언트 사이드 렌더링이 완료되지 않았으면 로딩 표시
+  // * 클라이언트 사이드 렌더링이 완료되지 않았으면 로딩 표시
   if (!isClient) {
     return (
       <div className="p-4 space-y-4">

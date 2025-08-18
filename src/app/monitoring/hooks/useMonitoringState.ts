@@ -36,7 +36,7 @@ export function useMonitoringState(): MonitoringState & MonitoringActions {
   const [isInitialMount, setIsInitialMount] = useState(true);
 
   return {
-    // State
+    // * State
     selectedRun,
     selectedRunId,
     selectedRunSnapshot,
@@ -45,7 +45,7 @@ export function useMonitoringState(): MonitoringState & MonitoringActions {
     autoRefresh,
     currentPage,
     isInitialMount,
-    // Actions
+    // * Actions
     setSelectedRun,
     setSelectedRunId,
     setSelectedRunSnapshot,

@@ -41,7 +41,7 @@ export const useAreaNodes = (
   initialBlocks?: ServerBlock[],
   onWorkflowChange?: (blocks: ServerBlock[]) => void,
 ) => {
-  // 최초 마운트 시에만 초기화
+  // * 최초 마운트 시에만 초기화
   const buildAreaNodesFromBlocks = useCallback((blocks?: ServerBlock[]): AreaNodes => {
     if (!blocks) return { trigger: [], job: [], step: [] };
     const trigger: AreaNodeData[] = [];
@@ -133,16 +133,16 @@ export const useAreaNodes = (
 
   // * 사용자가 배치한 순서대로 ServerBlock 배열로 변환 (jobName 기준 그룹화)
   const getServerBlocksInOrder = useCallback(() => {
-    // 모든 노드를 하나의 배열로 합치기
+    // * 모든 노드를 하나의 배열로 합치기
     const allNodes = [...areaNodes.trigger, ...areaNodes.job, ...areaNodes.step];
 
-    // order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
+    // * order 속성을 기준으로 정렬 (사용자가 워크스페이스에서 배치한 순서)
     const sortedNodes = allNodes.sort((a, b) => a.order - b.order);
 
-    // jobName을 기준으로 그룹화
+    // * jobName을 기준으로 그룹화
     const groupedBlocks: ServerBlock[] = [];
 
-    // trigger는 먼저 추가
+    // * trigger는 먼저 추가
     const triggerNodes = sortedNodes.filter((node) => node.type === 'workflowTrigger');
     groupedBlocks.push(
       ...triggerNodes.map((node) => ({
@@ -156,24 +156,24 @@ export const useAreaNodes = (
       })),
     );
 
-    // job과 관련 step들을 jobName 기준으로 그룹화
+    // * job과 관련 step들을 jobName 기준으로 그룹화
     const jobNodes = sortedNodes.filter((node) => node.type === 'job');
 
     jobNodes.forEach((jobNode) => {
       const jobName = jobNode.data.jobName;
 
-      // 해당 jobName을 가진 step들 찾기
+      // * 해당 jobName을 가진 step들 찾기
       const relatedSteps = sortedNodes.filter(
         (node) => node.type === 'step' && node.data.jobName === jobName,
       );
 
-      // step들을 config.steps 배열로 변환
+      // * step들을 config.steps 배열로 변환
       const stepsConfig = relatedSteps.map((stepNode) => ({
         name: stepNode.data.label,
         ...stepNode.data.config,
       }));
 
-      // job 노드 추가 (config에 steps 포함)
+      // * job 노드 추가 (config에 steps 포함)
       groupedBlocks.push({
         name: jobNode.data.label,
         type: 'job' as const,
@@ -191,14 +191,14 @@ export const useAreaNodes = (
     return groupedBlocks;
   }, [areaNodes.trigger, areaNodes.job, areaNodes.step]);
 
-  // initialBlocks 변경 시 워크스페이스를 재구성 (편집 페이지에서 비동기 로드 반영)
-  // 깊은 비교를 통해 실제 내용이 변경된 경우에만 재초기화
+  // * initialBlocks 변경 시 워크스페이스를 재구성 (편집 페이지에서 비동기 로드 반영)
+  // * 깊은 비교를 통해 실제 내용이 변경된 경우에만 재초기화
   useEffect(() => {
-    // initialBlocks가 없으면 초기화하지 않음
+    // * initialBlocks가 없으면 초기화하지 않음
     if (!initialBlocks) return;
 
     const currentBlocks = getServerBlocksInOrder();
-    // 간단한 비교로 변경: 길이와 첫 번째 블록의 id만 비교
+    // * 간단한 비교로 변경: 길이와 첫 번째 블록의 id만 비교
     const shouldReinitialize =
       currentBlocks.length !== initialBlocks.length ||
       (currentBlocks.length > 0 &&
@@ -210,12 +210,12 @@ export const useAreaNodes = (
     }
   }, [initialBlocks, buildAreaNodesFromBlocks]);
 
-  //* onWorkflowChange 호출을 위한 상태
+  // * onWorkflowChange 호출을 위한 상태
   const [pendingWorkflowChange, setPendingWorkflowChange] = useState<
     ServerBlock[] | null
   >(null);
 
-  //* pendingWorkflowChange가 있을 때 onWorkflowChange 호출
+  // * pendingWorkflowChange가 있을 때 onWorkflowChange 호출
   useEffect(() => {
     if (pendingWorkflowChange && onWorkflowChange) {
       onWorkflowChange(pendingWorkflowChange);
@@ -223,7 +223,7 @@ export const useAreaNodes = (
     }
   }, [pendingWorkflowChange, onWorkflowChange]);
 
-  //* 워크플로우 변경을 지연시키는 함수
+  // * 워크플로우 변경을 지연시키는 함수
   const scheduleWorkflowChange = useCallback(
     (blocks: ServerBlock[]) => {
       setPendingWorkflowChange(blocks);
@@ -239,23 +239,23 @@ export const useAreaNodes = (
   // * 노드 생성
   const createNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string): AreaNodeData => {
-      //* Job인 경우 jobName 처리 및 config 업데이트
+      // * Job인 경우 jobName 처리 및 config 업데이트
       if (nodeType === 'job') {
-        //* 파이프라인에서 전달된 jobName이 있으면 사용, 없으면 자동 생성
+        // * 파이프라인에서 전달된 jobName이 있으면 사용, 없으면 자동 생성
         if (!nodeData.jobName) {
           const jobIndex = areaNodes.job.length;
           const jobName = generateJobName(jobIndex);
           nodeData.jobName = jobName;
         }
 
-        //* config에서 jobs 객체를 제거하고 직접 job 속성들을 config에 설정
-        //* 이렇게 하면 job의 config가 올바른 GitHub Actions YAML 구조를 가짐
+        // * config에서 jobs 객체를 제거하고 직접 job 속성들을 config에 설정
+        // * 이렇게 하면 job의 config가 올바른 GitHub Actions YAML 구조를 가짐
         if (nodeData.config && nodeData.config.jobs) {
           const jobConfig = Object.values(nodeData.config.jobs)[0] as Record<
             string,
             unknown
           >;
-          // jobs 객체를 제거하고 job 속성들을 직접 config에 설정
+          // * jobs 객체를 제거하고 job 속성들을 직접 config에 설정
           const { jobs, ...restConfig } = nodeData.config;
           nodeData.config = {
             ...restConfig,
@@ -280,9 +280,9 @@ export const useAreaNodes = (
   // * 노드 추가
   const addNode = useCallback(
     (nodeType: NodeType, nodeData: WorkflowNodeData, parentId?: string) => {
-      //* Trigger는 기존 블록을 교체
+      // * Trigger는 기존 블록을 교체
       if (nodeType === 'workflowTrigger' && areaNodes.trigger.length > 0) {
-        //* 기존 Trigger를 새로운 Trigger로 교체
+        // * 기존 Trigger를 새로운 Trigger로 교체
         setAreaNodes((prev) => {
           const newTrigger = createNode(nodeType, nodeData, parentId);
 
@@ -291,7 +291,7 @@ export const useAreaNodes = (
             trigger: [{ ...newTrigger, order: 0 }], //* Trigger는 항상 첫 번째
           };
 
-          //* 노드 교체 후 워크플로우 변경 스케줄링
+          // * 노드 교체 후 워크플로우 변경 스케줄링
           const allNodes = [
             ...newAreaNodes.trigger,
             ...newAreaNodes.job,
@@ -329,7 +329,7 @@ export const useAreaNodes = (
           [areaKey]: [...currentNodes, { ...newNode, order: newOrder }],
         };
 
-        //* 노드 추가 후 워크플로우 변경 스케줄링
+        // * 노드 추가 후 워크플로우 변경 스케줄링
         const allNodes = [
           ...newAreaNodes.trigger,
           ...newAreaNodes.job,
@@ -359,15 +359,15 @@ export const useAreaNodes = (
       setAreaNodes((prev) => {
         const newAreaNodes = { ...prev };
 
-        //* 삭제할 노드가 Job인지 확인
+        // * 삭제할 노드가 Job인지 확인
         const deletedJob = prev.job.find((job) => job.id === nodeId);
 
-        //* 각 영역에서 노드 찾아서 삭제
+        // * 각 영역에서 노드 찾아서 삭제
         Object.keys(newAreaNodes).forEach((areaKey) => {
           const area = areaKey as keyof AreaNodes;
           newAreaNodes[area] = newAreaNodes[area].filter((n) => n.id !== nodeId);
 
-          //* Job 영역의 경우 순서 재정렬 및 jobName 업데이트
+          // * Job 영역의 경우 순서 재정렬 및 jobName 업데이트
           if (area === 'job') {
             newAreaNodes[area] = newAreaNodes[area].map((node, index) => {
               const newJobName = generateJobName(index);
@@ -388,7 +388,7 @@ export const useAreaNodes = (
               };
             });
           } else {
-            //* 다른 영역은 순서만 재정렬
+            // * 다른 영역은 순서만 재정렬
             newAreaNodes[area] = newAreaNodes[area].map((node, index) => ({
               ...node,
               order: index,
@@ -396,14 +396,14 @@ export const useAreaNodes = (
           }
         });
 
-        //* Job이 삭제된 경우 하위 Step들도 삭제하고, 남은 Job들의 하위 Step들의 jobName 업데이트
+        // * Job이 삭제된 경우 하위 Step들도 삭제하고, 남은 Job들의 하위 Step들의 jobName 업데이트
         if (deletedJob) {
-          //* 삭제된 Job의 하위 Step들 제거
+          // * 삭제된 Job의 하위 Step들 제거
           newAreaNodes.step = newAreaNodes.step.filter(
             (step) => step.parentId !== nodeId,
           );
 
-          //* 남은 Job들의 하위 Step들의 jobName 업데이트
+          // * 남은 Job들의 하위 Step들의 jobName 업데이트
           newAreaNodes.step = newAreaNodes.step.map((step) => {
             const parentJob = newAreaNodes.job.find((job) => job.id === step.parentId);
             if (parentJob) {
@@ -419,7 +419,7 @@ export const useAreaNodes = (
           });
         }
 
-        //* 노드 삭제 후 워크플로우 변경 스케줄링
+        // * 노드 삭제 후 워크플로우 변경 스케줄링
         const allNodes = [
           ...newAreaNodes.trigger,
           ...newAreaNodes.job,
@@ -458,7 +458,7 @@ export const useAreaNodes = (
           );
         });
 
-        //* 편집 모드 상태 변경이 아닌 경우에만 워크플로우 변경 스케줄링
+        // * 편집 모드 상태 변경이 아닌 경우에만 워크플로우 변경 스케줄링
         if (!skipWorkflowChange) {
           const allNodes = [
             ...newAreaNodes.trigger,
@@ -488,12 +488,12 @@ export const useAreaNodes = (
       setAreaNodes((prev) => {
         const newAreaNodes = { ...prev };
 
-        //* 업데이트할 노드 찾기 (Job 노드인지 확인)
+        // * 업데이트할 노드 찾기 (Job 노드인지 확인)
         const targetJob = newAreaNodes.job.find((n) => n.id === nodeId);
         const isJobNode = targetJob !== undefined;
         const oldJobName = targetJob?.data.jobName;
 
-        //* 노드 데이터 업데이트
+        // * 노드 데이터 업데이트
         Object.keys(newAreaNodes).forEach((areaKey) => {
           const area = areaKey as keyof AreaNodes;
           newAreaNodes[area] = newAreaNodes[area].map((node) =>
@@ -501,11 +501,11 @@ export const useAreaNodes = (
           );
         });
 
-        //* Job 노드의 jobName이 변경된 경우 관련 Step들 업데이트
+        // * Job 노드의 jobName이 변경된 경우 관련 Step들 업데이트
         if (isJobNode && oldJobName && oldJobName !== data.jobName) {
           const newJobName = data.jobName;
 
-          //* Job 노드의 config 업데이트
+          // * Job 노드의 config 업데이트
           newAreaNodes.job = newAreaNodes.job.map((job) => {
             if (job.id === nodeId) {
               const jobConfig = Object.values(job.data.config?.jobs || {})[0];
@@ -526,7 +526,7 @@ export const useAreaNodes = (
             return job;
           });
 
-          //* 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
+          // * 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
           newAreaNodes.step = newAreaNodes.step.map((step) => {
             if (step.data.jobName === oldJobName) {
               return {
@@ -541,7 +541,7 @@ export const useAreaNodes = (
           });
         }
 
-        //* 노드 데이터 업데이트 후 워크플로우 변경 스케줄링
+        // * 노드 데이터 업데이트 후 워크플로우 변경 스케줄링
         const allNodes = [
           ...newAreaNodes.trigger,
           ...newAreaNodes.job,
@@ -577,13 +577,13 @@ export const useAreaNodes = (
     setAreaNodes((prev) => {
       const newAreaNodes = { ...prev };
 
-      //* 해당 Job을 찾아서 기존 jobName 확인
+      // * 해당 Job을 찾아서 기존 jobName 확인
       const targetJob = newAreaNodes.job.find((job) => job.id === jobId);
       if (!targetJob) return prev;
 
       const oldJobName = targetJob.data.jobName;
 
-      //* 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
+      // * 해당 jobName을 참조하는 모든 Step들의 jobName 업데이트
       newAreaNodes.step = newAreaNodes.step.map((step) => {
         if (step.data.jobName === oldJobName) {
           return {

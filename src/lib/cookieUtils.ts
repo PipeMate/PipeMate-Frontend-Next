@@ -23,25 +23,25 @@ export const setCookie = (name: string, value: string, options: CookieOptions = 
     const expires = new Date();
     expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
 
-    // 브라우저 호환성을 위한 쿠키 설정
+    // * 브라우저 호환성을 위한 쿠키 설정
     const isDevelopment = process.env.NODE_ENV === 'development';
     const isLocalhost =
       typeof window !== 'undefined' && window.location.hostname === 'localhost';
 
-    // 개발 환경이나 localhost에서는 Secure 플래그 제거
+    // * 개발 환경이나 localhost에서는 Secure 플래그 제거
     const secureFlag = secure && !isDevelopment && !isLocalhost ? 'Secure; ' : '';
 
-    // 더 간단한 쿠키 문자열 생성
+    // * 더 간단한 쿠키 문자열 생성
     let cookieString = `${name}=${encodeURIComponent(
       value,
     )}; expires=${expires.toUTCString()}; path=/`;
 
-    // SameSite 설정 추가 (브라우저 호환성을 위해 조건부)
+    // * SameSite 설정 추가 (브라우저 호환성을 위해 조건부)
     if (sameSite) {
       cookieString += `; SameSite=${sameSite}`;
     }
 
-    // Secure 플래그 추가
+    // * Secure 플래그 추가
     if (secureFlag) {
       cookieString += `; ${secureFlag}`;
     }
@@ -54,10 +54,10 @@ export const setCookie = (name: string, value: string, options: CookieOptions = 
       isLocalhost,
     });
 
-    // 쿠키 저장 시도
+    // * 쿠키 저장 시도
     document.cookie = cookieString;
 
-    // 저장 확인 (약간의 지연 후)
+    // * 저장 확인 (약간의 지연 후)
     setTimeout(() => {
       const savedValue = getCookie(name);
       if (savedValue !== value) {
@@ -68,7 +68,7 @@ export const setCookie = (name: string, value: string, options: CookieOptions = 
           cookieString,
         });
 
-        // 쿠키 저장 실패 시 localStorage 대안 사용
+        // * 쿠키 저장 실패 시 localStorage 대안 사용
         try {
           localStorage.setItem(name, value);
           console.log('localStorage 대안 저장 성공:', name);
@@ -89,7 +89,7 @@ export const setCookie = (name: string, value: string, options: CookieOptions = 
       ).toUTCString()}; path=/; SameSite=Lax`,
     });
 
-    // 대안: 더 간단한 쿠키 저장 시도
+    // * 대안: 더 간단한 쿠키 저장 시도
     try {
       const simpleCookieString = `${name}=${encodeURIComponent(value)}; path=/`;
       document.cookie = simpleCookieString;
@@ -97,7 +97,7 @@ export const setCookie = (name: string, value: string, options: CookieOptions = 
     } catch (fallbackError) {
       console.error('간단한 쿠키 저장도 실패:', fallbackError);
 
-      // 최종 대안: localStorage 사용
+      // * 최종 대안: localStorage 사용
       try {
         localStorage.setItem(name, value);
         console.log('localStorage 최종 대안 저장 성공:', name);
@@ -117,7 +117,7 @@ export const getCookie = (name: string): string | null => {
       return null;
     }
 
-    // 먼저 쿠키에서 읽기 시도
+    // * 먼저 쿠키에서 읽기 시도
     const cookieValue = document.cookie
       .split('; ')
       .find((row) => row.startsWith(name + '='))
@@ -127,7 +127,7 @@ export const getCookie = (name: string): string | null => {
       return decodeURIComponent(cookieValue);
     }
 
-    // 쿠키에 없으면 localStorage에서 읽기 시도
+    // * 쿠키에 없으면 localStorage에서 읽기 시도
     try {
       const localStorageValue = localStorage.getItem(name);
       if (localStorageValue) {
@@ -148,11 +148,11 @@ export const getCookie = (name: string): string | null => {
 // * 쿠키 삭제 (localStorage 대안 포함)
 export const deleteCookie = (name: string) => {
   try {
-    // 쿠키 삭제
+    // * 쿠키 삭제
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     console.log('쿠키 삭제 성공:', name);
 
-    // localStorage에서도 삭제
+    // * localStorage에서도 삭제
     try {
       localStorage.removeItem(name);
       console.log('localStorage 삭제 성공:', name);

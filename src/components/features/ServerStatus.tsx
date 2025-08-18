@@ -38,8 +38,8 @@ export default function ServerStatus() {
 
     try {
       // * 실제로는 API 호출
-      // const response = await fetch('/api/server-status');
-      // const data = await response.json();
+      // * const response = await fetch('/api/server-status');
+      // * const data = await response.json();
 
       // * 목 데이터
       await new Promise((resolve) => setTimeout(resolve, 1000));

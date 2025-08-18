@@ -1,13 +1,11 @@
 import type { ServerBlock, WorkflowNodeData } from '../../types';
 
-// * ========================================
 // * 타입 정의
-// * ========================================
 
-//* 노드 타입 정의
+// * 노드 타입 정의
 export type NodeType = 'workflowTrigger' | 'job' | 'step';
 
-//* 영역별 노드 데이터
+// * 영역별 노드 데이터
 export interface AreaNodeData {
   id: string;
   type: NodeType;
@@ -18,7 +16,7 @@ export interface AreaNodeData {
   isEditing?: boolean;
 }
 
-//* 워크플로우 에디터 Props
+// * 워크플로우 에디터 Props
 export interface AreaBasedWorkflowEditorProps {
   onWorkflowChange?: (blocks: ServerBlock[]) => void;
   initialBlocks?: ServerBlock[];
@@ -31,7 +29,7 @@ export interface AreaBasedWorkflowEditorProps {
   onWorkflowNameChange?: (name: string) => void;
 }
 
-//* 영역별 노드 상태
+// * 영역별 노드 상태
 export interface AreaNodes {
   trigger: AreaNodeData[];
   job: AreaNodeData[];

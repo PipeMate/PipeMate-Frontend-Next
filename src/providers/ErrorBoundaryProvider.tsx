@@ -64,11 +64,11 @@ class ErrorBoundary extends Component<ProviderProps, ErrorState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // 에러 로깅 (개발 환경에서만 상세 정보 출력)
+    // * 에러 로깅 (개발 환경에서만 상세 정보 출력)
     if (process.env.NODE_ENV === 'development') {
       console.error('Error Boundary caught an error:', error, errorInfo);
     } else {
-      // 프로덕션 환경에서는 에러 추적 서비스로 전송
+      // * 프로덕션 환경에서는 에러 추적 서비스로 전송
       console.error('Application error:', error.message);
     }
 

@@ -29,27 +29,27 @@ function SettingsStatus() {
   const { owner, repo, isConfigured } = useRepository();
   const [hasToken, setHasToken] = useState(false);
 
-  // 토큰 상태를 실시간으로 감지하는 함수
+  // * 토큰 상태를 실시간으로 감지하는 함수
   const checkTokenStatus = () => {
     const token = getCookie(STORAGES.GITHUB_TOKEN);
     setHasToken(!!token);
   };
 
-  // 초기 로드 시 토큰 상태 확인
+  // * 초기 로드 시 토큰 상태 확인
   useEffect(() => {
     checkTokenStatus();
   }, []);
 
-  // 커스텀 이벤트 리스너로 토큰 상태 변경 감지
+  // * 커스텀 이벤트 리스너로 토큰 상태 변경 감지
   useEffect(() => {
     const handleTokenChange = () => {
       checkTokenStatus();
     };
 
-    // 토큰 변경 이벤트 리스너 등록
+    // * 토큰 변경 이벤트 리스너 등록
     window.addEventListener('token-changed', handleTokenChange);
 
-    // 페이지 포커스 시 토큰 상태 재확인
+    // * 페이지 포커스 시 토큰 상태 재확인
     const handleFocus = () => {
       checkTokenStatus();
     };

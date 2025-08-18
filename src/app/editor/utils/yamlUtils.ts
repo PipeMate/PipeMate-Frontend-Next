@@ -9,7 +9,7 @@ export type YamlParseResult = {
 
 export const parseYamlToConfigStrict = (yamlText: string): YamlParseResult => {
   try {
-    // YAML -> JS 객체
+    // * YAML -> JS 객체
     const parsed = YAML.parse(yamlText ?? '');
     if (parsed === null || parsed === undefined) {
       return { success: true, data: {} };

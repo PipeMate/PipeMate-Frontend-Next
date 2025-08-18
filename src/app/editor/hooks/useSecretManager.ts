@@ -40,7 +40,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
 
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // 사용 가능한 시크릿 목록
+  // * 사용 가능한 시크릿 목록
   const secrets = useMemo(() => {
     if (!secretsData?.data?.groupedSecrets) return [];
 
@@ -55,13 +55,13 @@ export const useSecretManager = (): UseSecretManagerReturn => {
     return allSecrets;
   }, [secretsData]);
 
-  // Config에서 시크릿 감지
+  // * Config에서 시크릿 감지
   const detectSecretsInConfig = useCallback((config: any): string[] => {
     if (!config) return [];
     return extractSecretsFromObject(config);
   }, []);
 
-  // 누락된 시크릿 계산
+  // * 누락된 시크릿 계산
   const getMissingSecrets = useCallback(
     (requiredSecrets: string[]): string[] => {
       return findMissingSecrets(requiredSecrets, secrets);
@@ -69,7 +69,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
     [secrets],
   );
 
-  // 시크릿 생성
+  // * 시크릿 생성
   const createSecret = useCallback(
     async (name: string, value: string): Promise<void> => {
       if (!owner || !repo) {
@@ -88,7 +88,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
 
         toast.success(`시크릿 '${name}'이(가) 성공적으로 생성되었습니다.`);
 
-        // 시크릿 목록 새로고침
+        // * 시크릿 목록 새로고침
         refetch();
       } catch (err: any) {
         const errorMessage =
@@ -101,7 +101,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
     [owner, repo, createSecretMutation, refetch],
   );
 
-  // 시크릿 검증
+  // * 시크릿 검증
   const validateSecrets = useCallback(
     (requiredSecrets: string[]) => {
       const missing = getMissingSecrets(requiredSecrets);
@@ -112,7 +112,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
     [secrets, getMissingSecrets],
   );
 
-  // 시크릿 삭제
+  // * 시크릿 삭제
   const deleteSecret = useCallback(
     async (name: string): Promise<void> => {
       if (!owner || !repo) {
@@ -130,7 +130,7 @@ export const useSecretManager = (): UseSecretManagerReturn => {
 
         toast.success(`시크릿 '${name}'이(가) 성공적으로 삭제되었습니다.`);
 
-        // 시크릿 목록 새로고침
+        // * 시크릿 목록 새로고침
         refetch();
       } catch (err: any) {
         const errorMessage =
@@ -143,21 +143,21 @@ export const useSecretManager = (): UseSecretManagerReturn => {
     [owner, repo, deleteSecretMutation, refetch],
   );
 
-  // 시크릿 새로고침
+  // * 시크릿 새로고침
   const refreshSecrets = useCallback(() => {
     refetch();
   }, [refetch]);
 
-  // 전체 누락된 시크릿을 계산하지 않음 (특정 context에서 계산해야 함)
+  // * 전체 누락된 시크릿을 계산하지 않음 (특정 context에서 계산해야 함)
 
   return {
-    // State
+    // * State
     secrets,
     isLoading:
       isLoading || createSecretMutation.isPending || deleteSecretMutation.isPending,
     error: localError || (error ? '시크릿을 불러오는 중 오류가 발생했습니다.' : null),
 
-    // Actions
+    // * Actions
     detectSecretsInConfig,
     createSecret,
     deleteSecret,

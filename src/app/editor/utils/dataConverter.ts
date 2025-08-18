@@ -1,20 +1,17 @@
-//* ========================================
-//* 데이터 변환 유틸리티
-//* ========================================
-//* 이 파일은 서버 데이터와 React Flow 노드 간의 변환을 담당합니다.
-//* 서버에서 받은 블록 데이터를 React Flow 노드로 변환하고,
-//* React Flow 노드를 서버로 보낼 블록 데이터로 변환합니다.
+// * 데이터 변환 유틸리티
+
+// * 이 파일은 서버 데이터와 React Flow 노드 간의 변환을 담당합니다.
+// * 서버에서 받은 블록 데이터를 React Flow 노드로 변환하고,
+// * React Flow 노드를 서버로 보낼 블록 데이터로 변환합니다.
 
 import type { CustomEdge as Edge, CustomNode as Node } from '../types/customTypes';
 import { MarkerType } from '../types/customTypes';
 import type { ServerBlock, WorkflowNodeData } from '../types';
 
-//* ========================================
-//* 서버 → React Flow 변환
-//* ========================================
+// * 서버 → React Flow 변환
 
-//* 서버 블록 데이터를 React Flow 노드로 변환
-//? 서버에서 받은 블록 배열을 React Flow에서 사용할 수 있는 노드와 엣지로 변환
+// * 서버 블록 데이터를 React Flow 노드로 변환
+// ? 서버에서 받은 블록 배열을 React Flow에서 사용할 수 있는 노드와 엣지로 변환
 export const convertServerBlocksToNodes = (
   blocks: ServerBlock[],
 ): { nodes: Node[]; edges: Edge[] } => {
@@ -22,9 +19,8 @@ export const convertServerBlocksToNodes = (
   const edges: Edge[] = [];
   let nodeIdCounter = 1;
 
-  //* ========================================
-  //* 트리거 블록 처리
-  //* ========================================
+  // * 트리거 블록 처리
+
   const triggerBlocks = blocks.filter((block) => block.type === 'trigger');
   triggerBlocks.forEach((triggerBlock, index) => {
     const triggerNode: Node = {
@@ -43,9 +39,8 @@ export const convertServerBlocksToNodes = (
     nodes.push(triggerNode);
   });
 
-  //* ========================================
-  //* Job 블록들 처리 + SubFlow 생성
-  //* ========================================
+  // * Job 블록들 처리 + SubFlow 생성
+
   const jobBlocks = blocks.filter((block) => block.type === 'job');
   const jobIdToSubflowId: Record<string, string> = {};
   jobBlocks.forEach((jobBlock, index) => {
@@ -64,7 +59,7 @@ export const convertServerBlocksToNodes = (
       },
     };
     nodes.push(jobNode);
-    // 각 job마다 subflow 노드 생성
+    // * 각 job마다 subflow 노드 생성
     const subflowId = `subflow-${jobNodeId}`;
     jobIdToSubflowId[jobNodeId] = subflowId;
     const subflowNode: Node = {
@@ -81,7 +76,7 @@ export const convertServerBlocksToNodes = (
       },
     };
     nodes.push(subflowNode);
-    // 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
+    // * 트리거에서 Job으로 연결 (첫 번째 트리거가 있으면 연결)
     if (blocks.length > 1) {
       const firstTrigger = nodes.find((node) => node.data.type === 'workflow_trigger');
       if (firstTrigger) {
@@ -100,7 +95,7 @@ export const convertServerBlocksToNodes = (
         });
       }
     }
-    // job → subflow 엣지
+    // * job → subflow 엣지
     edges.push({
       id: `job-to-subflow-${subflowId}`,
       source: jobNodeId,
@@ -116,13 +111,12 @@ export const convertServerBlocksToNodes = (
     });
   });
 
-  //* ========================================
-  //* Step 블록들 처리 (subflow의 자식으로)
-  //* ========================================
+  // * Step 블록들 처리 (subflow의 자식으로)
+
   const stepBlocks = blocks.filter((block) => block.type === 'step');
   const subflowStepMap = new Map<string, Node[]>();
   stepBlocks.forEach((stepBlock) => {
-    // step이 속할 job 찾기
+    // * step이 속할 job 찾기
     let parentJob = null;
     if (stepBlock['jobName'] && stepBlock['jobName'].trim() !== '') {
       const jobName = stepBlock['jobName'];
@@ -142,13 +136,13 @@ export const convertServerBlocksToNodes = (
       const subflowId = jobIdToSubflowId[parentJob.id];
       const subflowNode = nodes.find((n) => n.id === subflowId);
       const subflowSteps = subflowStepMap.get(subflowId) || [];
-      // 서브플로우 크기 및 step 배치 기준 (패딩 포함)
+      // * 서브플로우 크기 및 step 배치 기준 (패딩 포함)
       const SUBFLOW_PADDING_X = 32;
       const SUBFLOW_PADDING_Y = 32;
       const STEP_WIDTH = 220;
       const STEP_HEIGHT = 56;
       const STEP_MARGIN = 18;
-      // x: 서브플로우 좌우 패딩 내 중앙 정렬, y: 패딩 아래에서부터 아래로 간격
+      // * x: 서브플로우 좌우 패딩 내 중앙 정렬, y: 패딩 아래에서부터 아래로 간격
       const stepX =
         SUBFLOW_PADDING_X +
         (Math.max(STEP_WIDTH, subflowNode ? (subflowNode.data.width as number) || 0 : 0) -
@@ -180,10 +174,10 @@ export const convertServerBlocksToNodes = (
         subflowStepMap.set(subflowId, []);
       }
       subflowStepMap.get(subflowId)!.push(stepNode);
-      // subflow의 stepCount, width, height 갱신 (step 개수, 패딩 포함)
+      // * subflow의 stepCount, width, height 갱신 (step 개수, 패딩 포함)
       if (subflowNode) {
         const stepCount = subflowStepMap.get(subflowId)!.length;
-        // Step 노드들의 width/height 동적 측정값 사용
+        // * Step 노드들의 width/height 동적 측정값 사용
         const stepWidths = subflowStepMap
           .get(subflowId)!
           .map((n) => (n.data.width as number) || 220);
@@ -207,7 +201,7 @@ export const convertServerBlocksToNodes = (
       }
     }
   });
-  // Step 간 엣지 (subflow 내부에서만)
+  // * Step 간 엣지 (subflow 내부에서만)
   subflowStepMap.forEach((steps) => {
     for (let i = 0; i < steps.length - 1; i++) {
       const currentStep = steps[i];
@@ -232,12 +226,10 @@ export const convertServerBlocksToNodes = (
   return { nodes, edges };
 };
 
-//* ========================================
-//* React Flow → 서버 변환
-//* ========================================
+// * React Flow → 서버 변환
 
-//* React Flow 노드를 서버 블록으로 변환 (연결 관계 고려)
-//? React Flow의 노드 배열을 서버로 보낼 수 있는 블록 배열로 변환
+// * React Flow 노드를 서버 블록으로 변환 (연결 관계 고려)
+// ? React Flow의 노드 배열을 서버로 보낼 수 있는 블록 배열로 변환
 export const convertNodesToServerBlocks = (
   nodes: Node[],
   edges?: Edge[],
@@ -245,12 +237,12 @@ export const convertNodesToServerBlocks = (
   const blocks: ServerBlock[] = [];
   const processedNodes = new Set<string>();
 
-  //* 노드 연결 관계를 기반으로 순서 결정
+  // * 노드 연결 관계를 기반으로 순서 결정
   const getNodeOrder = (): string[] => {
     const order: string[] = [];
     const visited = new Set<string>();
 
-    //* 워크플로우 트리거 노드부터 시작
+    // * 워크플로우 트리거 노드부터 시작
     const triggerNodes = nodes.filter(
       (node) =>
         node.data &&
@@ -262,7 +254,7 @@ export const convertNodesToServerBlocks = (
       visited.add(nodeId);
       order.push(nodeId);
 
-      //* 연결된 자식 노드들 처리 (edges에서 추출)
+      // * 연결된 자식 노드들 처리 (edges에서 추출)
       if (edges) {
         const children = edges
           .filter((edge) => edge.source === nodeId)
@@ -271,10 +263,10 @@ export const convertNodesToServerBlocks = (
       }
     };
 
-    //* 각 트리거 노드부터 순회
+    // * 각 트리거 노드부터 순회
     triggerNodes.forEach((triggerNode) => traverse(triggerNode.id));
 
-    //* 연결되지 않은 노드들 추가
+    // * 연결되지 않은 노드들 추가
     nodes.forEach((node) => {
       if (!visited.has(node.id)) {
         order.push(node.id);
@@ -284,7 +276,7 @@ export const convertNodesToServerBlocks = (
     return order;
   };
 
-  //* 순서대로 노드 처리
+  // * 순서대로 노드 처리
   const nodeOrder = getNodeOrder();
 
   nodeOrder.forEach((nodeId) => {
@@ -296,7 +288,7 @@ export const convertNodesToServerBlocks = (
 
     processedNodes.add(nodeId);
 
-    //* 노드 타입에 따른 블록 생성
+    // * 노드 타입에 따른 블록 생성
     if (nodeData.type === 'workflow_trigger') {
       blocks.push({
         id: node.id, // id 보존
@@ -308,10 +300,10 @@ export const convertNodesToServerBlocks = (
         config: nodeData.config,
       });
     } else if (nodeData.type === 'job') {
-      //* Job의 jobName을 nodeData.jobName에서 추출
+      // * Job의 jobName을 nodeData.jobName에서 추출
       const jobName = nodeData.jobName || 'job1';
 
-      //* Job 간 의존성 (needs) 처리
+      // * Job 간 의존성 (needs) 처리
       const jobDependencies =
         edges?.filter((edge) => edge.target === node.id && edge.data?.isDependency) || [];
 
@@ -340,11 +332,11 @@ export const convertNodesToServerBlocks = (
         config: jobConfig,
       });
     } else if (nodeData.type === 'step') {
-      //* Step의 jobName을 올바르게 설정
-      //* 부모 Job 노드를 찾아서 jobName을 가져옴
+      // * Step의 jobName을 올바르게 설정
+      // * 부모 Job 노드를 찾아서 jobName을 가져옴
       let jobName = nodeData.jobName || '';
 
-      //* 부모 Job이 없는 경우, 부모 Subflow를 통해 Job을 찾음
+      // * 부모 Job이 없는 경우, 부모 Subflow를 통해 Job을 찾음
       if (!jobName && node.parentId) {
         const parentSubflow = nodes.find((n) => n.id === node.parentId);
         if (parentSubflow && parentSubflow.parentId) {

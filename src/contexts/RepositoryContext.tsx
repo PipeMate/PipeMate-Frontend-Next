@@ -34,7 +34,7 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
   const [repo, setRepo] = useState<string | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
 
-  // 초기 로드 시 쿠키에서 설정 불러오기
+  // * 초기 로드 시 쿠키에서 설정 불러오기
   useEffect(() => {
     const config = getRepositoryConfig();
     if (config.owner && config.repo) {
@@ -62,7 +62,7 @@ export function RepositoryProvider({ children }: RepositoryProviderProps) {
     deleteRepositoryConfig();
   }, []);
 
-  // 컨텍스트 값 메모이제이션
+  // * 컨텍스트 값 메모이제이션
   const value = useMemo<RepositoryContextType>(
     () => ({
       owner,

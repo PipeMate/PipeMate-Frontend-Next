@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "format": "prettier --cache --write ."
+    "format": "prettier --cache --write .",
+    "comments:standardize": "node ./scripts/standardize-comments.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.14",

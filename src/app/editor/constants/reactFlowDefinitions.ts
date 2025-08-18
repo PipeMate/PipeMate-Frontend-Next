@@ -1,30 +1,25 @@
-//* ========================================
-//* 커스텀 노드 정의 및 상수
-//* ========================================
-//* 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
-//* 노드 타입, 템플릿, 초기 설정을 정의합니다.
+// * 커스텀 노드 정의 및 상수
+
+// * 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
+// * 노드 타입, 템플릿, 초기 설정을 정의합니다.
 
 import type { CustomEdge as Edge, CustomNode as Node } from '../types/customTypes';
 
-//* ========================================
-//* 노드 타입 상수
-//* ========================================
+// * 노드 타입 상수
 
-//* React Flow에서 사용하는 노드 타입 정의
+// * React Flow에서 사용하는 노드 타입 정의
 export const NODE_TYPES = {
   WORKFLOW_TRIGGER: 'workflowTrigger', //* 워크플로우 트리거 노드
   JOB: 'job', //* Job 노드
   STEP: 'step', //* Step 노드
 } as const;
 
-//* ========================================
-//* 노드 템플릿 정의
-//* ========================================
+// * 노드 템플릿 정의
 
-//* 각 노드 타입별 기본 템플릿 설정
-//? 새로운 노드 생성 시 사용되는 기본값들
+// * 각 노드 타입별 기본 템플릿 설정
+// ? 새로운 노드 생성 시 사용되는 기본값들
 export const NODE_TEMPLATES = {
-  //* 워크플로우 트리거 템플릿
+  // * 워크플로우 트리거 템플릿
   workflow_trigger: {
     label: '워크플로우 기본 설정',
     type: NODE_TYPES.WORKFLOW_TRIGGER,
@@ -42,7 +37,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Job 블록 템플릿
+  // * Job 블록 템플릿
   job: {
     label: 'Job 설정',
     type: NODE_TYPES.JOB,
@@ -58,11 +53,9 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* ========================================
-  //* Step 블록 템플릿들
-  //* ========================================
+  // * Step 블록 템플릿들
 
-  //* 코드 체크아웃 Step
+  // * 코드 체크아웃 Step
   checkout_step: {
     label: 'Checkout repository',
     type: NODE_TYPES.STEP,
@@ -75,7 +68,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Java 환경 설정 Step
+  // * Java 환경 설정 Step
   java_setup_step: {
     label: 'Set up JDK 21',
     type: NODE_TYPES.STEP,
@@ -92,7 +85,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Gradle 빌드 Step
+  // * Gradle 빌드 Step
   gradle_build_step: {
     label: 'Gradle 빌드 블록',
     type: NODE_TYPES.STEP,
@@ -105,7 +98,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Gradle 테스트 Step
+  // * Gradle 테스트 Step
   gradle_test_step: {
     label: 'Gradle 테스트 실행 블록',
     type: NODE_TYPES.STEP,
@@ -118,7 +111,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Docker 로그인 Step
+  // * Docker 로그인 Step
   docker_login_step: {
     label: 'Docker 로그인',
     type: NODE_TYPES.STEP,
@@ -135,7 +128,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* Docker 빌드 및 푸시 Step
+  // * Docker 빌드 및 푸시 Step
   docker_build_step: {
     label: 'Docker 이미지 빌드 및 푸시 블록',
     type: NODE_TYPES.STEP,
@@ -154,7 +147,7 @@ export const NODE_TEMPLATES = {
     },
   },
 
-  //* SSH 배포 Step
+  // * SSH 배포 Step
   ssh_deploy_step: {
     label: 'Deploy to AWS EC2',
     type: NODE_TYPES.STEP,
@@ -176,15 +169,13 @@ export const NODE_TEMPLATES = {
   },
 } as const;
 
-//* ========================================
-//* 초기 워크플로우 설정
-//* ========================================
+// * 초기 워크플로우 설정
 
-//* 워크스페이스 초기화 시 기본으로 생성되는 노드들
-//! 사용자가 처음 접속했을 때 보게 될 기본 워크플로우 (빈 상태)
+// * 워크스페이스 초기화 시 기본으로 생성되는 노드들
+// ! 사용자가 처음 접속했을 때 보게 될 기본 워크플로우 (빈 상태)
 export const INITIAL_NODES: Node[] = [];
 
-//* 초기 노드 간 연결 관계
+// * 초기 노드 간 연결 관계
 export const INITIAL_EDGES: Edge[] = [
   {
     id: 'trigger-to-job',
@@ -204,12 +195,10 @@ export const INITIAL_EDGES: Edge[] = [
   },
 ];
 
-//* ========================================
-//* 유틸리티 함수
-//* ========================================
+// * 유틸리티 함수
 
-//* 새로운 노드 생성 함수
-//? 템플릿을 기반으로 새로운 노드를 생성
+// * 새로운 노드 생성 함수
+// ? 템플릿을 기반으로 새로운 노드를 생성
 export const createNode = (
   type: string,
   position: { x: number; y: number },

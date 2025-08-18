@@ -9,7 +9,7 @@ import type { ServerBlock } from '@/app/editor/types';
 export const pipelineAPI = {
   // * 파이프라인 생성
   create: (data: PipelineRequest) => {
-    // workflowName에서 .yml 확장자 제거
+    // * workflowName에서 .yml 확장자 제거
     const processedData = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),
@@ -25,7 +25,7 @@ export const pipelineAPI = {
 
   // * 파이프라인 업데이트
   update: (data: PipelineRequest) => {
-    // workflowName에서 .yml 확장자 제거
+    // * workflowName에서 .yml 확장자 제거
     const processedData = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),

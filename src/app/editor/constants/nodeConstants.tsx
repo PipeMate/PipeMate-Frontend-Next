@@ -1,13 +1,12 @@
-//* ========================================
-//* 노드 상수 정의
-//* ========================================
-//* 이 파일은 GitHub Actions 워크플로우 에디터의
-//* 노드 제목, 색상, 아이콘, 핸들 설정을 정의합니다.
+// * 노드 상수 정의
+
+// * 이 파일은 GitHub Actions 워크플로우 에디터의
+// * 노드 제목, 색상, 아이콘, 핸들 설정을 정의합니다.
 
 import { Code, Layers, Package, Settings, Zap } from 'lucide-react';
 import React from 'react';
 
-//* 커스텀 Position 타입 정의
+// * 커스텀 Position 타입 정의
 interface Position {
   Top: 'top';
   Bottom: 'bottom';
@@ -22,18 +21,14 @@ const Position: Position = {
   Right: 'right',
 };
 
-//* ========================================
-//* 노드 타입 정의
-//* ========================================
+// * 노드 타입 정의
 
-//* 노드 타입을 명시적으로 정의
+// * 노드 타입을 명시적으로 정의
 export type NodeType = 'TRIGGER' | 'JOB' | 'STEP' | 'STEPS';
 
-//* ========================================
-//* 노드 제목 상수
-//* ========================================
+// * 노드 제목 상수
 
-//* 각 노드 타입별 표시 제목
+// * 각 노드 타입별 표시 제목
 export const NODE_TITLES: Record<NodeType, string> = {
   TRIGGER: '워크플로우 트리거',
   JOB: 'Job 설정',
@@ -41,11 +36,9 @@ export const NODE_TITLES: Record<NodeType, string> = {
   STEPS: 'Steps Container',
 } as const;
 
-//* ========================================
-//* 노드 색상 상수
-//* ========================================
+// * 노드 색상 상수
 
-//* 각 노드 타입별 색상 정의
+// * 각 노드 타입별 색상 정의
 export const NODE_COLORS: Record<
   NodeType,
   {
@@ -81,11 +74,9 @@ export const NODE_COLORS: Record<
   },
 } as const;
 
-//* ========================================
-//* 워크스페이스 영역 색상 상수
-//* ========================================
+// * 워크스페이스 영역 색상 상수
 
-//* 워크스페이스 드롭 영역 색상 정의
+// * 워크스페이스 드롭 영역 색상 정의
 export const WORKSPACE_AREA_COLORS: Record<NodeType, string> = {
   TRIGGER: 'border-green-300 bg-green-50/50',
   JOB: 'border-blue-300 bg-blue-50/50',
@@ -93,12 +84,12 @@ export const WORKSPACE_AREA_COLORS: Record<NodeType, string> = {
   STEPS: 'border-orange-300 bg-orange-50/50',
 } as const;
 
-//* 워크스페이스 영역 색상 가져오기 함수
+// * 워크스페이스 영역 색상 가져오기 함수
 export const getWorkspaceAreaColor = (nodeType: NodeType): string => {
   return WORKSPACE_AREA_COLORS[nodeType];
 };
 
-//* Step 영역 색상 상수
+// * Step 영역 색상 상수
 export const STEP_AREA_COLORS = {
   container: 'bg-orange-50 border border-orange-200',
   title: 'text-orange-800',
@@ -107,11 +98,9 @@ export const STEP_AREA_COLORS = {
   placeholder: 'text-orange-500',
 } as const;
 
-//* ========================================
-//* 노드 아이콘 상수
-//* ========================================
+// * 노드 아이콘 상수
 
-//* 각 노드 타입별 아이콘 정의 - 더 현대적인 아이콘 사용
+// * 각 노드 타입별 아이콘 정의 - 더 현대적인 아이콘 사용
 export const getNodeIcon = (nodeType: NodeType): React.ReactNode => {
   switch (nodeType) {
     case 'TRIGGER':
@@ -127,11 +116,9 @@ export const getNodeIcon = (nodeType: NodeType): React.ReactNode => {
   }
 };
 
-//* ========================================
-//* 노드 핸들 설정 상수
-//* ========================================
+// * 노드 핸들 설정 상수
 
-//* 각 노드 타입별 연결점(핸들) 설정
+// * 각 노드 타입별 연결점(핸들) 설정
 export const NODE_HANDLE_CONFIGS = {
   TRIGGER: [
     {
@@ -205,11 +192,9 @@ export const NODE_HANDLE_CONFIGS = {
   ],
 } as const;
 
-//* ========================================
-//* 카테고리별 색상 상수
-//* ========================================
+// * 카테고리별 색상 상수
 
-//* 도메인별 색상 정의 (Step 블록 전용)
+// * 도메인별 색상 정의 (Step 블록 전용)
 export const DOMAIN_COLORS = {
   github: {
     bg: '#dbeafe',
@@ -243,7 +228,7 @@ export const DOMAIN_COLORS = {
   },
 } as const;
 
-//* 새로운 도메인용 색상 팔레트 (충돌 방지)
+// * 새로운 도메인용 색상 팔레트 (충돌 방지)
 const COLOR_PALETTE = [
   { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af', hover: '#bfdbfe' }, //* 파랑
   { bg: '#fef3c7', border: '#f59e0b', text: '#92400e', hover: '#fde68a' }, //* 노랑
@@ -257,11 +242,9 @@ const COLOR_PALETTE = [
   { bg: '#fffbeb', border: '#f59e0b', text: '#92400e', hover: '#fef3c7' }, //* 주황
 ] as const;
 
-//* ========================================
-//* 노드 타입별 CSS 클래스 상수
-//* ========================================
+// * 노드 타입별 CSS 클래스 상수
 
-//* 각 노드 타입별 Tailwind CSS 클래스 정의
+// * 각 노드 타입별 Tailwind CSS 클래스 정의
 export const NODE_TYPE_CLASSES: Record<NodeType, string> = {
   TRIGGER: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   JOB: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -269,11 +252,9 @@ export const NODE_TYPE_CLASSES: Record<NodeType, string> = {
   STEPS: 'bg-amber-100 text-amber-800 border-amber-200',
 } as const;
 
-//* ========================================
-//* 유틸리티 함수
-//* ========================================
+// * 유틸리티 함수
 
-//* 해시 기반 색상 생성 함수
+// * 해시 기반 색상 생성 함수
 const generateColorFromHash = (domain: string) => {
   let hash = 0;
   for (let i = 0; i < domain.length; i++) {
@@ -283,27 +264,27 @@ const generateColorFromHash = (domain: string) => {
   return COLOR_PALETTE[index];
 };
 
-//* 도메인별 색상 가져오기 함수
+// * 도메인별 색상 가져오기 함수
 export const getDomainColor = (domain: string) => {
-  //* 미리 정의된 도메인은 고정 색상 사용
+  // * 미리 정의된 도메인은 고정 색상 사용
   if (DOMAIN_COLORS[domain as keyof typeof DOMAIN_COLORS]) {
     return DOMAIN_COLORS[domain as keyof typeof DOMAIN_COLORS];
   }
 
-  //* 새로운 도메인은 해시 기반 색상 할당
+  // * 새로운 도메인은 해시 기반 색상 할당
   return generateColorFromHash(domain);
 };
 
-//* 노드 타입별 색상 가져오기 함수
+// * 노드 타입별 색상 가져오기 함수
 export const getNodeColor = (nodeType: NodeType, domain?: string) => {
   if (nodeType === 'STEP' && domain) {
-    //* Step 노드의 경우 도메인별 색상 적용
+    // * Step 노드의 경우 도메인별 색상 적용
     return getDomainColor(domain);
   }
   return NODE_COLORS[nodeType];
 };
 
-//* 노드 타입별 핸들 설정 가져오기 함수
+// * 노드 타입별 핸들 설정 가져오기 함수
 export const getNodeHandles = (nodeType: NodeType) => {
   return NODE_HANDLE_CONFIGS[nodeType];
 };

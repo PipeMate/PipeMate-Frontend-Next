@@ -9,7 +9,7 @@ import QueryProvider from '@/providers/QueryProvider';
 import ToastProvider from '@/providers/ToastProvider';
 import { RepositoryProvider } from '@/contexts/RepositoryContext';
 
-// Inter 폰트 설정
+// * Inter 폰트 설정
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',

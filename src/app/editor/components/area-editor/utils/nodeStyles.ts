@@ -38,7 +38,7 @@ export const getNodeStyle = (
     overflow: 'visible', //* 내용이 넘쳐도 보이도록 변경
   };
 
-  //* 트리거 노드
+  // * 트리거 노드
   if (nodeType === 'workflowTrigger') {
     const nodeColors = NODE_COLORS.TRIGGER;
     return {
@@ -50,7 +50,7 @@ export const getNodeStyle = (
     };
   }
 
-  //* Job 노드
+  // * Job 노드
   if (nodeType === 'job') {
     const nodeColors = NODE_COLORS.JOB;
     return {
@@ -62,7 +62,7 @@ export const getNodeStyle = (
     };
   }
 
-  //* Step 노드의 경우 도메인별 색상 적용
+  // * Step 노드의 경우 도메인별 색상 적용
   if (nodeType === 'step' && domain) {
     const domainColors = getDomainColor(domain);
     return {
@@ -74,7 +74,7 @@ export const getNodeStyle = (
     };
   }
 
-  //* 기본 Step 노드
+  // * 기본 Step 노드
   const nodeColors = NODE_COLORS.STEP;
   return {
     ...baseStyle,

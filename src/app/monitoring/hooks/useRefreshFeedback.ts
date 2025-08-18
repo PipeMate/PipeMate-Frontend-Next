@@ -43,7 +43,7 @@ export function useRefreshFeedback(): RefreshFeedbackState & RefreshFeedbackActi
         });
       } finally {
         setIsManualRefreshing(false);
-        // 3초 후 피드백 메시지 제거
+        // * 3초 후 피드백 메시지 제거
         setTimeout(() => {
           setRefreshFeedback({ type: null, message: '' });
         }, 3000);
