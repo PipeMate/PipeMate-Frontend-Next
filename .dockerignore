@@ -1,0 +1,9 @@
+# 빌드/캐시 제외
+node_modules
+.next
+.git
+.vscode
+npm-debug.log
+Dockerfile
+docker-compose.yml
+README.md

@@ -31,12 +31,7 @@ export function useGithubSettings() {
   const hasRepository = !!(savedOwner && savedRepo);
   const isSetupComplete = hasToken && hasRepository;
 
-  // * 초기 설정 로드
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  // * 설정 로드 함수
+  // * 설정 로드 함수 (의존성보다 먼저 선언)
   const loadSettings = useCallback(() => {
     // * 토큰 정보 로드
     const storedToken = getCookie(STORAGES.GITHUB_TOKEN);
@@ -50,6 +45,29 @@ export function useGithubSettings() {
     setOwner(repoConfig.owner || '');
     setRepo(repoConfig.repo || '');
   }, []);
+
+  // * 초기 설정 로드
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // * 외부에서 토큰/레포지토리 설정이 변경될 때 동기화
+  useEffect(() => {
+    const handleTokenChanged = () => {
+      loadSettings();
+    };
+    const handleRepositoryChanged = () => {
+      loadSettings();
+    };
+
+    window.addEventListener('token-changed', handleTokenChanged);
+    window.addEventListener('repository-changed', handleRepositoryChanged);
+
+    return () => {
+      window.removeEventListener('token-changed', handleTokenChanged);
+      window.removeEventListener('repository-changed', handleRepositoryChanged);
+    };
+  }, [loadSettings]);
 
   // * 토큰 저장 핸들러
   const handleSaveToken = useCallback(async () => {
@@ -81,7 +99,7 @@ export function useGithubSettings() {
 
       // * 토큰 변경 이벤트 발생
       window.dispatchEvent(new CustomEvent('token-changed'));
-    } catch (error) {
+    } catch {
       setTokenError('토큰 삭제 중 오류가 발생했습니다.');
     }
   }, []);
@@ -102,7 +120,7 @@ export function useGithubSettings() {
 
       // * 레포지토리 변경 이벤트 발생
       window.dispatchEvent(new CustomEvent('repository-changed'));
-    } catch (error) {
+    } catch {
       setRepoError('레포지토리 설정 중 오류가 발생했습니다.');
     }
   }, [owner, repo, setRepository]);
@@ -119,7 +137,7 @@ export function useGithubSettings() {
 
       // * 레포지토리 변경 이벤트 발생
       window.dispatchEvent(new CustomEvent('repository-changed'));
-    } catch (error) {
+    } catch {
       setRepoError('레포지토리 삭제 중 오류가 발생했습니다.');
     }
   }, []);

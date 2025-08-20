@@ -27,6 +27,7 @@ import {
   Home,
   Loader2,
   Play,
+  Plus,
   RefreshCw,
   Search,
   Workflow,
@@ -201,6 +202,14 @@ export default function WorkflowsPage() {
 
     setPageActions(
       <div className="flex items-center gap-2">
+        <Button
+          onClick={() => router.push('/editor')}
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          워크플로우 추가
+        </Button>
         <IconBadge icon={<Activity className="w-4 h-4" />} variant="outline" size="sm">
           {workflows.length} 워크플로우
         </IconBadge>
