@@ -1,7 +1,7 @@
 'use client';
 
-import { WorkflowStatusBadge, JobStatusBadge } from '@/components/ui';
-import { CheckCircle, XCircle, Clock, AlertTriangle, SkipForward } from 'lucide-react';
+import { JobStatusBadge, WorkflowStatusBadge } from '@/components/ui';
+import { AlertTriangle, CheckCircle, Clock, SkipForward, XCircle } from 'lucide-react';
 
 // * 워크플로우 상태 아이콘 반환
 export const getStatusIcon = (status: string, conclusion?: string) => {

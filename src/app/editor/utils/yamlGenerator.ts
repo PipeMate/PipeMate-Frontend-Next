@@ -1,13 +1,12 @@
-//* ========================================
-//* YAML 생성 유틸리티
-//* ========================================
-//* 이 파일은 서버 블록 데이터를 GitHub Actions YAML 형식으로 변환합니다.
-//* 단일 블록의 YAML과 전체 워크플로우 YAML을 생성할 수 있습니다.
+// * YAML 생성 유틸리티
 
-import { ServerBlock } from '../types';
+// * 이 파일은 서버 블록 데이터를 GitHub Actions YAML 형식으로 변환합니다.
+// * 단일 블록의 YAML과 전체 워크플로우 YAML을 생성할 수 있습니다.
+
+import type { ServerBlock } from '../types';
 import { stringifyYaml } from './yamlUtils';
 
-// 내부 유틸: job-id 생성 (공백→하이픈, 소문자, 안전 문자만 유지)
+// * 내부 유틸: job-id 생성 (공백→하이픈, 소문자, 안전 문자만 유지)
 const toJobId = (raw: string) =>
   (raw || 'job')
     .trim()
@@ -15,16 +14,14 @@ const toJobId = (raw: string) =>
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-_]/g, '');
 
-//* ========================================
-//* 기존 데이터 변환
-//* ========================================
+// * 기존 데이터 변환
 
-//* 기존 워크플로우 데이터를 개선된 형태로 변환
-//? 기존 YAML 구조를 새로운 블록 기반 구조로 변환
+// * 기존 워크플로우 데이터를 개선된 형태로 변환
+// ? 기존 YAML 구조를 새로운 블록 기반 구조로 변환
 export const convertLegacyWorkflow = (legacyYaml: any): ServerBlock[] => {
   const blocks: ServerBlock[] = [];
 
-  // Trigger 블록 생성
+  // * Trigger 블록 생성
   if (legacyYaml.on) {
     blocks.push({
       id: `trigger-${Date.now()}`,
@@ -40,11 +37,11 @@ export const convertLegacyWorkflow = (legacyYaml: any): ServerBlock[] => {
     });
   }
 
-  // Jobs 블록들 생성
+  // * Jobs 블록들 생성
   if (legacyYaml.jobs && typeof legacyYaml.jobs === 'object') {
     Object.entries(legacyYaml.jobs).forEach(([jobId, jobConfig]: [string, any]) => {
       if (typeof jobConfig === 'object' && jobConfig !== null) {
-        // Job 블록 생성
+        // * Job 블록 생성
         const jobBlock: ServerBlock = {
           id: `job-${jobId}-${Date.now()}`,
           name: jobConfig.x_name || jobId,
@@ -62,7 +59,7 @@ export const convertLegacyWorkflow = (legacyYaml: any): ServerBlock[] => {
         };
         blocks.push(jobBlock);
 
-        // Steps 블록들 생성
+        // * Steps 블록들 생성
         if (jobConfig.steps && Array.isArray(jobConfig.steps)) {
           jobConfig.steps.forEach((stepConfig: any, stepIndex: number) => {
             if (typeof stepConfig === 'object' && stepConfig !== null) {
@@ -97,26 +94,22 @@ export const convertLegacyWorkflow = (legacyYaml: any): ServerBlock[] => {
   return blocks;
 };
 
-//* ========================================
-//* 단일 블록 YAML 생성
-//* ========================================
+// * 단일 블록 YAML 생성
 
-//* 단일 블록을 YAML로 변환 (config 내용만 사용)
-//? 블록 타입에 따라 적절한 YAML 구조를 생성
+// * 단일 블록을 YAML로 변환 (config 내용만 사용)
+// ? 블록 타입에 따라 적절한 YAML 구조를 생성
 export const generateBlockYaml = (block: ServerBlock): string => {
   if (!block || !block.config || Object.keys(block.config).length === 0) {
     return '# 설정이 없습니다.';
   }
-  // config 객체를 YAML 문자열로 안전하게 직렬화 (자동 들여쓰기)
+  // * config 객체를 YAML 문자열로 안전하게 직렬화 (자동 들여쓰기)
   return stringifyYaml(block.config);
 };
 
-//* ========================================
-//* 전체 워크플로우 YAML 생성
-//* ========================================
+// * 전체 워크플로우 YAML 생성
 
-//* 전체 블록들을 완전한 YAML로 변환
-//! 모든 블록을 올바른 계층 구조로 조합하여 완전한 GitHub Actions YAML 생성
+// * 전체 블록들을 완전한 YAML로 변환
+// ! 모든 블록을 올바른 계층 구조로 조합하여 완전한 GitHub Actions YAML 생성
 export const generateFullYaml = (blocks: ServerBlock[]): string => {
   if (!blocks || blocks.length === 0) {
     return '# 워크플로우가 구성되지 않았습니다.';
@@ -124,7 +117,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
 
   const doc: Record<string, unknown> = {};
 
-  // Trigger
+  // * Trigger
   const triggerBlock = blocks.find((b) => b.type === 'trigger');
   if (triggerBlock) {
     if (triggerBlock.config && typeof triggerBlock.config === 'object') {
@@ -132,7 +125,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
     }
   }
 
-  // Jobs
+  // * Jobs
   const jobBlocks = blocks.filter((b) => b.type === 'job');
   if (jobBlocks.length > 0) {
     const jobs: Record<string, any> = {};
@@ -142,7 +135,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
         ...(jobBlock.config || {}),
       };
 
-      // Steps attached to this job
+      // * Steps attached to this job
       const stepBlocks = blocks.filter(
         (b) => b.type === 'step' && (b['jobName'] as string | undefined) === jobId,
       );
@@ -152,7 +145,7 @@ export const generateFullYaml = (blocks: ServerBlock[]): string => {
           const stepConfig = { ...(stepBlock.config || {}) } as Record<string, unknown>;
           const stepName = (stepConfig.name as string) || stepBlock.name || '';
           const stepObj: Record<string, unknown> = { name: stepName };
-          // Merge remaining config except name
+          // * Merge remaining config except name
           Object.entries(stepConfig).forEach(([k, v]) => {
             if (k === 'name') return;
             (stepObj as any)[k] = v;

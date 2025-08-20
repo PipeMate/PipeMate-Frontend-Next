@@ -1,17 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState, Suspense, useMemo, useRef } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { usePipeline, useUpdatePipeline } from '@/api';
 import { AreaBasedWorkflowEditor } from '@/app/editor/components/AreaBasedWorkflowEditor';
-import { ServerBlock } from '@/app/editor/types';
+import type { ServerBlock } from '@/app/editor/types';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ROUTES } from '@/config/appConstants';
 import { usePageHeader } from '@/components/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Save, RefreshCw, Blocks, Edit, Home } from 'lucide-react';
+import { Blocks, Edit, Home, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSetupGuard } from '@/hooks/useSetupGuard';
 import { FullScreenLoading } from '@/components/ui';
@@ -28,15 +28,15 @@ function WorkflowEditContent() {
   const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const EditIcon = ROUTES.WORKFLOWS.icon;
 
-  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  // * 설정 가드 - 토큰과 레포지토리 모두 필요
   const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
     requireToken: true,
     requireRepository: true,
     redirectTo: '/setup',
     onSetupChange: (tokenExists, repositoryExists) => {
-      // 설정이 변경되면 페이지 상태를 업데이트
+      // * 설정이 변경되면 페이지 상태를 업데이트
       if (!tokenExists || !repositoryExists) {
-        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        // * 설정이 누락된 경우 setup 페이지로 리다이렉트
         window.location.href = '/setup';
       }
     },
@@ -58,16 +58,16 @@ function WorkflowEditContent() {
     if (pipelineData?.data?.originalJson) {
       const originalData = pipelineData.data.originalJson;
 
-      // 기존 데이터가 ServerBlock[] 형태인지 확인
+      // * 기존 데이터가 ServerBlock[] 형태인지 확인
       if (
         Array.isArray(originalData) &&
         originalData.length > 0 &&
         originalData[0].type
       ) {
-        // 이미 ServerBlock[] 형태인 경우
+        // * 이미 ServerBlock[] 형태인 경우
         setBlocks(originalData as unknown as ServerBlock[]);
       } else {
-        // 기존 YAML 형태인 경우 변환
+        // * 기존 YAML 형태인 경우 변환
         console.log('기존 YAML 데이터를 블록 형태로 변환합니다:', originalData);
         const convertedBlocks = convertLegacyWorkflow(originalData);
         console.log('변환된 블록:', convertedBlocks);
@@ -90,7 +90,7 @@ function WorkflowEditContent() {
       return;
     }
 
-    // 파일명에서 .yml 확장자 제거
+    // * 파일명에서 .yml 확장자 제거
     const cleanFileName = file.replace(/\.yml$/, '');
     const finalName = (workflowName || cleanFileName).trim();
 
@@ -102,7 +102,7 @@ function WorkflowEditContent() {
         cleanFileName,
         finalName,
         blocksCount: blocks.length,
-        blocks: blocks,
+        blocks,
       });
 
       await updatePipelineMutation.mutateAsync({
@@ -121,7 +121,7 @@ function WorkflowEditContent() {
     }
   }, [owner, repo, file, workflowName, blocks, updatePipelineMutation, refetch]);
 
-  // 저장 핸들러를 ref로 관리하여 useEffect 의존성 문제 해결
+  // * 저장 핸들러를 ref로 관리하여 useEffect 의존성 문제 해결
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
 
@@ -195,7 +195,7 @@ function WorkflowEditContent() {
     try {
       console.log('저장되는 워크플로우 데이터:', JSON.stringify(newBlocks, null, 2));
 
-      // 생성될 YAML 미리보기
+      // * 생성될 YAML 미리보기
       const generatedYaml = generateFullYaml(newBlocks);
       console.log('생성될 YAML:', generatedYaml);
 
@@ -229,7 +229,7 @@ function WorkflowEditContent() {
     setWorkflowName(name);
   }, []);
 
-  // 설정 확인 중일 때 로딩 표시
+  // * 설정 확인 중일 때 로딩 표시
   if (isChecking || !isSetupValid) {
     return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
   }

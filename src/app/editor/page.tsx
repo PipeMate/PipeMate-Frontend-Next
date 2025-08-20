@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { AreaBasedWorkflowEditor } from './components/AreaBasedWorkflowEditor';
 
-import { ServerBlock } from './types';
+import type { ServerBlock } from './types';
 import { usePageHeader } from '@/components/layout';
 import { ROUTES } from '@/config/appConstants';
-import { Blocks, Save, Home } from 'lucide-react';
+import { Blocks, Home, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useCreatePipeline } from '@/api';
@@ -19,29 +19,25 @@ import { FullScreenLoading } from '@/components/ui';
 
 // * GitHub Actions Flow 페이지 내부 컴포넌트
 function GitHubActionsFlowContent() {
-  //* ========================================
-  //* 상태 관리
-  //* ========================================
+  // * 상태 관리
 
-  //* 워크플로우 블록 목록
+  // * 워크플로우 블록 목록
   const [blocks, setBlocks] = useState<ServerBlock[]>([]);
 
-  //* 현재 선택된 블록 (YAML 미리보기 패널 표시용)
+  // * 현재 선택된 블록 (YAML 미리보기 패널 표시용)
   const [selectedBlock, setSelectedBlock] = useState<ServerBlock | undefined>();
 
-  //* 편집 모드 상태 (YAML 미리보기 패널에서 사용)
+  // * 편집 모드 상태 (YAML 미리보기 패널에서 사용)
   const [isEditing, setIsEditing] = useState(false);
 
-  //* 워크플로우 이름
+  // * 워크플로우 이름
   const [workflowName, setWorkflowName] = useState<string>(
     `workflow-${new Date().toISOString().slice(0, 10)}`,
   );
 
-  //* ========================================
-  //* Hook 호출 (모든 Hook을 조건부 렌더링 전에 호출)
-  //* ========================================
+  // * Hook 호출 (모든 Hook을 조건부 렌더링 전에 호출)
 
-  //* 레이아웃 컨텍스트에서 헤더 slot setter 가져오기
+  // * 레이아웃 컨텍스트에서 헤더 slot setter 가져오기
   const { setPageHeader, setPageActions, clearPageHeader } = usePageHeader();
   const FlowIcon = ROUTES.ACTION_FLOW.icon;
   const { owner, repo, isConfigured } = useRepository();
@@ -51,15 +47,15 @@ function GitHubActionsFlowContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  // * 설정 가드 - 토큰과 레포지토리 모두 필요
   const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
     requireToken: true,
     requireRepository: true,
     redirectTo: '/setup',
     onSetupChange: (tokenExists, repositoryExists) => {
-      // 설정이 변경되면 페이지 상태를 업데이트
+      // * 설정이 변경되면 페이지 상태를 업데이트
       if (!tokenExists || !repositoryExists) {
-        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        // * 설정이 누락된 경우 setup 페이지로 리다이렉트
         window.location.href = '/setup';
       }
     },
@@ -108,9 +104,7 @@ function GitHubActionsFlowContent() {
     createPipeline.isPending,
   ]);
 
-  //* ========================================
-  //* 이벤트 핸들러
-  //* ========================================
+  // * 이벤트 핸들러
 
   // * 워크플로우 저장 핸들러
   const handleSaveWorkflow = useCallback(async () => {
@@ -154,7 +148,7 @@ function GitHubActionsFlowContent() {
   // * YAML 미리보기 패널 표시 여부를 결정
   const handleNodeSelect = useCallback((selectedBlock?: ServerBlock) => {
     setSelectedBlock(selectedBlock);
-    //* 블록 선택이 해제되면 편집 모드도 해제
+    // * 블록 선택이 해제되면 편집 모드도 해제
     if (selectedBlock === undefined) {
       setIsEditing(false);
     }
@@ -182,9 +176,7 @@ function GitHubActionsFlowContent() {
     setWorkflowName(name);
   }, []);
 
-  //* ========================================
-  //* 메모이제이션된 값들
-  //* ========================================
+  // * 메모이제이션된 값들
 
   // * 선택된 블록의 YAML 데이터 (메모이제이션)
   const selectedBlockYaml = useMemo(() => {
@@ -197,7 +189,7 @@ function GitHubActionsFlowContent() {
     }
   }, [selectedBlock]);
 
-  //* Suspense fallback UI (로딩 상태 표시)
+  // * Suspense fallback UI (로딩 상태 표시)
   const SuspenseFallback = useMemo(
     () => (
       <div className="flex-1 h-full flex flex-col items-center justify-center bg-gray-50 p-8 gap-4">
@@ -213,30 +205,24 @@ function GitHubActionsFlowContent() {
     [],
   );
 
-  //* ========================================
-  //* useEffect (조건부 렌더링 전에 호출)
-  //* ========================================
+  // * useEffect (조건부 렌더링 전에 호출)
 
-  // 설정이 필요하면 리다이렉트
+  // * 설정이 필요하면 리다이렉트
   useEffect(() => {
     if (!isChecking && !isSetupValid) {
-      // 설정이 유효하지 않은 경우 setup 페이지로 리다이렉트
+      // * 설정이 유효하지 않은 경우 setup 페이지로 리다이렉트
       window.location.href = '/setup';
     }
   }, [isChecking, isSetupValid]);
 
-  //* ========================================
-  //* 조건부 렌더링
-  //* ========================================
+  // * 조건부 렌더링
 
-  // 설정 확인 중일 때 로딩 표시
+  // * 설정 확인 중일 때 로딩 표시
   if (isChecking || !isSetupValid) {
     return <FullScreenLoading message="설정을 확인하고 있습니다..." />;
   }
 
-  //* ========================================
-  //* 메인 렌더링
-  //* ========================================
+  // * 메인 렌더링
 
   return (
     <ErrorBoundary>
@@ -260,7 +246,7 @@ function GitHubActionsFlowContent() {
 }
 
 // * GitHub Actions Flow 페이지
-// *
+// * *
 // * 블록 기반 워크플로우 에디터를 제공하는 메인 페이지입니다.
 // * 사용자는 드래그 앤 드롭으로 블록을 추가하고, YAML 미리보기를 통해
 // * 생성된 GitHub Actions 워크플로우를 확인할 수 있습니다.

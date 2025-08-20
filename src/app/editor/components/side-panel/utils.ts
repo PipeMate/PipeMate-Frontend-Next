@@ -1,13 +1,13 @@
-import { SecretFormData } from './types';
+import type { SecretFormData } from './types';
 
-// 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
+// * 그룹 추출 함수 - 시크릿 이름에서 그룹명을 추출
 export const extractGroup = (secretName: string): string => {
   if (!secretName) return 'UNKNOWN';
   const parts = secretName.split('_');
   return parts.length > 1 ? parts[0] : 'UNKNOWN';
 };
 
-// 날짜 포맷팅 함수
+// * 날짜 포맷팅 함수
 export const formatDate = (dateString: string) => {
   try {
     const date = new Date(dateString);
@@ -23,7 +23,7 @@ export const formatDate = (dateString: string) => {
   }
 };
 
-// 시크릿 그룹핑 함수
+// * 시크릿 그룹핑 함수
 export const groupSecrets = (secrets: SecretFormData[]) => {
   const groups: { [key: string]: { secret: SecretFormData; index: number }[] } = {};
 
@@ -38,9 +38,16 @@ export const groupSecrets = (secrets: SecretFormData[]) => {
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
 };
 
-// Config 필드 파싱 (재귀적으로 중첩 객체 처리)
-export const parseConfigFields = (config: Record<string, unknown>): any[] => {
+// * Config 필드 파싱 (재귀적으로 중첩 객체 처리)
+export const parseConfigFields = (
+  config: Record<string, unknown> | undefined | null,
+): any[] => {
   const fields: any[] = [];
+
+  // * config가 없거나 빈 객체인 경우 빈 배열 반환
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return fields;
+  }
 
   Object.entries(config).forEach(([key, value]) => {
     let type: 'string' | 'object' | 'array' = 'string';
@@ -48,7 +55,7 @@ export const parseConfigFields = (config: Record<string, unknown>): any[] => {
 
     if (Array.isArray(value)) {
       type = 'array';
-    } else if (value && typeof value === 'object') {
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       type = 'object';
       children = parseConfigFields(value as Record<string, unknown>);
     }
@@ -65,7 +72,7 @@ export const parseConfigFields = (config: Record<string, unknown>): any[] => {
   return fields;
 };
 
-// 타입별 고정 라벨 정의
+// * 타입별 고정 라벨 정의
 export const getFixedLabels = (type: string) => {
   switch (type) {
     case 'workflowTrigger':
@@ -91,5 +98,3 @@ export const getFixedLabels = (type: string) => {
       };
   }
 };
-
-

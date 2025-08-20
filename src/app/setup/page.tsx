@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Github, GitBranch } from 'lucide-react';
+import { GitBranch, Github } from 'lucide-react';
 
 // * 커스텀 훅 import
 import { useGithubSettings } from '@/hooks/useGithubSettings';

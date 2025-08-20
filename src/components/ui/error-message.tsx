@@ -1,17 +1,17 @@
 import React from 'react';
-import { AlertCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ErrorMessageProps {
-  // *  에러 메시지 
+  // * 에러 메시지
   message: string;
-  // *  에러 타입 
+  // * 에러 타입
   variant?: 'error' | 'warning' | 'info';
-  // *  아이콘 표시 여부 
+  // * 아이콘 표시 여부
   showIcon?: boolean;
-  // *  추가 클래스명 
+  // * 추가 클래스명
   className?: string;
-  // *  재시도 함수 
+  // * 재시도 함수
   onRetry?: () => void;
 }
 

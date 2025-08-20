@@ -26,7 +26,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
-    // 에러 로깅 로직
+    // * 에러 로깅 로직
     console.error('Error caught by boundary:', _error, _errorInfo);
   }
 

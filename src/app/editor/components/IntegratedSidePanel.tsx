@@ -1,24 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRepository } from '@/contexts/RepositoryContext';
 import { useSecrets } from '@/api';
 import { toast } from 'react-toastify';
-import { Blocks, Edit, Code } from 'lucide-react';
+import { Blocks, Code, Edit } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AreaNodeData } from './area-editor/types';
-import { ServerBlock } from '../types';
-import { WorkflowNodeData } from '../types';
-import { LibraryTab, EditorTab, YamlTab, SecretCreateDialog } from './side-panel';
+import type { AreaNodeData } from './area-editor/types';
+import type { ServerBlock } from '../types';
+import type { WorkflowNodeData } from '../types';
+import { EditorTab, LibraryTab, SecretCreateDialog, YamlTab } from './side-panel';
 import {
-  detectSecretsInConfig,
   canNodeUseSecrets,
+  detectSecretsInConfig,
   findMissingSecrets,
 } from '../utils/secretsDetector';
 
-//* ========================================
-//* Props 타입 정의
-//* ========================================
+// * Props 타입 정의
 
 interface IntegratedSidePanelProps {
   selectedNode: AreaNodeData | null;
@@ -32,9 +30,7 @@ interface IntegratedSidePanelProps {
   onWorkflowNameChange?: (name: string) => void;
 }
 
-//* ========================================
-//* 통합 사이드 패널 컴포넌트
-//* ========================================
+// * 통합 사이드 패널 컴포넌트
 
 export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
   selectedNode,
@@ -46,34 +42,37 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
 }) => {
   const { owner, repo } = useRepository();
 
-  // Secrets API 훅
+  // * Secrets API 훅
   const { data: secretsData } = useSecrets(owner || '', repo || '');
 
-  // 상태 관리
+  // * 상태 관리
   const [activeTab, setActiveTab] = useState<'library' | 'editor' | 'yaml'>('library');
   const [isEditing, setIsEditing] = useState(false);
   const [editingNode, setEditingNode] = useState<AreaNodeData | null>(null);
   const [yamlViewMode, setYamlViewMode] = useState<'block' | 'full'>('block');
 
-  // 시크릿 관련 상태
+  // * 시크릿 관련 상태
   const [showSecretForm, setShowSecretForm] = useState(false);
   const [secretsToCreate, setSecretsToCreate] = useState<
     { name: string; value: string }[]
   >([]);
 
-  // 노드 선택 시 편집 탭으로 자동 전환 및 편집 모드 시작
+  // * 노드 선택 시 편집 탭으로 자동 전환 및 편집 모드 시작
   useEffect(() => {
     if (selectedNode) {
       setActiveTab('editor');
       setEditingNode(selectedNode);
       setIsEditing(true);
+    } else {
+      setIsEditing(false);
+      setEditingNode(null);
     }
   }, [selectedNode]);
 
-  // 노드 편집 완료 - 시크릿 검사 후 저장
+  // * 노드 편집 완료 - 시크릿 검사 후 저장
   const handleSaveNode = (updatedData: WorkflowNodeData) => {
     if (editingNode && updateNodeData) {
-      // 시크릿 검사
+      // * 시크릿 검사
       if (canNodeUseSecrets(editingNode.type) && updatedData.config) {
         const requiredSecrets = detectSecretsInConfig(updatedData.config);
         const userSecrets: string[] = [];
@@ -91,7 +90,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         const missingSecrets = findMissingSecrets(requiredSecrets, userSecrets);
 
         if (missingSecrets.length > 0) {
-          // 누락된 시크릿이 있으면 시크릿 생성 다이얼로그 표시
+          // * 누락된 시크릿이 있으면 시크릿 생성 다이얼로그 표시
           const newSecrets = missingSecrets.map((name) => ({
             name,
             value: '',
@@ -102,25 +101,34 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
         }
       }
 
-      // 시크릿이 없거나 모든 시크릿이 존재하면 바로 저장
-      updateNodeData(editingNode.id, updatedData);
-      onNodeEdit({
-        ...editingNode,
-        data: updatedData,
-      });
-      toast.success('노드가 저장되었습니다.');
-      setIsEditing(false);
-      setEditingNode(null);
+      // * 시크릿이 없거나 모든 시크릿이 존재하면 바로 저장
+      try {
+        updateNodeData(editingNode.id, updatedData);
+
+        // * 업데이트된 노드 정보로 onNodeEdit 호출
+        const updatedNode = {
+          ...editingNode,
+          data: updatedData,
+        };
+        onNodeEdit(updatedNode);
+
+        toast.success('노드가 저장되었습니다.');
+        setIsEditing(false);
+        setEditingNode(null);
+      } catch (error) {
+        console.error('노드 저장 중 오류:', error);
+        toast.error('노드 저장에 실패했습니다.');
+      }
     }
   };
 
-  // 노드 편집 취소
+  // * 노드 편집 취소
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditingNode(null);
   };
 
-  // 시크릿 관련 핸들러들
+  // * 시크릿 관련 핸들러들
   const handleCreateMissingSecrets = (secretNames: string[]) => {
     if (secretNames.length > 0) {
       const newSecrets = secretNames.map((name) => ({
@@ -139,35 +147,49 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
     setShowSecretForm(false);
     setSecretsToCreate([]);
 
-    // 시크릿 생성 취소 시에도 노드 저장 진행
+    // * 시크릿 생성 취소 시에도 노드 저장 진행
     if (editingNode && updateNodeData) {
-      const updatedData = editingNode.data;
-      updateNodeData(editingNode.id, updatedData);
-      onNodeEdit({
-        ...editingNode,
-        data: updatedData,
-      });
-      toast.success('노드가 저장되었습니다.');
-      setIsEditing(false);
-      setEditingNode(null);
+      try {
+        updateNodeData(editingNode.id, editingNode.data);
+
+        const updatedNode = {
+          ...editingNode,
+          data: editingNode.data,
+        };
+        onNodeEdit(updatedNode);
+
+        toast.success('노드가 저장되었습니다.');
+        setIsEditing(false);
+        setEditingNode(null);
+      } catch (error) {
+        console.error('노드 저장 중 오류:', error);
+        toast.error('노드 저장에 실패했습니다.');
+      }
     }
   };
 
   const handleCreateSecrets = async () => {
-    // 시크릿 생성 후 자동으로 노드 저장 진행
+    // * 시크릿 생성 후 자동으로 노드 저장 진행
     if (editingNode && updateNodeData) {
-      // 시크릿 생성 후 노드 저장
-      const updatedData = editingNode.data;
-      updateNodeData(editingNode.id, updatedData);
-      onNodeEdit({
-        ...editingNode,
-        data: updatedData,
-      });
-      toast.success('노드가 저장되었습니다.');
-      setIsEditing(false);
-      setEditingNode(null);
-      setShowSecretForm(false);
-      setSecretsToCreate([]);
+      try {
+        // * 시크릿 생성 후 노드 저장
+        updateNodeData(editingNode.id, editingNode.data);
+
+        const updatedNode = {
+          ...editingNode,
+          data: editingNode.data,
+        };
+        onNodeEdit(updatedNode);
+
+        toast.success('노드가 저장되었습니다.');
+        setIsEditing(false);
+        setEditingNode(null);
+        setShowSecretForm(false);
+        setSecretsToCreate([]);
+      } catch (error) {
+        console.error('노드 저장 중 오류:', error);
+        toast.error('노드 저장에 실패했습니다.');
+      }
     }
   };
 
@@ -181,7 +203,7 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
           value={activeTab}
           onValueChange={(value) => {
             setActiveTab(value as any);
-            // 편집 탭 클릭 시 선택된 노드가 있으면 바로 편집 모드로 전환
+            // * 편집 탭 클릭 시 선택된 노드가 있으면 바로 편집 모드로 전환
             if (value === 'editor' && selectedNode && !isEditing) {
               setEditingNode(selectedNode);
               setIsEditing(true);
@@ -226,7 +248,10 @@ export const IntegratedSidePanel: React.FC<IntegratedSidePanelProps> = ({
               selectedNode={selectedNode}
               onSave={handleSaveNode}
               onCancel={handleCancelEdit}
-              onDelete={onNodeDelete}
+              onDelete={(nodeId) => {
+                // * 2중 확인 방지: 바로 삭제 실행
+                onNodeDelete(nodeId);
+              }}
               onMissingSecrets={handleCreateMissingSecrets}
             />
           </TabsContent>

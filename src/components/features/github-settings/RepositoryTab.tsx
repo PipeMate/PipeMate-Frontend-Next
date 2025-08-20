@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, GitBranch } from 'lucide-react';
+import { GitBranch, Save, Trash2 } from 'lucide-react';
 
 // * 레포지토리 데이터 인터페이스
 interface RepositoryData {

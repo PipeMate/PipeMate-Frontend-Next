@@ -14,7 +14,7 @@ export * from './layout';
 export * from './features';
 
 // * 홈 컴포넌트들 (현재 사용하지 않음)
-// export * from './home';
+// * export * from './home';
 
 // * 타입 export
 export type {

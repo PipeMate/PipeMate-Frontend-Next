@@ -1,6 +1,6 @@
-import { AreaNodeData } from '../area-editor/types';
-import { WorkflowNodeData } from '../../types';
-import { NodeType } from '../area-editor/types';
+import type { AreaNodeData } from '../area-editor/types';
+import type { WorkflowNodeData } from '../../types';
+import type { NodeType } from '../area-editor/types';
 
 export interface ConfigField {
   key: string;
@@ -64,7 +64,7 @@ export interface NodeEditorProps {
   nodeType: NodeType;
   onSave: (updatedData: WorkflowNodeData) => void;
   onCancel: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onMissingSecrets?: (missing: string[]) => void;
 }
 
@@ -84,5 +84,3 @@ export interface IntegratedSidePanelProps {
   initialWorkflowName?: string;
   onWorkflowNameChange?: (name: string) => void;
 }
-
-

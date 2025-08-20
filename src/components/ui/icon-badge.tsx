@@ -3,17 +3,17 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface IconBadgeProps {
-  // *  아이콘
+  // * 아이콘
   icon: React.ReactNode;
-  // *  배지 텍스트
+  // * 배지 텍스트
   children: React.ReactNode;
-  // *  배지 변형
+  // * 배지 변형
   variant?: 'default' | 'secondary' | 'destructive' | 'outline';
-  // *  배지 크기
+  // * 배지 크기
   size?: 'sm' | 'md';
-  // *  추가 클래스명
+  // * 추가 클래스명
   className?: string;
-  // *  아이콘 클래스명
+  // * 아이콘 클래스명
   iconClassName?: string;
 }
 

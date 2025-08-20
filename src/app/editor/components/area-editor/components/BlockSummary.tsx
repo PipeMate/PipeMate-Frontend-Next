@@ -1,24 +1,24 @@
 import React from 'react';
-import { AreaNodeData } from '../types';
-import { GitBranch, Workflow, Code, Settings, CheckCircle, Clock } from 'lucide-react';
+import type { AreaNodeData } from '../types';
+import { CheckCircle, Clock, Code, GitBranch, Settings, Workflow } from 'lucide-react';
 import {
-  parseTriggerConfig,
   parseJobConfig,
   parseStepConfig,
   parseStepConfigDetail,
+  parseTriggerConfig,
 } from '../utils/configParser';
 
 interface BlockSummaryProps {
   node: AreaNodeData;
 }
 
-//* 긴 문자열을 적절히 줄이는 함수
+// * 긴 문자열을 적절히 줄이는 함수
 const truncateString = (str: string, maxLength: number = 100): string => {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength) + '...';
 };
 
-//* config 객체를 계층적으로 렌더링하는 함수
+// * config 객체를 계층적으로 렌더링하는 함수
 const renderConfigObject = (
   obj: Record<string, unknown>,
   level: number = 0,
@@ -42,8 +42,12 @@ const renderConfigObject = (
             {typeof value === 'string'
               ? truncateString(value)
               : typeof value === 'object' && value !== null
-              ? renderConfigObject(value as Record<string, unknown>, level + 1, maxDepth)
-              : JSON.stringify(value)}
+                ? renderConfigObject(
+                    value as Record<string, unknown>,
+                    level + 1,
+                    maxDepth,
+                  )
+                : JSON.stringify(value)}
           </span>
         </div>
       ))}
@@ -101,7 +105,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {Object.keys(node.data.config).length > 0 && (
             <div className="space-y-1">
               {Object.entries(node.data.config).map(([key, value]) => {
-                // 이미 표시된 정보들은 제외
+                // * 이미 표시된 정보들은 제외
                 if (['name', 'on'].includes(key)) return null;
 
                 return (
@@ -166,7 +170,7 @@ export const BlockSummary: React.FC<BlockSummaryProps> = ({ node }) => {
           {Object.keys(node.data.config).length > 0 && (
             <div className="space-y-1">
               {Object.entries(node.data.config).map(([key, value]) => {
-                // 이미 표시된 정보들은 제외
+                // * 이미 표시된 정보들은 제외
                 if (['jobs', 'runs-on', 'needs', 'timeout', 'if'].includes(key))
                   return null;
 

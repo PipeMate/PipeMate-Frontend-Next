@@ -1,17 +1,14 @@
-//* ========================================
-//* GitHub Actions Flow 타입 정의
-//* ========================================
-//* 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
-//* 모든 타입 정의를 포함합니다.
+// * GitHub Actions Flow 타입 정의
 
-import { CustomNode as Node, CustomEdge as Edge } from './customTypes';
+// * 이 파일은 커스텀 타입 기반 GitHub Actions 워크플로우 에디터의
+// * 모든 타입 정의를 포함합니다.
 
-//* ========================================
-//* 서버 통신 타입
-//* ========================================
+import type { CustomEdge as Edge, CustomNode as Node } from './customTypes';
 
-//* 서버와 통신하는 블록 데이터 형식
-//? 서버에서 받고 보내는 데이터의 표준 형식
+// * 서버 통신 타입
+
+// * 서버와 통신하는 블록 데이터 형식
+// ? 서버에서 받고 보내는 데이터의 표준 형식
 export interface ServerBlock {
   id?: string; // 고유 식별자(최초 생성 시 uuid 등으로 할당, 이후 불변)
   name: string; //* 블록 이름
@@ -23,8 +20,8 @@ export interface ServerBlock {
   config: Record<string, unknown>; //* 블록 설정 데이터
 }
 
-//* 서버와 통신하는 파이프라인 데이터 형식
-//? 완성된 워크플로우를 파이프라인으로 제공
+// * 서버와 통신하는 파이프라인 데이터 형식
+// ? 완성된 워크플로우를 파이프라인으로 제공
 export interface Pipeline {
   id: string; //* 파이프라인 고유 식별자
   name: string; //* 파이프라인 이름
@@ -37,11 +34,9 @@ export interface Pipeline {
   isActive: boolean; //* 활성화 상태
 }
 
-//* ========================================
-//* 워크플로우 구성 요소 타입
-//* ========================================
+// * 워크플로우 구성 요소 타입
 
-//* 워크플로우 트리거 설정
+// * 워크플로우 트리거 설정
 export interface WorkflowTrigger {
   type: 'push' | 'pull_request' | 'schedule' | 'workflow_dispatch';
   branches?: string[];
@@ -49,7 +44,7 @@ export interface WorkflowTrigger {
   cron?: string;
 }
 
-//* Job 설정
+// * Job 설정
 export interface JobConfig {
   name: string;
   runsOn: string;
@@ -59,7 +54,7 @@ export interface JobConfig {
   steps?: StepConfig[];
 }
 
-//* Step 설정
+// * Step 설정
 export interface StepConfig {
   name: string;
   uses?: string;
@@ -70,11 +65,9 @@ export interface StepConfig {
   continueOnError?: boolean;
 }
 
-//* ========================================
-//* React Flow 노드 데이터 타입
-//* ========================================
+// * React Flow 노드 데이터 타입
 
-//* React Flow 노드의 데이터 구조
+// * React Flow 노드의 데이터 구조
 export interface WorkflowNodeData {
   label: string; //* 노드 표시 이름
   type: 'workflow_trigger' | 'job' | 'step'; //* 노드 타입
@@ -87,11 +80,9 @@ export interface WorkflowNodeData {
   jobIndex?: number; //* Job 순서 추적 (여러 Job 지원)
 }
 
-//* ========================================
-//* 컴포넌트 Props 타입
-//* ========================================
+// * 컴포넌트 Props 타입
 
-//* React Flow 워크스페이스 Props
+// * React Flow 워크스페이스 Props
 export interface ReactFlowWorkspaceProps {
   onWorkflowChange: (blocks: ServerBlock[]) => void; //* 워크플로우 변경 콜백
   initialBlocks?: ServerBlock[]; //* 초기 블록 데이터
@@ -100,11 +91,9 @@ export interface ReactFlowWorkspaceProps {
   isEditing?: boolean; //* 편집 모드 상태
 }
 
-//* ========================================
-//* 유틸리티 타입
-//* ========================================
+// * 유틸리티 타입
 
-//* 노드 템플릿 타입
+// * 노드 템플릿 타입
 export interface NodeTemplate {
   id: string;
   type: 'workflow_trigger' | 'job' | 'step';
@@ -113,10 +102,10 @@ export interface NodeTemplate {
   parentNode?: string;
 }
 
-//* 워크플로우 생성 함수 타입
+// * 워크플로우 생성 함수 타입
 export type WorkflowGenerator = (nodes: Node[], edges: Edge[]) => ServerBlock[];
 
-//* 노드 생성 함수 타입
+// * 노드 생성 함수 타입
 export type NodeCreator = (
   type: string,
   position: { x: number; y: number },

@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { ServerBlock } from '../types';
+import React, { useCallback, useEffect, useState } from 'react';
+import type { ServerBlock } from '../types';
 
-import { toast, ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Settings, RotateCcw } from 'lucide-react';
+import { RotateCcw, Settings } from 'lucide-react';
 
-//* 새로운 구조의 컴포넌트들과 훅들 import
-import {
+// * 새로운 구조의 컴포넌트들과 훅들 import
+import type {
   AreaBasedWorkflowEditorProps,
   AreaNodeData,
   AreaNodes,
@@ -20,10 +20,9 @@ import { IntegratedSidePanel } from './IntegratedSidePanel';
 import { DropArea } from './area-editor/components/DropArea';
 import { EmptyState } from './area-editor/components/EmptyState';
 
-// * ========================================
 // * 영역 기반 워크플로우 에디터 컴포넌트
-// * ========================================
-// *
+
+// * *
 // * 드래그 앤 드롭으로 블록을 추가하고, 영역별로 워크플로우를 구성하는 에디터입니다.
 // * Trigger, Job, Step 영역으로 나누어져 있으며, 각 영역에 맞는 블록을 배치할 수 있습니다.
 export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = ({
@@ -37,9 +36,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   initialWorkflowName,
   onWorkflowNameChange,
 }) => {
-  //* ========================================
-  //* 커스텀 훅 사용
-  //* ========================================
+  // * 커스텀 훅 사용
 
   const {
     areaNodes,
@@ -62,19 +59,17 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     getDragOverStyle,
   } = useDropHandlers(areaNodes, addNode);
 
-  //* ========================================
-  //* 상태 관리
-  //* ========================================
+  // * 상태 관리
 
-  //* 선택된 노드 상태
+  // * 선택된 노드 상태
   const [selectedNode, setSelectedNode] = useState<AreaNodeData | null>(null);
 
-  //* 워크플로우 이름 상태
+  // * 워크플로우 이름 상태
   const [workflowName, setWorkflowName] = useState<string>(
     initialWorkflowName || `workflow-${new Date().toISOString().slice(0, 10)}`,
   );
 
-  //* 워크플로우 이름 변경 핸들러
+  // * 워크플로우 이름 변경 핸들러
   const handleWorkflowNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newName = e.target.value;
@@ -86,18 +81,16 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     [onWorkflowNameChange],
   );
 
-  //* initialWorkflowName이 변경되면 워크플로우 이름 업데이트
+  // * initialWorkflowName이 변경되면 워크플로우 이름 업데이트
   useEffect(() => {
     if (initialWorkflowName) {
       setWorkflowName(initialWorkflowName);
     }
   }, [initialWorkflowName]);
 
-  //* 글로벌 레이아웃 사이드바 주입 제거: 라이브러리는 에디터 우측 컬럼에 직접 렌더링
+  // * 글로벌 레이아웃 사이드바 주입 제거: 라이브러리는 에디터 우측 컬럼에 직접 렌더링
 
-  //* ========================================
-  //* 이벤트 핸들러
-  //* ========================================
+  // * 이벤트 핸들러
 
   // * 노드 선택 핸들러
   // * 사용자가 노드를 클릭했을 때 호출
@@ -125,7 +118,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   // * 워크스페이스 클릭 핸들러
   // * 외부 클릭 시 선택된 노드 해제
   const handleWorkspaceClick = useCallback((e: React.MouseEvent) => {
-    // 노드나 컨트롤 패널이 아닌 영역 클릭 시
+    // * 노드나 컨트롤 패널이 아닌 영역 클릭 시
     if (
       !(e.target as Element).closest('.area-node') &&
       !(e.target as Element).closest('[data-radix-popover-content]')
@@ -137,18 +130,28 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
   // * 노드 삭제
   const handleNodeDelete = useCallback(
     (nodeId: string) => {
-      if (!confirm('선택한 노드를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')) return;
+      // * NodeEditor에서 이미 확인했으므로 바로 삭제
       deleteNode(nodeId);
       if (selectedNode?.id === nodeId) {
         setSelectedNode(null);
       }
+      toast.success('노드가 삭제되었습니다.');
     },
     [deleteNode, selectedNode],
   );
 
-  //* ========================================
-  //* 유틸리티 함수
-  //* ========================================
+  // * 노드 편집 완료 핸들러
+  const handleNodeEdit = useCallback(
+    (updatedNode: AreaNodeData) => {
+      // * 선택된 노드가 업데이트된 노드와 같다면 선택된 노드 상태도 업데이트
+      if (selectedNode?.id === updatedNode.id) {
+        setSelectedNode(updatedNode);
+      }
+    },
+    [selectedNode],
+  );
+
+  // * 유틸리티 함수
 
   // * Job별 Step 그룹핑
   const getStepsByJob = useCallback(() => {
@@ -161,25 +164,20 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     return jobSteps;
   }, [areaNodes]);
 
-  //* ========================================
-  //* 기본 블록 생성 함수들
-  //* ========================================
+  // * 기본 블록 생성 함수들
 
   // * 기본 Trigger 블록 생성
   const createDefaultTrigger = useCallback(() => {
     const triggerData = {
-      label: 'push',
+      label: '워크플로우 기본 설정',
       type: 'workflow_trigger' as const,
-      description: 'GitHub 저장소에 push가 발생했을 때 실행',
+      description: 'GitHub Actions 워크플로우 트리거',
       config: {
         on: {
-          push: {
-            branches: ['main', 'develop'],
-          },
-          pull_request: {
-            branches: ['main'],
-          },
+          workflow_dispatch: {},
+          push: { branches: ['main'] },
         },
+        name: 'CI',
       },
     };
     addNode('workflowTrigger', triggerData);
@@ -195,10 +193,9 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
       label: 'build-and-test',
       type: 'job' as const,
       description: '코드를 빌드하고 테스트를 실행',
-      jobName: jobName,
+      jobName,
       config: {
-        runs_on: 'ubuntu-latest',
-        steps: [],
+        'runs-on': 'ubuntu-latest',
       },
     };
     addNode('job', jobData);
@@ -215,7 +212,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
         label: 'checkout',
         type: 'step' as const,
         description: '저장소 코드를 체크아웃',
-        jobName: jobName,
+        jobName,
         config: {
           name: 'Checkout code',
           uses: 'actions/checkout@v4',
@@ -272,7 +269,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
 
   // * 노드 드래그 시작 핸들러
   const handleNodeDragStart = useCallback((_node: AreaNodeData) => {
-    // 드래그 시작 시 필요한 처리
+    // * 드래그 시작 시 필요한 처리
   }, []);
 
   // * 노드 드래그 핸들러
@@ -281,25 +278,21 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  //* ========================================
-  //* 사이드 이펙트
-  //* ========================================
+  // * 사이드 이펙트
 
-  //* useEffect 제거 - 무한 루프 방지
-  //* 대신 노드 변경 시에만 onWorkflowChange 호출
+  // * useEffect 제거 - 무한 루프 방지
+  // * 대신 노드 변경 시에만 onWorkflowChange 호출
 
-  //* 편집 모드 상태를 노드에 반영하는 useEffect 제거
-  //* 편집 모드 상태는 UI 상태이므로 노드 데이터에 반영할 필요 없음
-  //* 이 useEffect가 무한 루프의 원인이었음
+  // * 편집 모드 상태를 노드에 반영하는 useEffect 제거
+  // * 편집 모드 상태는 UI 상태이므로 노드 데이터에 반영할 필요 없음
+  // * 이 useEffect가 무한 루프의 원인이었음
 
-  //* ========================================
-  //* 렌더링
-  //* ========================================
+  // * 렌더링
 
   return (
     <div
       className="flex-1 flex min-w-0 min-h-0 overflow-hidden w-full h-full relative"
-      // onDragEnd={handleDragEnd} // This line was removed as per the edit hint
+      // * onDragEnd={handleDragEnd} // This line was removed as per the edit hint
     >
       {/* 메인 에디터 영역 */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-gray-50 relative">
@@ -413,7 +406,7 @@ export const AreaBasedWorkflowEditor: React.FC<AreaBasedWorkflowEditorProps> = (
           selectedNode={selectedNode}
           blocks={getServerBlocksInOrder()}
           isOpen={true}
-          onNodeEdit={() => {}}
+          onNodeEdit={handleNodeEdit}
           onNodeDelete={handleNodeDelete}
           updateNodeData={updateNodeData}
           mode={mode}

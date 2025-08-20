@@ -11,16 +11,16 @@ import { Badge } from '@/components/ui/badge';
 import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
 import {
-  Monitor,
-  Clock,
-  RefreshCw,
-  AlertTriangle,
-  Loader2,
-  Home,
   Activity,
+  AlertTriangle,
   CheckCircle,
-  XCircle,
+  Clock,
+  Home,
+  Loader2,
+  Monitor,
   Play,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 
@@ -30,7 +30,7 @@ import type { WorkflowRun } from './types';
 
 // * 커스텀 훅 및 컴포넌트 import
 import { useMonitoringState, useRefreshFeedback, useWorkflowData } from './hooks';
-import { RefreshFeedback, WorkflowRunsList, RunDetail } from './components';
+import { RefreshFeedback, RunDetail, WorkflowRunsList } from './components';
 import { useSetupGuard } from '@/hooks/useSetupGuard';
 import { FullScreenLoading } from '@/components/ui';
 import { usePathname } from 'next/navigation';
@@ -42,15 +42,15 @@ export default function MonitoringPage() {
   const MonitoringIcon = ROUTES.MONITORING.icon;
   const pathname = usePathname();
 
-  // 설정 가드 - 토큰과 레포지토리 모두 필요
+  // * 설정 가드 - 토큰과 레포지토리 모두 필요
   const { isChecking, isSetupValid, hasToken, hasRepository } = useSetupGuard({
     requireToken: true,
     requireRepository: true,
     redirectTo: '/setup',
     onSetupChange: (tokenExists, repositoryExists) => {
-      // 설정이 변경되면 페이지 상태를 업데이트
+      // * 설정이 변경되면 페이지 상태를 업데이트
       if (!tokenExists || !repositoryExists) {
-        // 설정이 누락된 경우 setup 페이지로 리다이렉트
+        // * 설정이 누락된 경우 setup 페이지로 리다이렉트
         window.location.href = '/setup';
       }
     },
@@ -184,10 +184,10 @@ export default function MonitoringPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, [selectedRunId, setIsDetailOpen]);
 
-  // 설정이 필요하면 리다이렉트
+  // * 설정이 필요하면 리다이렉트
   useEffect(() => {
     if (!isChecking && isSetupValid) {
-      // 설정이 유효하면 현재 페이지를 유지
+      // * 설정이 유효하면 현재 페이지를 유지
     }
   }, [isChecking, isSetupValid]);
 
@@ -203,7 +203,7 @@ export default function MonitoringPage() {
     }
   }, [workflowRuns, selectedRunId, selectedRun, selectedRunSnapshot, setSelectedRun]);
 
-  // 설정이 유효하지 않으면 로딩 표시
+  // * 설정이 유효하지 않으면 로딩 표시
   if (isChecking || !isSetupValid) {
     return <FullScreenLoading />;
   }

@@ -1,19 +1,16 @@
-//* ========================================
-//* 커스텀 타입 정의 (React Flow 대체)
-//* ========================================
-//* 이 파일은 @xyflow/react의 타입들을 대체하는 커스텀 타입들을 정의합니다.
+// * 커스텀 타입 정의 (React Flow 대체)
 
-//* ========================================
-//* 기본 타입 정의
-//* ========================================
+// * 이 파일은 @xyflow/react의 타입들을 대체하는 커스텀 타입들을 정의합니다.
 
-//* 노드 위치 타입
+// * 기본 타입 정의
+
+// * 노드 위치 타입
 export interface Position {
   x: number;
   y: number;
 }
 
-//* 노드 타입
+// * 노드 타입
 export interface CustomNode {
   id: string;
   type: string;
@@ -24,7 +21,7 @@ export interface CustomNode {
   draggable?: boolean;
 }
 
-//* 엣지 타입
+// * 엣지 타입
 export interface CustomEdge {
   id: string;
   source: string;
@@ -40,28 +37,24 @@ export interface CustomEdge {
   };
 }
 
-//* ========================================
-//* 상수 정의
-//* ========================================
+// * 상수 정의
 
-//* 마커 타입 상수
+// * 마커 타입 상수
 export const MarkerType = {
   ArrowClosed: 'arrowclosed',
   Arrow: 'arrow',
 } as const;
 
-//* 엣지 타입 상수
+// * 엣지 타입 상수
 export const EdgeType = {
   Straight: 'straight',
   SmoothStep: 'smoothstep',
   Step: 'step',
 } as const;
 
-//* ========================================
-//* 타입 가드 함수
-//* ========================================
+// * 타입 가드 함수
 
-//* CustomNode 타입 가드
+// * CustomNode 타입 가드
 export const isCustomNode = (obj: unknown): obj is CustomNode => {
   return (
     typeof obj === 'object' &&
@@ -73,7 +66,7 @@ export const isCustomNode = (obj: unknown): obj is CustomNode => {
   );
 };
 
-//* CustomEdge 타입 가드
+// * CustomEdge 타입 가드
 export const isCustomEdge = (obj: unknown): obj is CustomEdge => {
   return (
     typeof obj === 'object' &&
@@ -84,11 +77,9 @@ export const isCustomEdge = (obj: unknown): obj is CustomEdge => {
   );
 };
 
-//* ========================================
-//* 유틸리티 함수
-//* ========================================
+// * 유틸리티 함수
 
-//* 노드 생성 헬퍼 함수
+// * 노드 생성 헬퍼 함수
 export const createCustomNode = (
   id: string,
   type: string,
@@ -104,7 +95,7 @@ export const createCustomNode = (
   draggable: true,
 });
 
-//* 엣지 생성 헬퍼 함수
+// * 엣지 생성 헬퍼 함수
 export const createCustomEdge = (
   id: string,
   source: string,

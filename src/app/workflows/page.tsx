@@ -1,36 +1,37 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { usePageHeader } from '@/components/layout';
 import { useRepository } from '@/contexts/RepositoryContext';
-import { useWorkflows, useWorkflowRuns, useDispatchWorkflow, WorkflowItem } from '@/api';
+import type { WorkflowItem } from '@/api';
+import { useDispatchWorkflow, useWorkflowRuns, useWorkflows } from '@/api';
 import {
-  LoadingSpinner,
   EmptyState,
-  WorkflowStatusBadge,
   IconBadge,
+  LoadingSpinner,
+  WorkflowStatusBadge,
 } from '@/components/ui';
 import {
-  Workflow,
-  GitBranch,
-  Play,
-  Search,
-  RefreshCw,
-  Edit,
-  X,
-  Home,
+  Activity,
+  ArrowUpDown,
   Calendar,
   Clock,
-  Zap,
-  Activity,
+  Edit,
   ExternalLink,
   FileText,
-  ArrowUpDown,
+  GitBranch,
+  Home,
   Loader2,
+  Play,
+  RefreshCw,
+  Search,
+  Workflow,
+  X,
+  Zap,
 } from 'lucide-react';
 import { ROUTES } from '@/config/appConstants';
 import { useRouter } from 'next/navigation';
@@ -39,7 +40,7 @@ import { FullScreenLoading } from '@/components/ui';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// 워크플로우 타입별 색상 스키마
+// * 워크플로우 타입별 색상 스키마
 const getWorkflowColorScheme = (workflow: WorkflowItem) => {
   const name = workflow.name.toLowerCase();
 
@@ -79,7 +80,7 @@ const getWorkflowColorScheme = (workflow: WorkflowItem) => {
     };
   }
 
-  // 기본 스타일
+  // * 기본 스타일
   return {
     bg: 'bg-gray-50',
     border: 'border-gray-200',
@@ -88,7 +89,7 @@ const getWorkflowColorScheme = (workflow: WorkflowItem) => {
   };
 };
 
-// 날짜 포맷팅 유틸리티
+// * 날짜 포맷팅 유틸리티
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -99,7 +100,7 @@ const formatDate = (dateString: string) => {
   } else if (diffInHours < 24) {
     return `${diffInHours}시간 전`;
   } else if (diffInHours < 168) {
-    // 7일
+    // * 7일
     return `${Math.floor(diffInHours / 24)}일 전`;
   } else {
     return date.toLocaleDateString('ko-KR', {
@@ -119,7 +120,7 @@ export default function WorkflowsPage() {
   const [executingWorkflows, setExecutingWorkflows] = useState<Set<number>>(new Set());
   const router = useRouter();
 
-  // 설정 가드
+  // * 설정 가드
   const { isChecking, isSetupValid } = useSetupGuard({
     requireToken: true,
     requireRepository: true,
@@ -131,7 +132,7 @@ export default function WorkflowsPage() {
     },
   });
 
-  // API 훅 사용
+  // * API 훅 사용
   const {
     data: workflowsData,
     isLoading: workflowsLoading,
@@ -151,7 +152,7 @@ export default function WorkflowsPage() {
     ? runsResponse!.workflow_runs
     : [];
 
-  // 필터링 및 정렬된 워크플로우
+  // * 필터링 및 정렬된 워크플로우
   const filteredAndSortedWorkflows = useMemo(() => {
     const filtered = workflows.filter((workflow) => {
       const matchesSearch =
@@ -163,7 +164,7 @@ export default function WorkflowsPage() {
       return matchesSearch;
     });
 
-    // 정렬
+    // * 정렬
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'updated':
@@ -180,7 +181,7 @@ export default function WorkflowsPage() {
     return filtered;
   }, [workflows, searchTerm, sortBy]);
 
-  // 페이지 헤더 설정
+  // * 페이지 헤더 설정
   useEffect(() => {
     setPageHeader({
       title: ROUTES.WORKFLOWS.label,
@@ -229,7 +230,7 @@ export default function WorkflowsPage() {
     refetchWorkflows,
   ]);
 
-  // 워크플로우 실행 핸들러
+  // * 워크플로우 실행 핸들러
   const handleDispatchWorkflow = async (workflow: WorkflowItem) => {
     if (!owner || !repo) {
       toast.error('저장소 정보가 없습니다.');
@@ -241,7 +242,7 @@ export default function WorkflowsPage() {
       return;
     }
 
-    // 실행 중 상태 추가
+    // * 실행 중 상태 추가
     setExecutingWorkflows((prev) => new Set(prev).add(workflow.id));
 
     try {
@@ -266,7 +267,7 @@ export default function WorkflowsPage() {
 
       toast.success(`워크플로우 "${workflow.name}" 실행이 시작되었습니다!`);
 
-      // 워크플로우 목록 새로고침
+      // * 워크플로우 목록 새로고침
       setTimeout(() => {
         refetchWorkflows();
       }, 1000);
@@ -287,7 +288,7 @@ export default function WorkflowsPage() {
 
       toast.error(errorMessage);
     } finally {
-      // 실행 중 상태 제거
+      // * 실행 중 상태 제거
       setExecutingWorkflows((prev) => {
         const newSet = new Set(prev);
         newSet.delete(workflow.id);
@@ -296,18 +297,18 @@ export default function WorkflowsPage() {
     }
   };
 
-  // 편집 페이지로 이동
+  // * 편집 페이지로 이동
   const navigateToEdit = (workflow: WorkflowItem) => {
     const fileName = workflow.fileName || workflow.path.split('/').pop() || workflow.name;
     router.push(`/workflows/edit?file=${encodeURIComponent(fileName)}`);
   };
 
-  // 워크플로우별 실행 기록 가져오기
+  // * 워크플로우별 실행 기록 가져오기
   const getWorkflowRuns = (workflowId: number) => {
     return workflowRuns.filter((run: any) => run.workflow_id === workflowId);
   };
 
-  // 설정이 유효하지 않으면 로딩 표시
+  // * 설정이 유효하지 않으면 로딩 표시
   if (isChecking || !isSetupValid) {
     return <FullScreenLoading />;
   }

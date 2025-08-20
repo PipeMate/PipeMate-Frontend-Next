@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { Copy, Download, Code } from 'lucide-react';
+import { Code, Copy, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AreaNodeData } from '../../area-editor/types';
-import { ServerBlock } from '../../../types';
+import type { AreaNodeData } from '../../area-editor/types';
+import type { ServerBlock } from '../../../types';
 import { generateBlockYaml, generateFullYaml } from '../../../utils/yamlGenerator';
 import { toast } from 'react-toastify';
 
@@ -21,7 +21,7 @@ const YamlTab: React.FC<YamlTabProps> = ({
   yamlViewMode,
   onYamlViewModeChange,
 }) => {
-  // YAML 생성 함수들
+  // * YAML 생성 함수들
   const getBlockYaml = useCallback(() => {
     if (selectedNode) {
       const serverBlock: ServerBlock = {
@@ -46,7 +46,7 @@ const YamlTab: React.FC<YamlTabProps> = ({
     return '# 워크플로우를 구성하여 YAML을 확인하세요';
   }, [blocks]);
 
-  // 현재 YAML 내용 가져오기
+  // * 현재 YAML 내용 가져오기
   const getCurrentYaml = useCallback(() => {
     if (yamlViewMode === 'block') {
       return getBlockYaml();
@@ -55,7 +55,7 @@ const YamlTab: React.FC<YamlTabProps> = ({
     }
   }, [yamlViewMode, getBlockYaml, getFullYaml]);
 
-  // YAML 복사
+  // * YAML 복사
   const copyYaml = useCallback(() => {
     const yaml = getCurrentYaml();
     navigator.clipboard.writeText(yaml).then(() => {

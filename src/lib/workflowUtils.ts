@@ -2,7 +2,7 @@ import { workflowAPI } from '@/api';
 import { getCookie } from '@/lib/cookieUtils';
 import { STORAGES } from '@/config/appConstants';
 import type { ApiResult } from './types';
-import { logger, extractErrorInfo } from './utils';
+import { extractErrorInfo, logger } from './utils';
 import { AxiosError } from 'axios';
 
 // * GitHub 토큰 검증 유틸리티
@@ -31,7 +31,7 @@ export const workflowUtils = {
     try {
       logger.info('Workflow 목록 조회 시작', { owner, repo });
 
-      // GitHub 토큰 검증
+      // * GitHub 토큰 검증
       const tokenValidation = validateGitHubToken();
       if (!tokenValidation.isValid) {
         const error = new Error(
@@ -48,7 +48,7 @@ export const workflowUtils = {
       const errorInfo = extractErrorInfo(error);
       logger.error('Workflow 목록 조회 실패', error, errorInfo);
 
-      // Axios 에러 상세 정보 로깅
+      // * Axios 에러 상세 정보 로깅
       if (error instanceof AxiosError) {
         logger.error('Axios 에러 상세 정보', {
           message: error.message,

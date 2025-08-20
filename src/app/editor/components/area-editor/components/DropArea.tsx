@@ -1,5 +1,5 @@
 import React from 'react';
-import { AreaNodeData, AreaNodes } from '../types';
+import type { AreaNodeData, AreaNodes } from '../types';
 import { getWorkspaceAreaColor } from '../../../constants/nodeConstants';
 import { AreaNode } from '../../AreaNode';
 import { Button } from '@/components/ui/button';
@@ -110,10 +110,10 @@ export const DropArea: React.FC<DropAreaProps> = ({
       {/* 노드 컨테이너 */}
       <div className="p-3">
         {nodes.length === 0 ? (
-          //* 빈 상태 렌더링
+          // * 빈 상태 렌더링
           renderEmptyState(areaKey, title, isDragOver)
         ) : (
-          //* 노드들 렌더링
+          // * 노드들 렌더링
           <div
             className={
               areaKey === 'job'
@@ -150,7 +150,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
                       onDragLeave={(e) => onJobDragLeave(e, node.id)}
                     >
                       {!stepsByJob[node.id] || stepsByJob[node.id].length === 0 ? (
-                        //* Step 영역이 비어있을 때
+                        // * Step 영역이 비어있을 때
                         renderEmptyState(
                           'step',
                           'Step',
@@ -159,7 +159,7 @@ export const DropArea: React.FC<DropAreaProps> = ({
                           node.id,
                         )
                       ) : (
-                        //* Step들이 있을 때
+                        // * Step들이 있을 때
                         <div className="p-2 space-y-2">
                           {stepsByJob[node.id].map((stepNode, stepIndex) => (
                             <div key={stepNode.id} className="relative">

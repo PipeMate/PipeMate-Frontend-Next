@@ -3,42 +3,42 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, X } from 'lucide-react';
-import { getStatusIcon, getStatusBadge } from './Status';
+import { getStatusBadge, getStatusIcon } from './Status';
 import RunOverviewChips from './RunOverviewChips';
 import JobsList from './JobsList';
 import LogViewer from './LogViewer';
 import { calculateRunStatistics, calculateSuccessRate, isMobile } from '../utils';
-import type { WorkflowRun, ActiveTab } from '../types';
+import type { ActiveTab, WorkflowRun } from '../types';
 
 interface RunDetailProps {
   selectedRun: WorkflowRun | null;
   activeTab: ActiveTab;
   compact?: boolean;
 
-  // 데이터
+  // * 데이터
   runJobsData: unknown;
   runLogsData: unknown;
 
-  // 상태
+  // * 상태
   jobsLoading: boolean;
   logsLoading: boolean;
 
-  // 핸들러
+  // * 핸들러
   onActiveTabChange: (tab: ActiveTab) => void;
   onClose: () => void;
 }
 
-// 워크플로우 이름을 표시용으로 포맷팅
+// * 워크플로우 이름을 표시용으로 포맷팅
 const formatWorkflowName = (name: string, path: string) => {
-  // name이 ".github/workflows/xxx.yml" 형태인 경우 파일명만 추출
+  // * name이 ".github/workflows/xxx.yml" 형태인 경우 파일명만 추출
   if (name.startsWith('.github/workflows/')) {
     return name.split('/').pop()?.replace('.yml', '') || name;
   }
-  // name이 "Deploy Monitor" 같은 형태인 경우 그대로 사용
+  // * name이 "Deploy Monitor" 같은 형태인 경우 그대로 사용
   return name;
 };
 
-// 브랜치명 안전하게 가져오기
+// * 브랜치명 안전하게 가져오기
 const getBranchName = (run: WorkflowRun) => {
   return run.head_branch || 'N/A';
 };

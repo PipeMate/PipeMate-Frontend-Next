@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { AreaNodeData, NodeType } from '../types';
-import { ServerBlock } from '../../../types';
+import { useCallback, useState } from 'react';
+import type { AreaNodeData, NodeType } from '../types';
+import type { ServerBlock } from '../../../types';
 
 interface UseDragDropReturn {
   draggedNode: AreaNodeData | null;

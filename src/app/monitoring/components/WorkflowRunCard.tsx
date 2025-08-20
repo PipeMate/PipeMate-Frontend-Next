@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getStatusIcon, getStatusBadge } from './Status';
+import { getStatusBadge, getStatusIcon } from './Status';
 import { formatDuration, formatRelativeTime } from '../utils';
 import type { WorkflowRun } from '../types';
 
@@ -11,17 +11,17 @@ interface WorkflowRunCardProps {
   onSelect: (run: WorkflowRun) => void;
 }
 
-// 워크플로우 이름을 표시용으로 포맷팅
+// * 워크플로우 이름을 표시용으로 포맷팅
 const formatWorkflowName = (name: string, path: string) => {
-  // name이 ".github/workflows/xxx.yml" 형태인 경우 파일명만 추출
+  // * name이 ".github/workflows/xxx.yml" 형태인 경우 파일명만 추출
   if (name.startsWith('.github/workflows/')) {
     return name.split('/').pop()?.replace('.yml', '') || name;
   }
-  // name이 "Deploy Monitor" 같은 형태인 경우 그대로 사용
+  // * name이 "Deploy Monitor" 같은 형태인 경우 그대로 사용
   return name;
 };
 
-// 브랜치명 안전하게 가져오기
+// * 브랜치명 안전하게 가져오기
 const getBranchName = (run: WorkflowRun) => {
   return run.head_branch || 'N/A';
 };

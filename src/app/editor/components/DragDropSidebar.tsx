@@ -1,16 +1,16 @@
-//* 드래그 앤 드롭 사이드바 컴포넌트
-//* 블록 라이브러리와 파이프라인 라이브러리 역할 - 사용자가 워크스페이스에 추가할 수 있는 블록들과 파이프라인들을 제공
+// * 드래그 앤 드롭 사이드바 컴포넌트
+// * 블록 라이브러리와 파이프라인 라이브러리 역할 - 사용자가 워크스페이스에 추가할 수 있는 블록들과 파이프라인들을 제공
 'use client';
 
-import { useCallback, useState, useEffect, useMemo } from 'react';
-import { ServerBlock, Pipeline } from '../types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Pipeline, ServerBlock } from '../types';
 import {
-  Lightbulb,
-  Filter,
   Blocks,
+  Eye,
+  Filter,
   GitBranch,
   Info,
-  Eye,
+  Lightbulb,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -22,24 +22,24 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import YamlViewer from '@/components/ui/YamlViewer';
 import { generateBlockYaml } from '../utils/yamlGenerator';
 
-//* 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
+// * 탭 타입 정의 - 트리거, Job, Step 세 가지 카테고리
 type TabType = 'trigger' | 'job' | 'step';
 
-//* 파이프라인 탭 타입 정의
+// * 파이프라인 탭 타입 정의
 type PipelineTabType = 'cicd' | 'ci' | 'cd' | 'test' | 'deploy';
 
-//* 필터 타입 정의
+// * 필터 타입 정의
 type FilterType = 'all' | string;
 
-//* 라이브러리 모드 타입 정의
+// * 라이브러리 모드 타입 정의
 type LibraryMode = 'blocks' | 'pipelines';
 
-//* 프리셋 블록 데이터 타입
+// * 프리셋 블록 데이터 타입
 interface PresetBlock extends ServerBlock {
   id: string;
 }
 
-//* 프리셋 파이프라인 데이터 타입
+// * 프리셋 파이프라인 데이터 타입
 interface PresetPipeline extends Pipeline {
   id: string;
 }
@@ -49,63 +49,63 @@ interface DragDropSidebarProps {
   onRequestCloseNodePanel?: () => void;
 }
 
-//* 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
+// * 드래그 앤 드롭 사이드바 컴포넌트 - 블록 라이브러리와 파이프라인 라이브러리
 export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   nodePanelOpen = false,
   onRequestCloseNodePanel,
 }) => {
   const [libraryMode, setLibraryMode] = useState<LibraryMode>('blocks');
-  //* 현재 활성화된 탭 상태 관리
+  // * 현재 활성화된 탭 상태 관리
   const [activeTab, setActiveTab] = useState<TabType>('trigger');
 
-  //* Step 탭 필터 상태 관리
+  // * Step 탭 필터 상태 관리
   const [selectedDomain, setSelectedDomain] = useState<FilterType>('all');
   const [selectedTask, setSelectedTask] = useState<FilterType>('all');
 
-  //* 프리셋 블록 데이터 상태 관리
+  // * 프리셋 블록 데이터 상태 관리
   const [presetBlocks, setPresetBlocks] = useState<Record<string, PresetBlock[]>>({});
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(true);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailBlock, setDetailBlock] = useState<ServerBlock | null>(null);
   const [libraryExpanded, setLibraryExpanded] = useState(false);
-  // 시트 오버레이 포인터 이벤트 복원용 ref
+  // * 시트 오버레이 포인터 이벤트 복원용 ref
   const overlayPointerPrev = React.useRef<string | null>(null);
-  // 블록 검색(타입별)
+  // * 블록 검색(타입별)
   const [blockSearchByType, setBlockSearchByType] = useState<Record<TabType, string>>({
     trigger: '',
     job: '',
     step: '',
   });
-  // 파이프라인 검색
+  // * 파이프라인 검색
   const [pipelineSearch, setPipelineSearch] = useState('');
 
-  //* 프리셋 파이프라인 데이터 상태 관리
+  // * 프리셋 파이프라인 데이터 상태 관리
   const [presetPipelines, setPresetPipelines] = useState<
     Record<string, PresetPipeline[]>
   >({});
   const [isLoadingPipelines, setIsLoadingPipelines] = useState(true);
 
-  // 노드 패널이 열려있으면 상세 패널 닫기 (상호 배타)
+  // * 노드 패널이 열려있으면 상세 패널 닫기 (상호 배타)
   useEffect(() => {
     if (nodePanelOpen && (detailOpen || detailBlock)) {
       setDetailOpen(false);
       setDetailBlock(null);
     }
-    // 노드 패널이 열리면 확장 시트도 닫기 (상호 배타)
+    // * 노드 패널이 열리면 확장 시트도 닫기 (상호 배타)
     if (nodePanelOpen && libraryExpanded) {
       setLibraryExpanded(false);
     }
   }, [nodePanelOpen]);
-  // 라이브러리 모드 변경 시 블록 탭 초기화
+  // * 라이브러리 모드 변경 시 블록 탭 초기화
   useEffect(() => {
     if (libraryMode === 'blocks') {
       setActiveTab('trigger');
     }
   }, [libraryMode]);
 
-  //* 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
+  // * 드래그 시작 핸들러 - 블록을 워크스페이스로 드래그할 때 호출
   const onDragStart = useCallback((event: React.DragEvent, block: ServerBlock) => {
-    // 확장 시트의 오버레이가 드래그를 막지 않도록 임시로 pointer-events 비활성화
+    // * 확장 시트의 오버레이가 드래그를 막지 않도록 임시로 pointer-events 비활성화
     const overlay = document.querySelector(
       '[data-slot="sheet-overlay"]',
     ) as HTMLElement | null;
@@ -125,12 +125,12 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
       window.addEventListener('dragend', handleRestore);
       window.addEventListener('drop', handleRestore);
     }
-    //* 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
+    // * 드래그 데이터 설정 - React Flow가 인식할 수 있는 형식
     event.dataTransfer.setData('application/reactflow', JSON.stringify(block));
     event.dataTransfer.effectAllowed = 'move';
   }, []);
 
-  //* 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
+  // * 파이프라인 드래그 시작 핸들러 - 파이프라인을 워크스페이스로 드래그할 때 호출
   const onPipelineDragStart = useCallback(
     (event: React.DragEvent, pipeline: Pipeline) => {
       const overlay = document.querySelector(
@@ -152,12 +152,12 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
         window.addEventListener('dragend', handleRestore);
         window.addEventListener('drop', handleRestore);
       }
-      //* 파이프라인의 모든 블록들을 드래그 데이터로 설정
+      // * 파이프라인의 모든 블록들을 드래그 데이터로 설정
       event.dataTransfer.setData(
         'application/reactflow',
         JSON.stringify({
           type: 'pipeline',
-          pipeline: pipeline,
+          pipeline,
           blocks: pipeline.blocks,
         }),
       );
@@ -166,11 +166,11 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     [],
   );
 
-  // 프리셋 블록/파이프라인 실제 API 연동
+  // * 프리셋 블록/파이프라인 실제 API 연동
   const { data: presetBlocksData, isLoading: blocksLoading } = usePresetBlocks();
   const { data: presetPipelinesData, isLoading: pipelinesLoading } = usePresetPipelines();
 
-  // API 결과를 기존 상태 구조로 매핑 (탭별 그룹화)
+  // * API 결과를 기존 상태 구조로 매핑 (탭별 그룹화)
   useEffect(() => {
     setIsLoadingBlocks(blocksLoading);
     if (presetBlocksData) {
@@ -186,7 +186,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
   useEffect(() => {
     setIsLoadingPipelines(pipelinesLoading);
     if (presetPipelinesData) {
-      // PipelineResponse[] → 탭별 그룹 (Pipeline 타입 필요)
+      // * PipelineResponse[] → 탭별 그룹 (Pipeline 타입 필요)
       const grouped: Record<string, any[]> = {
         cicd: [],
         ci: [],
@@ -195,10 +195,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
         deploy: [],
       };
       for (const p of presetPipelinesData) {
-        // 백엔드 PipelineResponse.originalJson에 blocks 정보가 들어 있음
+        // * 백엔드 PipelineResponse.originalJson에 blocks 정보가 들어 있음
         const blocks = (p.originalJson || []) as any[];
         const inferType = ((): string => {
-          // 간단 추론: block/task/domain 기반으로 타입 결정 불가 시 cicd로 폴백
+          // * 간단 추론: block/task/domain 기반으로 타입 결정 불가 시 cicd로 폴백
           return 'cicd';
         })();
         grouped[inferType].push({
@@ -215,7 +215,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     }
   }, [presetPipelinesData, pipelinesLoading]);
 
-  //* 탭 변경 시 필터 초기화
+  // * 탭 변경 시 필터 초기화
   useEffect(() => {
     if (activeTab !== 'step') {
       setSelectedDomain('all');
@@ -223,9 +223,9 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     }
   }, [activeTab]);
 
-  // 라이브러리 모드 제거로 인한 초기화 불필요
+  // * 라이브러리 모드 제거로 인한 초기화 불필요
 
-  //* 도메인과 태스크를 동적으로 추출하는 함수
+  // * 도메인과 태스크를 동적으로 추출하는 함수
   const { domains, tasks } = useMemo(() => {
     if (activeTab !== 'step') {
       return { domains: [], tasks: [] };
@@ -233,12 +233,12 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
 
     const stepBlocks = presetBlocks.step || [];
 
-    //* 모든 도메인 추출 (중복 제거)
+    // * 모든 도메인 추출 (중복 제거)
     const allDomains = Array.from(
       new Set(stepBlocks.map((block) => block.domain).filter(Boolean)),
     ).sort();
 
-    //* 선택된 도메인의 모든 태스크 추출 (중복 제거)
+    // * 선택된 도메인의 모든 태스크 추출 (중복 제거)
     const allTasks =
       selectedDomain === 'all'
         ? Array.from(
@@ -256,7 +256,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     return { domains: allDomains, tasks: allTasks };
   }, [activeTab, presetBlocks.step, selectedDomain]);
 
-  //* 필터링된 블록 목록 생성
+  // * 필터링된 블록 목록 생성
   const filteredBlocks = useMemo(() => {
     const currentBlocks = presetBlocks[activeTab] || [];
     const q = (blockSearchByType[activeTab] || '').toLowerCase();
@@ -273,12 +273,12 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     }
 
     return searched.filter((block) => {
-      //* 도메인 필터링
+      // * 도메인 필터링
       if (selectedDomain !== 'all' && block.domain !== selectedDomain) {
         return false;
       }
 
-      //* 태스크 필터링
+      // * 태스크 필터링
       if (selectedTask !== 'all') {
         const blockTasks = block.task || [];
         if (!blockTasks.includes(selectedTask)) {
@@ -290,8 +290,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     });
   }, [activeTab, presetBlocks, selectedDomain, selectedTask, blockSearchByType]);
 
-  //* 필터링된 파이프라인 목록 생성
-  // 모든 파이프라인을 하나의 리스트로 취급하고 검색어로만 필터링
+  // * 필터링된 파이프라인 목록 생성
+  // * 모든 파이프라인을 하나의 리스트로 취급하고 검색어로만 필터링
   const allPipelines = useMemo(
     () => Object.values(presetPipelines).flat(),
     [presetPipelines],
@@ -306,7 +306,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     );
   }, [allPipelines, pipelineSearch]);
 
-  //* 블록 타입별 아이콘 - 각 블록 타입을 아이콘으로 구분
+  // * 블록 타입별 아이콘 - 각 블록 타입을 아이콘으로 구분
   const getBlockIcon = (type: string) => {
     switch (type) {
       case 'trigger':
@@ -320,7 +320,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     }
   };
 
-  //* 파이프라인 타입별 아이콘
+  // * 파이프라인 타입별 아이콘
   const getPipelineIcon = (type: string) => {
     switch (type) {
       case 'cicd':
@@ -338,14 +338,14 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     }
   };
 
-  //* 블록 탭 정보 - 탭별 라벨과 아이콘 정의
+  // * 블록 탭 정보 - 탭별 라벨과 아이콘 정의
   const blockTabs: { type: TabType; label: string; icon: React.ReactNode }[] = [
     { type: 'trigger', label: 'Trigger', icon: getNodeIcon('TRIGGER') },
     { type: 'job', label: 'Job', icon: getNodeIcon('JOB') },
     { type: 'step', label: 'Step', icon: getNodeIcon('STEP') },
   ];
 
-  //* 파이프라인 탭 정보 - 탭별 라벨과 아이콘 정의
+  // * 파이프라인 탭 정보 - 탭별 라벨과 아이콘 정의
   const pipelineTabs: {
     type: PipelineTabType;
     label: string;
@@ -358,7 +358,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
     { type: 'deploy', label: 'Deploy', icon: getPipelineIcon('deploy') },
   ];
 
-  //* 파이프라인 타입별 색상
+  // * 파이프라인 타입별 색상
   const getPipelineColors = (type: string) => {
     switch (type) {
       case 'cicd':
@@ -467,10 +467,10 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                       ? tab.type === 'trigger'
                         ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
                         : tab.type === 'job'
-                        ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
-                        : tab.type === 'step'
-                        ? 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
-                        : 'bg-white text-gray-600 shadow-sm border-b-2 border-gray-600'
+                          ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                          : tab.type === 'step'
+                            ? 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                            : 'bg-white text-gray-600 shadow-sm border-b-2 border-gray-600'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }
                 `}
@@ -555,7 +555,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
           <div className="flex-1 p-3 overflow-y-auto w-full flex flex-col justify-between bg-gray-50">
             <div className="flex flex-col gap-3 w-full">
               {isLoadingBlocks ? (
-                //* 로딩 상태 표시
+                // * 로딩 상태 표시
                 <div className="flex items-center justify-center py-6">
                   <div className="text-gray-500 text-xs">
                     프리셋 블록을 불러오는 중...
@@ -563,7 +563,7 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                 </div>
               ) : (
                 filteredBlocks.map((block, index) => {
-                  //* 블록 타입에 따라 직접 색상 적용
+                  // * 블록 타입에 따라 직접 색상 적용
                   const colors = (() => {
                     if (block.type === 'trigger') {
                       return NODE_COLORS.TRIGGER;
@@ -832,8 +832,8 @@ export const DragDropSidebar: React.FC<DragDropSidebarProps> = ({
                             ? tab.type === 'trigger'
                               ? 'bg-white text-emerald-500 shadow-sm border-b-2 border-emerald-500'
                               : tab.type === 'job'
-                              ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
-                              : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
+                                ? 'bg-white text-blue-500 shadow-sm border-b-2 border-blue-500'
+                                : 'bg-white text-amber-500 shadow-sm border-b-2 border-amber-500'
                             : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                         }`}
                       >

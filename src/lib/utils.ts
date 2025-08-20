@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { FileInfo, ErrorInfo, LogLevelType } from './types';
+import type { ErrorInfo, FileInfo, LogLevelType } from './types';
 
 // * 로깅 유틸리티
 const LOG_LEVELS: Record<LogLevelType, number> = {

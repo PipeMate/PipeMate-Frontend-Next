@@ -3,9 +3,7 @@
 
 import type { JobDetail, RunStatistics } from './types';
 
-// ============================================================================
 // * 시간 관련 유틸리티
-// ============================================================================
 
 // * 지속 시간 포맷팅 (예: "2m 30s", "45s")
 export function formatDuration(start?: string, end?: string): string {
@@ -53,9 +51,7 @@ export function formatRelativeTime(dateString: string): string {
   return formatDateTime(dateString);
 }
 
-// ============================================================================
 // * 통계 계산 유틸리티
-// ============================================================================
 
 // * Job 목록에서 실행 통계 계산
 export function calculateRunStatistics(jobs: JobDetail[]): RunStatistics {
@@ -92,9 +88,7 @@ export function calculateSuccessRate(statistics: RunStatistics): number {
   return Math.round((statistics.successSteps / statistics.totalSteps) * 100);
 }
 
-// ============================================================================
 // * 텍스트 처리 유틸리티
-// ============================================================================
 
 // * 텍스트를 클립보드에 복사
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -130,7 +124,7 @@ export function extractLogSnippet(
   const lines = logText.split(/\r?\n/);
   const matches: number[] = [];
 
-  // 키워드가 포함된 라인 찾기
+  // * 키워드가 포함된 라인 찾기
   lines.forEach((line, index) => {
     if (line.toLowerCase().includes(keyword.toLowerCase())) {
       matches.push(index);
@@ -139,7 +133,7 @@ export function extractLogSnippet(
 
   if (matches.length === 0) return '';
 
-  // 첫 번째 매치 주변 컨텍스트 추출
+  // * 첫 번째 매치 주변 컨텍스트 추출
   const firstMatch = matches[0];
   const start = Math.max(0, firstMatch - contextLines);
   const end = Math.min(lines.length, firstMatch + contextLines);
@@ -147,9 +141,7 @@ export function extractLogSnippet(
   return lines.slice(start, end).join('\n');
 }
 
-// ============================================================================
 // * 반응형 유틸리티
-// ============================================================================
 
 // * 디바이스 타입 감지
 export function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {

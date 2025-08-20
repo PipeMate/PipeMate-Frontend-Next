@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Search, Clipboard, ExternalLink, Download } from 'lucide-react';
+import { Clipboard, Download, ExternalLink, Search } from 'lucide-react';
 import { copyToClipboard, downloadTextFile } from '../utils';
 
 // * 로그 세그먼트 타입
@@ -128,12 +128,12 @@ function renderSegment(segment: LogSegment, index: number, lineKind?: string) {
     const color = strongLine
       ? 'text-current'
       : /error|fail/.test(text)
-      ? 'text-red-400'
-      : /warn/.test(text)
-      ? 'text-amber-300'
-      : /success|completed|ok/.test(text)
-      ? 'text-green-400'
-      : 'text-slate-200';
+        ? 'text-red-400'
+        : /warn/.test(text)
+          ? 'text-amber-300'
+          : /success|completed|ok/.test(text)
+            ? 'text-green-400'
+            : 'text-slate-200';
     const weight = /error|warn|success|completed|ok|fail/.test(text)
       ? 'font-bold'
       : 'font-semibold';
@@ -151,12 +151,12 @@ function renderSegment(segment: LogSegment, index: number, lineKind?: string) {
     const color = strongLine
       ? 'text-current'
       : /error|fail/.test(text)
-      ? 'text-red-300'
-      : /warn/.test(text)
-      ? 'text-amber-300'
-      : /success|completed|ok/.test(text)
-      ? 'text-green-300'
-      : 'text-slate-200';
+        ? 'text-red-300'
+        : /warn/.test(text)
+          ? 'text-amber-300'
+          : /success|completed|ok/.test(text)
+            ? 'text-green-300'
+            : 'text-slate-200';
     const bg = strongLine ? 'bg-white/10' : 'bg-slate-700/30';
 
     return (
@@ -174,10 +174,10 @@ function renderSegment(segment: LogSegment, index: number, lineKind?: string) {
     const color = strongLine
       ? 'text-current'
       : segment.level === 'error'
-      ? 'text-red-300'
-      : segment.level === 'warning'
-      ? 'text-amber-300'
-      : 'text-blue-300';
+        ? 'text-red-300'
+        : segment.level === 'warning'
+          ? 'text-amber-300'
+          : 'text-blue-300';
 
     return (
       <span key={index} className={`${color} text-[10px] font-semibold`}>

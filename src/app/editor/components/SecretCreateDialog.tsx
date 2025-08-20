@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useSecretManager } from '../hooks/useSecretManager';
-import { AlertCircle, CheckCircle, Eye, EyeOff, Shield, Save } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Save, Shield } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface SecretCreateDialogProps {
@@ -62,7 +62,7 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [secrets]);
 
-  // 누락된 시크릿을 기반으로 초기 폼 설정
+  // * 누락된 시크릿을 기반으로 초기 폼 설정
   useEffect(() => {
     if (isOpen && missingSecrets.length > 0) {
       const initialSecrets = missingSecrets.map((name) => ({
@@ -71,19 +71,19 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
       }));
       setSecrets(initialSecrets);
     } else if (isOpen && secrets.length === 0) {
-      // 새 시크릿 추가
+      // * 새 시크릿 추가
       setSecrets([{ name: '', value: '' }]);
     }
   }, [isOpen, missingSecrets, secrets.length]);
 
-  // 시크릿 업데이트
+  // * 시크릿 업데이트
   const updateSecret = (index: number, field: keyof SecretForm, value: string) => {
     const newSecrets = [...secrets];
     newSecrets[index] = { ...newSecrets[index], [field]: value };
     setSecrets(newSecrets);
   };
 
-  // 시크릿 가시성 토글
+  // * 시크릿 가시성 토글
   const toggleVisibility = (index: number) => {
     setShowValues((prev) => ({
       ...prev,
@@ -91,7 +91,7 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
     }));
   };
 
-  // 시크릿 생성
+  // * 시크릿 생성
   const handleCreate = async () => {
     const validSecrets = secrets.filter((s) => s.name.trim() && s.value.trim());
 
@@ -103,7 +103,7 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
     setIsCreating(true);
 
     try {
-      // 모든 시크릿 생성
+      // * 모든 시크릿 생성
       await Promise.all(
         validSecrets.map((secret) =>
           createSecret(secret.name.trim(), secret.value.trim()),
@@ -114,20 +114,20 @@ export const SecretCreateDialog: React.FC<SecretCreateDialogProps> = ({
       onSecretsCreated?.();
       handleClose();
     } catch {
-      // 에러는 useSecretManager에서 처리됨
+      // * 에러는 useSecretManager에서 처리됨
     } finally {
       setIsCreating(false);
     }
   };
 
-  // 다이얼로그 닫기
+  // * 다이얼로그 닫기
   const handleClose = () => {
     setSecrets([]);
     setShowValues({});
     onClose();
   };
 
-  // 유효성 검사
+  // * 유효성 검사
   const isValid = secrets.some((s) => s.name.trim() && s.value.trim());
 
   return (

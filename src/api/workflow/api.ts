@@ -2,7 +2,7 @@
 // * - 목록/상세/실행/취소/로그/잡 조회 등 GitHub 워크플로우 관련 기능 제공
 import githubClient from '../githubClient';
 import { API_ENDPOINTS } from '@/config';
-import { WorkflowItem, GithubJobDetailResponse } from './types';
+import type { GithubJobDetailResponse, WorkflowItem } from './types';
 
 export const workflowAPI = {
   // * Workflow 목록 조회

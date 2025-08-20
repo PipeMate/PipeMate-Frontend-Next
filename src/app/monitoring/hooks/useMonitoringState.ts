@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { WorkflowRun, ActiveTab } from '../types';
+import type { ActiveTab, WorkflowRun } from '../types';
 
 export interface MonitoringState {
   selectedRun: WorkflowRun | null;
@@ -36,7 +36,7 @@ export function useMonitoringState(): MonitoringState & MonitoringActions {
   const [isInitialMount, setIsInitialMount] = useState(true);
 
   return {
-    // State
+    // * State
     selectedRun,
     selectedRunId,
     selectedRunSnapshot,
@@ -45,7 +45,7 @@ export function useMonitoringState(): MonitoringState & MonitoringActions {
     autoRefresh,
     currentPage,
     isInitialMount,
-    // Actions
+    // * Actions
     setSelectedRun,
     setSelectedRunId,
     setSelectedRunSnapshot,

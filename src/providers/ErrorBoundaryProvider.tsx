@@ -4,7 +4,8 @@
 // * - 전역 에러 처리 및 복구
 // * - 타입 안전성 보장
 // * - 사용자 친화적인 에러 메시지
-import React, { Component, ErrorInfo } from 'react';
+import type { ErrorInfo } from 'react';
+import React, { Component } from 'react';
 import type { ProviderProps } from './types';
 
 // * 에러 상태 인터페이스
@@ -63,11 +64,11 @@ class ErrorBoundary extends Component<ProviderProps, ErrorState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // 에러 로깅 (개발 환경에서만 상세 정보 출력)
+    // * 에러 로깅 (개발 환경에서만 상세 정보 출력)
     if (process.env.NODE_ENV === 'development') {
       console.error('Error Boundary caught an error:', error, errorInfo);
     } else {
-      // 프로덕션 환경에서는 에러 추적 서비스로 전송
+      // * 프로덕션 환경에서는 에러 추적 서비스로 전송
       console.error('Application error:', error.message);
     }
 

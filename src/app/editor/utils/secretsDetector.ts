@@ -48,7 +48,7 @@ export const detectSecretsInConfig = (config: unknown): string[] => {
 
 // * NodeType이 secrets를 사용할 수 있는지 확인
 export const canNodeUseSecrets = (nodeType: string): boolean => {
-  // step과 job 타입의 노드에서 secrets를 사용할 수 있음
+  // * step과 job 타입의 노드에서 secrets를 사용할 수 있음
   return nodeType === 'step' || nodeType === 'job';
 };
 

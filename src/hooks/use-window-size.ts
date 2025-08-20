@@ -20,12 +20,12 @@ export function useWindowSize(): WindowSize {
   const [windowSize, setWindowSize] = React.useState<WindowSize>(getInitialWindowSize);
   const [isHydrated, setIsHydrated] = React.useState(false);
 
-  // 하이드레이션 완료 감지
+  // * 하이드레이션 완료 감지
   React.useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  // 윈도우 크기 변경 감지 (디바운싱 적용)
+  // * 윈도우 크기 변경 감지 (디바운싱 적용)
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -41,10 +41,10 @@ export function useWindowSize(): WindowSize {
       }, 100); // 100ms 디바운싱
     };
 
-    // 초기 크기 설정
+    // * 초기 크기 설정
     handleResize();
 
-    // 리사이즈 이벤트 리스너 등록
+    // * 리사이즈 이벤트 리스너 등록
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -53,7 +53,7 @@ export function useWindowSize(): WindowSize {
     };
   }, []);
 
-  // SSR 중에는 기본값 반환
+  // * SSR 중에는 기본값 반환
   if (!isHydrated) {
     return { width: 0, height: 0 };
   }

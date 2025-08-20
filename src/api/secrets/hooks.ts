@@ -1,7 +1,7 @@
 // * Secrets 관련 React Query 훅
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { secretsAPI } from './api';
-import { GithubSecretRequest } from './types';
+import type { GithubSecretRequest } from './types';
 
 // * Secrets 목록 조회 (도메인별 그룹화됨)
 export const useSecrets = (owner: string, repo: string) => {

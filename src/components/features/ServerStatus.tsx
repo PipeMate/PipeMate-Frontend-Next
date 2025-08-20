@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LoadingSpinner, ErrorMessage, IconBadge } from '@/components/ui';
+import { ErrorMessage, IconBadge, LoadingSpinner } from '@/components/ui';
 import {
-  Server,
   Activity,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
+  CheckCircle,
+  Clock,
+  Server,
+  XCircle,
 } from 'lucide-react';
 
 interface ServerInfo {
@@ -38,8 +38,8 @@ export default function ServerStatus() {
 
     try {
       // * 실제로는 API 호출
-      // const response = await fetch('/api/server-status');
-      // const data = await response.json();
+      // * const response = await fetch('/api/server-status');
+      // * const data = await response.json();
 
       // * 목 데이터
       await new Promise((resolve) => setTimeout(resolve, 1000));

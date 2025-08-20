@@ -14,18 +14,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   AlertCircle,
-  Key,
-  Trash2,
+  AlertOctagon,
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
-  Lock,
   Folder,
-  AlertTriangle,
+  Key,
+  Lock,
   Plus,
-  AlertOctagon,
+  Trash2,
 } from 'lucide-react';
 import { SecretForm } from './SecretForm';
-import { GroupedGithubSecretListResponse } from '@/api/secrets/types';
+import type { GroupedGithubSecretListResponse } from '@/api/secrets/types';
 import { toast } from 'react-toastify';
 
 // * 시크릿 폼 데이터 인터페이스

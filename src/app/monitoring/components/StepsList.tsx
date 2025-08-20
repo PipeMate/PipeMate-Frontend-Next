@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle, XCircle, Clock, SkipForward, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, SkipForward, XCircle } from 'lucide-react';
 import type { JobStep } from '../types';
 import { formatDuration } from '../utils';
 
@@ -82,8 +82,7 @@ export default function StepsList({ steps, compact = false }: StepsListProps) {
                     {' - '}
                     {new Date(step.completedAt).toLocaleTimeString()}
                     {' ('}
-                    {formatDuration(step.startedAt, step.completedAt)}
-                    {')'}
+                    {formatDuration(step.startedAt, step.completedAt)})
                   </>
                 )}
               </div>

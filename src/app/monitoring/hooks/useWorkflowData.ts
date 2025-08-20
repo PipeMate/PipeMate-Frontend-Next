@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import {
-  useWorkflowRuns,
+  useWorkflowRunDetail,
   useWorkflowRunJobs,
   useWorkflowRunLogs,
-  useWorkflowRunDetail,
+  useWorkflowRuns,
 } from '@/api';
 import type { WorkflowRun } from '../types';
 
@@ -33,7 +33,7 @@ export interface UseWorkflowDataParams {
   currentPage: number;
 }
 
-// 실제 API 응답 타입 (snake_case)
+// * 실제 API 응답 타입 (snake_case)
 interface WorkflowRunsApiResponse {
   total_count: number;
   workflow_runs: WorkflowRun[];
@@ -47,7 +47,7 @@ export function useWorkflowData({
   selectedRunId,
   currentPage,
 }: UseWorkflowDataParams): WorkflowDataState {
-  // API 훅 사용
+  // * API 훅 사용
   const {
     data: workflowRunsData,
     isLoading: runsLoading,
@@ -72,7 +72,7 @@ export function useWorkflowData({
   );
   const { data: _runDetailData } = useWorkflowRunDetail(owner || '', repo || '', runId);
 
-  // 데이터 파싱 및 처리
+  // * 데이터 파싱 및 처리
   const processedData = useMemo(() => {
     const runsResponse = workflowRunsData as WorkflowRunsApiResponse | undefined;
 
@@ -80,11 +80,11 @@ export function useWorkflowData({
       ? runsResponse!.workflow_runs
       : [];
 
-    // 워크플로우 분류 (실행 중 / 완료)
+    // * 워크플로우 분류 (실행 중 / 완료)
     const runningWorkflows = workflowRuns.filter((run) => run.status === 'in_progress');
     const completedWorkflows = workflowRuns.filter((run) => run.status !== 'in_progress');
 
-    // 페이지네이션된 완료된 실행 목록
+    // * 페이지네이션된 완료된 실행 목록
     const displayedCompletedRuns = completedWorkflows.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE,

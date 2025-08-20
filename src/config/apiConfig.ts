@@ -30,7 +30,7 @@ const createQueryParams = (params: Record<string, string>): string => {
 
 // * API 엔드포인트 정의
 export const API_ENDPOINTS = {
-  // 파이프라인 관련
+  // * 파이프라인 관련
   PIPELINES: {
     CREATE: API_PATHS.PIPELINES,
     GET: (ymlFileName: string, owner: string, repo: string) => {
@@ -44,13 +44,13 @@ export const API_ENDPOINTS = {
     },
   },
 
-  // 프리셋 관련
+  // * 프리셋 관련
   PRESETS: {
     BLOCKS: API_PATHS.PRESETS.BLOCKS,
     PIPELINES: API_PATHS.PRESETS.PIPELINES,
   },
 
-  // GitHub 관련
+  // * GitHub 관련
   GITHUB: {
     WORKFLOWS: (owner: string, repo: string) => {
       const query = createQueryParams({ owner, repo });

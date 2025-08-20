@@ -2,14 +2,14 @@
 // * - 파이프라인 생성/조회/수정/삭제 및 블록 기반 워크플로우 저장 기능 제공
 import githubClient from '../githubClient';
 import { API_ENDPOINTS } from '@/config';
-import { PipelineRequest, PipelineResponse } from './types';
+import type { PipelineRequest, PipelineResponse } from './types';
 import { removeYmlExtension } from '@/lib/utils';
-import { ServerBlock } from '@/app/editor/types';
+import type { ServerBlock } from '@/app/editor/types';
 
 export const pipelineAPI = {
   // * 파이프라인 생성
   create: (data: PipelineRequest) => {
-    // workflowName에서 .yml 확장자 제거
+    // * workflowName에서 .yml 확장자 제거
     const processedData = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),
@@ -25,7 +25,7 @@ export const pipelineAPI = {
 
   // * 파이프라인 업데이트
   update: (data: PipelineRequest) => {
-    // workflowName에서 .yml 확장자 제거
+    // * workflowName에서 .yml 확장자 제거
     const processedData = {
       ...data,
       workflowName: removeYmlExtension(data.workflowName),

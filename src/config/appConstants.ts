@@ -1,16 +1,16 @@
 import {
+  Blocks,
+  Eye,
+  FileText,
   Github,
   Home,
-  Workflow,
-  Blocks,
-  FileText,
-  Play,
-  Eye,
+  List,
   Monitor,
+  Play,
+  Settings,
   Shapes,
   Shield,
-  Settings,
-  List,
+  Workflow,
 } from 'lucide-react';
 
 // * 브랜드 정보
